@@ -20,15 +20,16 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.junit.Test;
 
+import java.net.URI;
+import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
-import java.net.URI;
-import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -36,7 +37,7 @@ import static org.hamcrest.Matchers.is;
 /**
  * @author Ludovic Orban
  */
-public class IteratorTest {
+public class IteratorTest extends BaseCachingProviderTest {
 
   private static class TestTimeSource implements TimeSource {
 
