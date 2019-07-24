@@ -71,11 +71,19 @@ ext {
   isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
 }
 
-
 assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run'
 ext {
   testJava = Jvm.current()
 }
+
+def java9Error = 'Set the property \'java9Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 9 installation'
+assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8+ to run and a configured Java 9 installation\n' + java6Error
+
+if (hasProperty('java9Home')) ext {
+    java9 = Utils.jvmForHome(new File(java9Home))
+} else if (JavaVersion.current().isJava9Compatible()) ext {
+    java9 = Jvm.current()
+} else assert 'The Ehcache 3 build requires a configured Java 9 installation\n' + java9Error
 
 if (hasProperty('testVM')) {
   File jvmHome = new File(testVM)
