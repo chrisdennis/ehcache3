@@ -1,5 +1,3 @@
----
----
 = OSGi Deployment
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]

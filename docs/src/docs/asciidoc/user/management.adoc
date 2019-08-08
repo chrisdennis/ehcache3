@@ -1,5 +1,3 @@
----
----
 = Management and Monitoring
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]

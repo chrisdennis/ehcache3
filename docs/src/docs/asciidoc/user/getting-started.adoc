@@ -2,11 +2,15 @@
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]
 endif::sourcedir38[]
-We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
 endif::notBuildingForSite[]
+
+[abstract]
+--
+We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
+--
 
 == Configuring Ehcache
 

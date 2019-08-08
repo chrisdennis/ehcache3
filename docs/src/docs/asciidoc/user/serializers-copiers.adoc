@@ -1,5 +1,3 @@
----
----
 = Serializers and Copiers
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]

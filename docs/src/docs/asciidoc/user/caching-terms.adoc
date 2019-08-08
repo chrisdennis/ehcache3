@@ -1,5 +1,3 @@
----
----
 = Terms Related to Caching
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]

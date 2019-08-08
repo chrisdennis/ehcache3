@@ -1,18 +1,13 @@
----
----
 = Ehcache Tiering Options
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]
 endif::sourcedir38[]
->>>>>>> Upgrade to Asciidoctor Gradle Plugin 2.0.0
 
 ifdef::notBuildingForSite[]
 include::{includedir}/menu.adoc[]
-
-== Introduction
-
 endif::notBuildingForSite[]
 
+== Introduction
 Ehcache supports the concept of tiered caching.
 This section covers the different available configuration options.
 It also explains rules and best practices to benefit the most from tiered caching.

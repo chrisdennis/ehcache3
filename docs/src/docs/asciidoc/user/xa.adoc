@@ -1,5 +1,3 @@
----
----
 = XA transactional caches
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]

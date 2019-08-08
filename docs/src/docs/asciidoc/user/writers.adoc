@@ -1,5 +1,3 @@
----
----
 = Cache Loaders and Writers
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]

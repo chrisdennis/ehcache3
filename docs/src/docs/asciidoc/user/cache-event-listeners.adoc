@@ -1,5 +1,3 @@
----
----
 = Cache Event Listeners
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]

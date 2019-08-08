@@ -1,5 +1,3 @@
----
----
 ifndef::sourcedir38[]
 :version: 3.8
 :notBuildingForSite: true

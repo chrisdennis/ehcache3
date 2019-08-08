@@ -1,5 +1,3 @@
----
----
 = Thread Pools
 ifndef::sourcedir38[]
 include::{includedir}/common.adoc[]
