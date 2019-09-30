@@ -22,7 +22,7 @@ import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.SizeofType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;

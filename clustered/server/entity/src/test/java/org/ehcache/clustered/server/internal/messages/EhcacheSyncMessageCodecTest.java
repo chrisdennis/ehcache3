@@ -19,8 +19,8 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.TestClientSourceId;
-import org.junit.Assert;
-import org.junit.Test;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,9 +51,9 @@ public class EhcacheSyncMessageCodecTest {
     EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, encodedMessage);
     Map<Long, Chain> decodedChainMap = decoded.getChainMap();
     assertThat(decodedChainMap).hasSize(3);
-    Assert.assertThat(decodedChainMap.get(1L), matchesChain(chain));
-    Assert.assertThat(decodedChainMap.get(2L), matchesChain(chain));
-    Assert.assertThat(decodedChainMap.get(3L), matchesChain(chain));
+    MatcherAssert.assertThat(decodedChainMap.get(1L), matchesChain(chain));
+    MatcherAssert.assertThat(decodedChainMap.get(2L), matchesChain(chain));
+    MatcherAssert.assertThat(decodedChainMap.get(3L), matchesChain(chain));
   }
 
   @Test

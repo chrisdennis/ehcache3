@@ -23,7 +23,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 

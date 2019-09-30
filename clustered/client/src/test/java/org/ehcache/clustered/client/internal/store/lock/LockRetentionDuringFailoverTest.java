@@ -28,9 +28,9 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -48,7 +48,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class LockRetentionDuringFailoverTest {
 
@@ -61,7 +61,7 @@ public class LockRetentionDuringFailoverTest {
   private LatchedLoaderWriter loaderWriter;
   private Cache<Long, String> cache;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     this.clusterControl = PassthroughTestHelpers.createActivePassive(STRIPENAME,
             server -> {
@@ -98,7 +98,7 @@ public class LockRetentionDuringFailoverTest {
 
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     UnitTestConnectionService.removeStripe(STRIPENAME);
     clusterControl.tearDown();

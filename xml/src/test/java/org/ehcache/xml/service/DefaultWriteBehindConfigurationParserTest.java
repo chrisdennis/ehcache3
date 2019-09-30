@@ -23,7 +23,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 

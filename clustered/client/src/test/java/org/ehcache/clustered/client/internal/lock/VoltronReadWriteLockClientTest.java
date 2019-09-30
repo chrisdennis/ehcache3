@@ -24,61 +24,33 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.connection.entity.EntityRef;
-import org.terracotta.exception.EntityNotFoundException;
 
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import org.junit.Before;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.terracotta.exception.EntityNotProvidedException;
 
+@ExtendWith(PassthroughServer.class)
 public class VoltronReadWriteLockClientTest {
-
-  private static final URI TEST_URI = URI.create("http://example.com:666");
-
-  @BeforeClass
-  public static void setupServer() {
-    UnitTestConnectionService.add(TEST_URI,
-            new UnitTestConnectionService.PassthroughServerBuilder()
-                    .clientEntityService(new VoltronReadWriteLockEntityClientService())
-                    .serverEntityService(new VoltronReadWriteLockServerEntityService())
-                    .build());
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    UnitTestConnectionService.remove(TEST_URI);
-  }
-
-  @Before
-  public void cleanup() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
-      EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
-      try {
-        assertThat(ref.destroy(), is(true));
-      } catch (EntityNotFoundException e) {
-        //expected
-      }
-    }
-  }
 
   private EntityRef<VoltronReadWriteLockClient, Void, Void> getEntityReference(Connection connection) throws EntityNotProvidedException {
     return connection.getEntityRef(VoltronReadWriteLockClient.class, 1, "TestEntity");
   }
 
   @Test
-  public void testWriteLockExcludesRead() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+  public void testWriteLockExcludesRead(@Cluster URI clusterUri) throws Exception {
+    try (Connection connection = ConnectionFactory.connect(clusterUri, new Properties())) {
       EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
@@ -94,8 +66,8 @@ public class VoltronReadWriteLockClientTest {
   }
 
   @Test
-  public void testWriteLockExcludesWrite() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+  public void testWriteLockExcludesWrite(@Cluster URI clusterUri) throws Exception {
+    try (Connection connection = ConnectionFactory.connect(clusterUri, new Properties())) {
       EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
@@ -111,8 +83,8 @@ public class VoltronReadWriteLockClientTest {
   }
 
   @Test
-  public void testReadLockExcludesWrite() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+  public void testReadLockExcludesWrite(@Cluster URI clusterUri) throws Exception {
+    try (Connection connection = ConnectionFactory.connect(clusterUri, new Properties())) {
       EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
       VoltronReadWriteLockClient locker = ref.fetchEntity(null);
@@ -127,8 +99,8 @@ public class VoltronReadWriteLockClientTest {
   }
 
   @Test
-  public void testReadLockAllowsRead() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+  public void testReadLockAllowsRead(@Cluster URI clusterUri) throws Exception {
+    try (Connection connection = ConnectionFactory.connect(clusterUri, new Properties())) {
       EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
       VoltronReadWriteLockClient locker = ref.fetchEntity(null);
@@ -144,8 +116,8 @@ public class VoltronReadWriteLockClientTest {
   }
 
   @Test
-  public void testReadUnblocksAfterWriteReleased() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+  public void testReadUnblocksAfterWriteReleased(@Cluster URI clusterUri) throws Exception {
+    try (Connection connection = ConnectionFactory.connect(clusterUri, new Properties())) {
       final EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
@@ -177,8 +149,8 @@ public class VoltronReadWriteLockClientTest {
   }
 
   @Test
-  public void testWriteUnblocksAfterWriteReleased() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+  public void testWriteUnblocksAfterWriteReleased(@Cluster URI clusterUri) throws Exception {
+    try (Connection connection = ConnectionFactory.connect(clusterUri, new Properties())) {
       final EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 
@@ -210,8 +182,8 @@ public class VoltronReadWriteLockClientTest {
   }
 
   @Test
-  public void testWriteUnblocksAfterReadReleased() throws Exception {
-    try (Connection connection = ConnectionFactory.connect(TEST_URI, new Properties())) {
+  public void testWriteUnblocksAfterReadReleased(@Cluster URI clusterUri) throws Exception {
+    try (Connection connection = ConnectionFactory.connect(clusterUri, new Properties())) {
       final EntityRef<VoltronReadWriteLockClient, Void, Void> ref = getEntityReference(connection);
       ref.create(null);
 

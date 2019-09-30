@@ -20,7 +20,9 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.service.ClusterTierValidationException;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -28,9 +30,8 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -42,33 +43,20 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.*;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 4)
 public class BasicClusteredLoaderWriterTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/clustered-loader-writer");
-
-  @Before
-  public void definePassthroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-            new UnitTestConnectionService.PassthroughServerBuilder()
-                    .resource("primary-server-resource", 4, MemoryUnit.MB)
-                    .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
-
   @Test
-  public void testAllClientsNeedToHaveLoaderWriterConfigured() {
+  public void testAllClientsNeedToHaveLoaderWriterConfigured(@Cluster URI clusterUri) {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
     CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -82,7 +70,7 @@ public class BasicClusteredLoaderWriterTest {
     try {
       CacheManager anotherManager = CacheManagerBuilder
               .newCacheManagerBuilder()
-              .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+              .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
               .withCache("cache-1", withoutLoaderWriter)
               .build(true);
     } catch (RuntimeException e) {
@@ -92,14 +80,14 @@ public class BasicClusteredLoaderWriterTest {
   }
 
   @Test
-  public void testBasicClusteredCacheLoaderWriter() {
+  public void testBasicClusteredCacheLoaderWriter(@Cluster URI clusterUri) {
 
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
     CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -114,7 +102,7 @@ public class BasicClusteredLoaderWriterTest {
   }
 
   @Test
-  public void testLoaderWriterMultipleClients() {
+  public void testLoaderWriterMultipleClients(@Cluster URI clusterUri) {
 
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
 
@@ -122,13 +110,13 @@ public class BasicClusteredLoaderWriterTest {
 
     CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -149,20 +137,20 @@ public class BasicClusteredLoaderWriterTest {
   }
 
   @Test
-  public void testCASOpsMultipleClients() {
+  public void testCASOpsMultipleClients(@Cluster URI clusterUri) {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
 
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
     CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -193,13 +181,13 @@ public class BasicClusteredLoaderWriterTest {
   }
 
   @Test
-  public void testBulkOps() {
+  public void testBulkOps(@Cluster URI clusterUri) {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
     CacheManager cacheManager = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
@@ -227,20 +215,20 @@ public class BasicClusteredLoaderWriterTest {
   }
 
   @Test
-  public void testCASOps() {
+  public void testCASOps(@Cluster URI clusterUri) {
     TestCacheLoaderWriter loaderWriter = new TestCacheLoaderWriter();
 
     CacheConfiguration<Long, String> cacheConfiguration = getCacheConfiguration(loaderWriter);
 
     CacheManager cacheManager1 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 
     CacheManager cacheManager2 = CacheManagerBuilder
             .newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("cache-1", cacheConfiguration)
             .build(true);
 

@@ -29,10 +29,9 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.terracotta.context.ContextManager;
@@ -59,7 +58,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
 /**
@@ -78,7 +77,7 @@ public abstract class EhcacheBasicCrudBase {
   @Mock
   protected ResilienceStrategy<String, String> resilienceStrategy;
 
-  @Before
+  @BeforeEach
   public void initMocks() {
     MockitoAnnotations.initMocks(this);
   }
@@ -661,7 +660,6 @@ public abstract class EhcacheBasicCrudBase {
       }
     }
 
-    @Factory
     public static Matcher<Number> equalTo(final Number expected) {
       return new StatisticMatcher(Number.class, expected);
     }

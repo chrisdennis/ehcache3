@@ -16,19 +16,18 @@
 package org.ehcache.clustered.client;
 
 import org.ehcache.CacheManager;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.client.service.EntityService;
-import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.exception.EntityAlreadyExistsException;
 
 import java.net.URI;
@@ -38,33 +37,20 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 4)
 public class EntityServiceTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/EntityServiceTest");
-
-  @Before
-  public void definePassthroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-        new PassthroughServerBuilder()
-            .resource("primary-server-resource", 4, MemoryUnit.MB)
-            .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
-
   @Test
-  public void test() throws Exception {
+  public void test(@Cluster URI clusterUri) throws Exception {
     ClusteredManagementService clusteredManagementService = new ClusteredManagementService();
 
     CacheManager cacheManager = newCacheManagerBuilder()
         .using(clusteredManagementService)
-        .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+        .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
         .build(true);
 
     assertThat(clusteredManagementService.clientEntityFactory, is(notNullValue()));

@@ -16,7 +16,7 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.core.statistics.LatencyHistogramConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

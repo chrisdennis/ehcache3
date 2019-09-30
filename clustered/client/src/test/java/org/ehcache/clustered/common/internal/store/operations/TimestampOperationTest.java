@@ -20,7 +20,7 @@ import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
@@ -28,10 +28,10 @@ import static org.ehcache.clustered.common.internal.store.operations.Operation.B
 import static org.ehcache.clustered.common.internal.store.operations.Operation.LONG_SIZE_BYTES;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TimestampOperationTest {
 
@@ -77,10 +77,10 @@ public class TimestampOperationTest {
     assertEquals(key, decodedOperation.getKey());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testDecodeThrowsOnInvalidType() throws Exception {
     ByteBuffer buffer = ByteBuffer.wrap(new byte[] {10});
-    new TimestampOperation<Long, String>(buffer, keySerializer);
+    assertThrows(IllegalArgumentException.class, () -> new TimestampOperation<Long, String>(buffer, keySerializer));
   }
 
   @Test

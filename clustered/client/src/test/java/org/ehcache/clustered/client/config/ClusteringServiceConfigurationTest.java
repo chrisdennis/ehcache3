@@ -21,9 +21,7 @@ import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -35,6 +33,7 @@ import java.util.Properties;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SuppressWarnings("deprecation")
 public class ClusteringServiceConfigurationTest {
@@ -43,19 +42,14 @@ public class ClusteringServiceConfigurationTest {
   private static final Iterable<InetSocketAddress> SERVERS = Collections.singletonList(InetSocketAddress.createUnresolved("localhost", 9450));
   private static final String CACHE_MANAGER = "cacheManager";
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   @Test
   public void testGetConnectionUrlNull() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration((URI)null);
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration((URI)null));
   }
 
   @Test
   public void testGetServersNull() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration(null, CACHE_MANAGER);
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration(null, CACHE_MANAGER));
   }
 
   @Test
@@ -103,38 +97,32 @@ public class ClusteringServiceConfigurationTest {
 
   @Test
   public void testTimeoutsCannotBeNull2ArgsWithURI() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration(DEFAULT_URI, (Timeouts) null);
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration(DEFAULT_URI, (Timeouts) null));
   }
 
   @Test
   public void testTimeoutsCannotBeNull2ArgsWithServers() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null);
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null));
   }
 
   @Test
   public void testTimeoutsCannotBeNull3ArgsWithURI() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration(DEFAULT_URI, null, new ServerSideConfiguration(Collections.emptyMap()));
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration(DEFAULT_URI, null, new ServerSideConfiguration(Collections.emptyMap())));
   }
 
   @Test
   public void testTimeoutsCannotBeNull3ArgsWithServers() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null, new ServerSideConfiguration(Collections.emptyMap()));
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null, new ServerSideConfiguration(Collections.emptyMap())));
   }
 
   @Test
   public void testTimeoutsCannotBeNull4ArgsWithURI() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration(DEFAULT_URI, null, true, new ServerSideConfiguration(Collections.emptyMap()));
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration(DEFAULT_URI, null, true, new ServerSideConfiguration(Collections.emptyMap())));
   }
 
   @Test
   public void testTimeoutsCannotBeNull4ArgsWithServers() {
-    expectedException.expect(NullPointerException.class);
-    new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null, true, new ServerSideConfiguration(Collections.emptyMap()));
+    assertThrows(NullPointerException.class, () -> new ClusteringServiceConfiguration(SERVERS, CACHE_MANAGER, null, true, new ServerSideConfiguration(Collections.emptyMap())));
   }
 
   @Test

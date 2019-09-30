@@ -30,7 +30,7 @@ import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
@@ -42,7 +42,7 @@ import java.util.Map;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class WriteBehindTestBase extends ClusteredTests {
 
@@ -62,7 +62,7 @@ public class WriteBehindTestBase extends ClusteredTests {
 
   private RecordingLoaderWriter<Long, String> loaderWriter;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     loaderWriter = new RecordingLoaderWriter<>();
   }

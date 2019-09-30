@@ -17,7 +17,7 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.expiry.ExpiryPolicy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 

@@ -29,7 +29,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.service.Service;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;

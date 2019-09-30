@@ -24,9 +24,9 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
@@ -42,14 +42,14 @@ public class OnHeapEvictionStrategyTest {
 
   private CacheManager cacheManager;
 
-  @Before
+  @BeforeEach
   public void before() {
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .using(timeSourceConfiguration)
       .build(true);
   }
 
-  @After
+  @AfterEach
   public void after() {
     cacheManager.close();
   }

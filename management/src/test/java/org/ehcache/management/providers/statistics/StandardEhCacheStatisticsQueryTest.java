@@ -15,10 +15,11 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -33,69 +34,55 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@RunWith(Parameterized.class)
+@Timeout(60)
 public class StandardEhCacheStatisticsQueryTest {
-
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(60);
-
-  @Rule
-  public final TemporaryFolder diskPath = new TemporaryFolder();
 
   private static final long CACHE_HIT_TOTAL = 4;
 
-  private final ResourcePools resources;
-  private final List<String> statNames;
-  private final List<Long> tierExpectedValues;
-  private final Long cacheExpectedValue;
+  static class Params implements ArgumentsProvider {
 
-  @Parameterized.Parameters
-  public static Collection<Object[]> data() {
-    return asList(new Object[][] {
-    //1 tier
-    { newResourcePoolsBuilder().heap(1, MB), singletonList("OnHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
-    { newResourcePoolsBuilder().offheap(1, MB), singletonList("OffHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
-    { newResourcePoolsBuilder().disk(1, MB), singletonList("Disk:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
+    @Override
+    public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+      return Stream.of(
+        //1 tier
+        arguments(newResourcePoolsBuilder().heap(1, MB), singletonList("OnHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL),
+        arguments(newResourcePoolsBuilder().offheap(1, MB), singletonList("OffHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL),
+        arguments(newResourcePoolsBuilder().disk(1, MB), singletonList("Disk:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL),
 
-    //2 tiers
-    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL},
-    { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), Arrays.asList("OnHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL},
+        //2 tiers
+        arguments(newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL),
+        arguments(newResourcePoolsBuilder().heap(1, MB).disk(2, MB), Arrays.asList("OnHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL),
 
-    //3 tiers
-    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,0L,2L), CACHE_HIT_TOTAL},
-    { newResourcePoolsBuilder().heap(1, ENTRIES).offheap(2, MB).disk(3, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount","Disk:HitCount"), Arrays.asList(1L,1L,2L), CACHE_HIT_TOTAL},
-    });
+        //3 tiers
+        arguments(newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,0L,2L), CACHE_HIT_TOTAL),
+        arguments(newResourcePoolsBuilder().heap(1, ENTRIES).offheap(2, MB).disk(3, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount","Disk:HitCount"), Arrays.asList(1L,1L,2L), CACHE_HIT_TOTAL)
+      );
+    }
   }
 
-  public StandardEhCacheStatisticsQueryTest(Builder<? extends ResourcePools> resources, List<String> statNames, List<Long> tierExpectedValues, Long cacheExpectedValue) {
-    this.resources = resources.build();
-    this.statNames = statNames;
-    this.tierExpectedValues = tierExpectedValues;
-    this.cacheExpectedValue = cacheExpectedValue;
-  }
-
-  @Test
-  public void test() throws IOException {
+  @ParameterizedTest
+  @ArgumentsSource(Params.class)
+  public void test(Builder<? extends ResourcePools> resources, List<String> statNames, List<Long> tierExpectedValues, Long cacheExpectedValue, @TempDir File persistenceDir) throws IOException {
 
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
@@ -108,7 +95,7 @@ public class StandardEhCacheStatisticsQueryTest {
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("myCache", cacheConfiguration)
       .using(managementRegistry)
-      .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+      .using(new DefaultPersistenceConfiguration(persistenceDir))
       .build(true)) {
 
       Context context = StatsUtil.createContext(managementRegistry);
@@ -128,11 +115,11 @@ public class StandardEhCacheStatisticsQueryTest {
 
       long tierHitCountSum = 0;
       for (int i = 0; i < statNames.size(); i++) {
-        tierHitCountSum += getAndAssertExpectedValueFromCounter(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
+        tierHitCountSum += getAndAssertExpectedValueFromCounter(cacheConfiguration.getResourcePools(), statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
       }
 
-      long cacheHitCount = getAndAssertExpectedValueFromCounter("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
-      Assert.assertThat(tierHitCountSum, is(cacheHitCount));
+      long cacheHitCount = getAndAssertExpectedValueFromCounter(cacheConfiguration.getResourcePools(),"Cache:HitCount", context, managementRegistry, cacheExpectedValue);
+     assertThat(tierHitCountSum, is(cacheHitCount));
 
     }
   }
@@ -142,7 +129,7 @@ public class StandardEhCacheStatisticsQueryTest {
          This should only occur if the stats value is different from your expectedResult, which may happen if the stats calculations
          change, the stats value isn't accessible or if you enter the wrong expectedResult.
   */
-  public long getAndAssertExpectedValueFromCounter(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
+  public long getAndAssertExpectedValueFromCounter(ResourcePools resources, String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
 
     StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
       .queryStatistics(singletonList(statName))

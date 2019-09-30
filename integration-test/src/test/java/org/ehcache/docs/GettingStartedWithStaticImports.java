@@ -17,7 +17,7 @@
 package org.ehcache.docs;
 
 import org.ehcache.CacheManager;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 // CSOFF: AvoidStaticImport
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;

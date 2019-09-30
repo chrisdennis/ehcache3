@@ -16,9 +16,9 @@
 
 package org.ehcache.jsr107;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -26,7 +26,6 @@ import java.util.Set;
 
 import javax.cache.Cache;
 import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
@@ -34,7 +33,6 @@ import javax.cache.spi.CachingProvider;
 
 import static java.util.Collections.singleton;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -50,13 +48,13 @@ public class LoaderWriterConfigTest {
   private CacheWriter<Long, String> cacheWriter;
   private CachingProvider cachingProvider;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     cachingProvider = Caching.getCachingProvider();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     cachingProvider.close();
   }

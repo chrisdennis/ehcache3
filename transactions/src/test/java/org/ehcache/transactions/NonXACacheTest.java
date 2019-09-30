@@ -27,13 +27,13 @@ import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.core.IsIterableContaining.hasItems;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Ensures that a non-XA {@code CacheManager} can be created when XA classes are

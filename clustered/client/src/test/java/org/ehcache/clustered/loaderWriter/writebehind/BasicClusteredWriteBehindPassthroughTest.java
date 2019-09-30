@@ -21,7 +21,9 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -29,9 +31,9 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -43,24 +45,11 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 4)
 public class BasicClusteredWriteBehindPassthroughTest {
-
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/clustered-write-behind");
-
-  @Before
-  public void definePassthroughServer() {
-    UnitTestConnectionService.add(CLUSTER_URI,
-            new UnitTestConnectionService.PassthroughServerBuilder()
-                    .resource("primary-server-resource", 4, MemoryUnit.MB)
-                    .build());
-  }
-
-  @After
-  public void removePassthroughServer() {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
 
   private RecordingLoaderWriter<Long, String> loaderWriter;
   private final List<Record> cacheRecords = new ArrayList<>();
@@ -68,14 +57,14 @@ public class BasicClusteredWriteBehindPassthroughTest {
   private static final String CACHE_NAME = "cache-1";
   private static final long KEY = 1L;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     loaderWriter = new RecordingLoaderWriter<>();
   }
 
   @Test
-  public void testBasicClusteredWriteBehind() {
-    try (PersistentCacheManager cacheManager = createCacheManager()) {
+  public void testBasicClusteredWriteBehind(@Cluster URI clusterUri) {
+    try (PersistentCacheManager cacheManager = createCacheManager(clusterUri)) {
       Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
 
       put(cache, String.valueOf(0));
@@ -89,9 +78,9 @@ public class BasicClusteredWriteBehindPassthroughTest {
   }
 
   @Test
-  public void testWriteBehindMultipleClients() {
-    try (PersistentCacheManager cacheManager1 = createCacheManager();
-         PersistentCacheManager cacheManager2 = createCacheManager()) {
+  public void testWriteBehindMultipleClients(@Cluster URI clusterUri) {
+    try (PersistentCacheManager cacheManager1 = createCacheManager(clusterUri);
+         PersistentCacheManager cacheManager2 = createCacheManager(clusterUri)) {
       Cache<Long, String> client1 = cacheManager1.getCache(CACHE_NAME, Long.class, String.class);
       Cache<Long, String> client2 = cacheManager2.getCache(CACHE_NAME, Long.class, String.class);
 
@@ -118,8 +107,8 @@ public class BasicClusteredWriteBehindPassthroughTest {
   }
 
   @Test
-  public void testClusteredWriteBehindCAS() {
-    try (PersistentCacheManager cacheManager = createCacheManager()) {
+  public void testClusteredWriteBehindCAS(@Cluster URI clusterUri) {
+    try (PersistentCacheManager cacheManager = createCacheManager(clusterUri)) {
       Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
       putIfAbsent(cache, "First value", true);
       assertValue(cache, "First value");
@@ -147,8 +136,8 @@ public class BasicClusteredWriteBehindPassthroughTest {
   }
 
   @Test
-  public void testClusteredWriteBehindLoading() {
-    try (CacheManager cacheManager = createCacheManager()) {
+  public void testClusteredWriteBehindLoading(@Cluster URI clusterUri) {
+    try (CacheManager cacheManager = createCacheManager(clusterUri)) {
       Cache<Long, String> cache = cacheManager.getCache(CACHE_NAME, Long.class, String.class);
 
       put(cache, "Some value");
@@ -241,7 +230,7 @@ public class BasicClusteredWriteBehindPassthroughTest {
     }
   }
 
-  private PersistentCacheManager createCacheManager() {
+  private PersistentCacheManager createCacheManager(URI clusterUri) {
     CacheConfiguration<Long, String> cacheConfiguration =
       newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
                                                                                  .heap(10, EntryUnit.ENTRIES)
@@ -254,7 +243,7 @@ public class BasicClusteredWriteBehindPassthroughTest {
 
     return CacheManagerBuilder
       .newCacheManagerBuilder()
-      .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+      .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
       .withCache(CACHE_NAME, cacheConfiguration)
       .build(true);
   }

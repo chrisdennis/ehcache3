@@ -18,16 +18,17 @@ package org.ehcache.clustered.client.internal.config;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 public class DedicatedClusteredResourcePoolImplTest {
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void validateUpdate() throws Exception {
     DedicatedClusteredResourcePoolImpl resourcePool = new DedicatedClusteredResourcePoolImpl("foo", 3, MemoryUnit.MB);
-    resourcePool.validateUpdate(mock(ResourcePool.class));
+    assertThrows(UnsupportedOperationException.class, () -> resourcePool.validateUpdate(mock(ResourcePool.class)));
   }
 
 }

@@ -18,7 +18,7 @@ package org.ehcache.jsr107;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;

@@ -16,15 +16,11 @@
 package org.ehcache.docs.plugs;
 
 import org.ehcache.spi.copy.Copier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Ludovic Orban
  */
 public class StringCopier implements Copier<String> {
-  private static final Logger LOG = LoggerFactory.getLogger(StringCopier.class);
-
   private static final Copier<String> STRING_COPIER = new StringCopier();
 
   public static Copier<String> copier() {
@@ -33,13 +29,11 @@ public class StringCopier implements Copier<String> {
 
   @Override
   public String copyForRead(String obj) {
-    LOG.debug("Copying for read {}", obj);
     return obj;
   }
 
   @Override
   public String copyForWrite(String obj) {
-    LOG.debug("Copying for write {}", obj);
     return obj;
   }
 }

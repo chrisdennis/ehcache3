@@ -19,8 +19,8 @@ package org.ehcache.jsr107;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.util.Properties;
@@ -32,9 +32,9 @@ import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
 import org.ehcache.config.Configuration;
-import org.junit.Test;
 
 import com.pany.domain.Customer;
+import org.junit.jupiter.api.Test;
 
 public class EhCachingProviderTest {
 

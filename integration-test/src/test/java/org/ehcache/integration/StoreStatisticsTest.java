@@ -27,9 +27,8 @@ import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
@@ -38,7 +37,6 @@ import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -46,8 +44,8 @@ import java.util.Set;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
@@ -60,9 +58,6 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
  * @author Ludovic Orban
  */
 public class StoreStatisticsTest {
-
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
 
   @Test
   public void test1TierStoreStatsAvailableInContextManager() throws Exception {
@@ -92,7 +87,7 @@ public class StoreStatisticsTest {
 
       assertNull(cache.get(0L));
 
-      assertNull("Statistics are disabled so nothing is expected here", StoreStatisticsTest.<StoreOperationOutcomes.GetOutcome>findStat(cache, "get", "OnHeap"));
+      assertNull(StoreStatisticsTest.<StoreOperationOutcomes.GetOutcome>findStat(cache, "get", "OnHeap"), "Statistics are disabled so nothing is expected here");
     }
   }
 
@@ -121,9 +116,9 @@ public class StoreStatisticsTest {
   }
 
   @Test
-  public void test3TiersStoreStatsAvailableInContextManager() throws Exception {
+  public void test3TiersStoreStatsAvailableInContextManager(@TempDir File persistenceDir) throws Exception {
     try(PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "StoreStatisticsTest")))
+        .with(new CacheManagerPersistenceConfiguration(persistenceDir))
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 newResourcePoolsBuilder()
@@ -175,9 +170,4 @@ public class StoreStatisticsTest {
        throw new RuntimeException("query for unique stat '" + statName + "' with tag '" + tag + "' failed; found " + result.size() + " instance(s)");
     }
   }
-
-  private String getStoragePath() throws IOException {
-    return folder.newFolder().getAbsolutePath();
-  }
-
 }

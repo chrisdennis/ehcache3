@@ -90,6 +90,10 @@ public class PersistentJournal<K> extends TransientJournal<K> {
     this.keySerializer = keySerializer;
   }
 
+  public File getDirectory() {
+    return directory;
+  }
+
   @Override
   public void open() throws IOException {
     File file = new File(directory, JOURNAL_FILENAME);

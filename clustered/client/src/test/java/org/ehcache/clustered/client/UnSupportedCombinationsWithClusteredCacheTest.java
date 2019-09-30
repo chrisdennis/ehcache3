@@ -23,7 +23,8 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.StateTransitionException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
@@ -37,45 +38,32 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * This class should be removed as and when following features are done.
  */
+@ExtendWith(PassthroughServer.class)
+@PassthroughServer.ServerResource(name = "primary-server-resource", size = 128)
 public class UnSupportedCombinationsWithClusteredCacheTest {
 
-  @Before
-  public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.add("terracotta://localhost/my-application",
-        new UnitTestConnectionService.PassthroughServerBuilder()
-            .resource("primary-server-resource", 128, MemoryUnit.MB)
-            .resource("secondary-server-resource", 96, MemoryUnit.MB)
-            .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost/my-application");
-  }
-
   @Test
-  public void testClusteredCacheWithSynchronousEventListeners() {
+  public void testClusteredCacheWithSynchronousEventListeners(@Cluster URI clusterUri) {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(new TestEventListener(), EventType.CREATED, EventType.UPDATED)
         .unordered().synchronous();
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager"))
             .autoCreate(c -> c));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
@@ -95,7 +83,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
   }
 
   @Test
-  public void testClusteredCacheWithXA() throws Exception {
+  public void testClusteredCacheWithXA(@Cluster URI clusterUri) throws Exception {
     TransactionManagerServices.getConfiguration().setJournal("null");
 
     BitronixTransactionManager transactionManager =
@@ -105,7 +93,7 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     try {
       CacheManagerBuilder.newCacheManagerBuilder()
           .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
-          .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application")).autoCreate(c -> c))
+          .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
           .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))

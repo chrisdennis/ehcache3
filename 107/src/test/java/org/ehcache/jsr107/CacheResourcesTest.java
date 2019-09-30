@@ -16,7 +16,7 @@
 package org.ehcache.jsr107;
 
 import static java.util.Collections.emptyMap;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.withSettings;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.withSettings;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Closeable;
 import java.util.HashMap;

@@ -26,7 +26,10 @@ dependencies {
   implementation project(':impl')
   implementation "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
 
-  testImplementation 'org.xmlunit:xmlunit-core:2.6.0', 'org.xmlunit:xmlunit-matchers:2.6.0'
+  testImplementation('org.xmlunit:xmlunit-matchers:2.6.3') {
+    exclude group:'org.hamcrest'
+  }
+
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-fluent-api:3.0'
   xjcClasspath 'org.jvnet.jaxb2_commons:jaxb2-basics-annotate:1.1.0'
 }

@@ -27,29 +27,30 @@ import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.util.Factory;
 
+import java.io.File;
 import java.io.IOException;
 
+import static java.io.File.createTempFile;
 import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.impl.internal.store.disk.OffHeapDiskStore.persistent;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 public class EhcachePersistentSegmentTest {
 
-  @Rule
-  public final TemporaryFolder folder = new TemporaryFolder();
+  @TempDir
+  public File folder;
 
   @SuppressWarnings("unchecked")
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegmentWithAdvisorAndListener() throws IOException {
@@ -70,7 +71,7 @@ public class EhcachePersistentSegmentTest {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining());
-      MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
+      MappedPageSource pageSource = new MappedPageSource(createTempFile("storage", ".data", folder), true, configuration.getMaximumSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
       PersistentPortability<String> keyPortability = persistent(new SerializerPortability<>(keySerializer));

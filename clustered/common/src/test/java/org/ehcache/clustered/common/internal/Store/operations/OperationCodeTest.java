@@ -16,12 +16,12 @@
 package org.ehcache.clustered.common.internal.Store.operations;
 
 import org.ehcache.clustered.common.internal.store.operations.OperationCode;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
 public class OperationCodeTest {
 

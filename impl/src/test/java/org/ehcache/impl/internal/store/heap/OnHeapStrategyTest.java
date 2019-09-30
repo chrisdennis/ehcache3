@@ -19,11 +19,10 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.internal.TestTimeSource;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 
@@ -35,10 +34,8 @@ import static org.mockito.Mockito.when;
 /**
  * @author Henri Tremblay
  */
+@ExtendWith(MockitoExtension.class)
 public class OnHeapStrategyTest {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
   private OnHeapStore<Integer, String> store;
@@ -107,7 +104,8 @@ public class OnHeapStrategyTest {
     strategy = OnHeapStrategy.strategy(store, ExpiryPolicy.NO_EXPIRY, timeSource);
 
     TestOnHeapValueHolder mapping = new TestOnHeapValueHolder(10);
-    when(policy.getExpiryForAccess(1, mapping)).thenReturn(null);
+    //mockito returns null by default
+    //when(policy.getExpiryForAccess(1, mapping)).thenReturn(null);
 
     strategy.setAccessAndExpiryTimeWhenCallerOutsideLock(1, mapping, timeSource.getTimeMillis());
 

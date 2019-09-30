@@ -16,46 +16,32 @@
 
 package org.ehcache.impl.serialization;
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.testing.extensions.Randomness;
+import org.ehcache.testing.extensions.Randomness.Random;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Random;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@ExtendWith(Randomness.class)
 public class ByteArraySerializerTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ByteArraySerializerTest.class);
-
-  @Test
-  public void testCanSerializeAndDeserialize() throws ClassNotFoundException {
+  @RepeatedTest(100)
+  public void testCanSerializeAndDeserialize(@Random(size = 64) byte[] bytes) {
     ByteArraySerializer serializer = new ByteArraySerializer();
-    long now = System.currentTimeMillis();
-    LOGGER.info("ByteArraySerializer test with seed {}", now);
-    Random random = new Random(now);
-
-    for (int i = 0; i < 100; i++) {
-      byte[] bytes = new byte[64];
-      random.nextBytes(bytes);
-      byte[] read = serializer.read(serializer.serialize(bytes));
-
-      assertThat(Arrays.equals(read, bytes), is(true));
-    }
+    byte[] read = serializer.read(serializer.serialize(bytes));
+    assertThat(Arrays.equals(read, bytes), is(true));
   }
 
   @Test
-  public void testEquals() throws Exception {
+  public void testEquals(@Random(size = 64) byte[] bytes) {
     ByteArraySerializer serializer = new ByteArraySerializer();
-    long now = System.currentTimeMillis();
-    LOGGER.info("ByteArraySerializer test with seed {}", now);
-    Random random = new Random(now);
-
-    byte[] bytes = new byte[64];
-    random.nextBytes(bytes);
 
     ByteBuffer serialized = serializer.serialize(bytes);
 
@@ -67,13 +53,13 @@ public class ByteArraySerializerTest {
     assertThat(Arrays.equals(read, bytes), is(true));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testReadThrowsOnNullInput() throws ClassNotFoundException {
-    new ByteArraySerializer().read(null);
+  @Test
+  public void testReadThrowsOnNullInput() {
+    assertThrows(NullPointerException.class, () -> new ByteArraySerializer().read(null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testSerializeThrowsOnNullInput() {
-    new ByteArraySerializer().serialize(null);
+    assertThrows(NullPointerException.class, () -> new ByteArraySerializer().serialize(null));
   }
 }

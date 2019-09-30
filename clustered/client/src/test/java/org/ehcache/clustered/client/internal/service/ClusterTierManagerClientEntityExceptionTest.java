@@ -16,32 +16,24 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.SimpleClusterTierManagerClientEntity;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.store.StoreConfigurationImpl;
-import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * This class includes tests to ensure server-side exceptions returned as responses to
@@ -49,32 +41,20 @@ import static org.junit.Assert.*;
  * relies on {@link DefaultClusteringService} to set up conditions for the test and
  * is placed accordingly.
  */
+@ExtendWith(PassthroughServer.class)
+@PassthroughServer.ServerResource(name = "defaultResource", size = 128)
+@PassthroughServer.ServerResource(name = "serverResource1", size = 32)
+@PassthroughServer.ServerResource(name = "serverResource2", size = 32)
 public class ClusterTierManagerClientEntityExceptionTest {
-  private static final String CLUSTER_URI_BASE = "terracotta://example.com:9540/";
-
-  @Before
-  public void definePassThroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI_BASE,
-        new UnitTestConnectionService.PassthroughServerBuilder()
-            .resource("defaultResource", 128, MemoryUnit.MB)
-            .resource("serverResource1", 32, MemoryUnit.MB)
-            .resource("serverResource2", 32, MemoryUnit.MB)
-            .build());
-  }
-
-  @After
-  public void removePassThroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI_BASE);
-  }
 
   /**
    * Tests to ensure that a {@link ClusterException ClusterException}
    * originating in the server is properly wrapped on the client before being re-thrown.
    */
   @Test
-  public void testServerExceptionPassThrough() throws Exception {
+  public void testServerExceptionPassThrough(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration creationConfig =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -86,7 +66,7 @@ public class ClusterTierManagerClientEntityExceptionTest {
     creationService.stop();
 
     ClusteringServiceConfiguration accessConfig =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
           .expecting(server -> server
             .defaultServerResource("different"))
           .build();
@@ -136,29 +116,5 @@ public class ClusterTierManagerClientEntityExceptionTest {
     } finally {
       accessService.stop();
     }
-  }
-
-  private <K, V> Store.Configuration<K, V> getDedicatedStoreConfig(
-      String targetResource, DefaultSerializationProvider serializationProvider, Class<K> keyType, Class<V> valueType)
-      throws org.ehcache.spi.serialization.UnsupportedTypeException {
-    return new StoreConfigurationImpl<>(
-      CacheConfigurationBuilder.newCacheConfigurationBuilder(keyType, valueType,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated(targetResource, 8, MemoryUnit.MB)))
-        .build(),
-      StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY,
-      serializationProvider.createKeySerializer(keyType, getClass().getClassLoader()),
-      serializationProvider.createValueSerializer(valueType, getClass().getClassLoader()));
-  }
-
-  private ClusteringService.ClusteredCacheIdentifier getClusteredCacheIdentifier(
-      DefaultClusteringService service, String cacheAlias)
-      throws CachePersistenceException {
-
-    ClusteringService.ClusteredCacheIdentifier clusteredCacheIdentifier = (ClusteringService.ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier(cacheAlias, null);
-    if (clusteredCacheIdentifier != null) {
-      return clusteredCacheIdentifier;
-    }
-    throw new AssertionError("ClusteredCacheIdentifier not available for configuration");
   }
 }

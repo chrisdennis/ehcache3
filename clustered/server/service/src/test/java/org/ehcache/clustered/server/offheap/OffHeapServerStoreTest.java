@@ -28,8 +28,9 @@ import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
-import org.junit.Assert;
-import org.junit.Test;
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
@@ -45,8 +46,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
@@ -60,6 +61,7 @@ import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
+@ExtendWith(Randomness.class)
 public class OffHeapServerStoreTest extends ServerStoreTest {
 
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
@@ -127,7 +129,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
   }
 
 
-  @Test(expected = OversizeMappingException.class)
+  @Test
   public void put_should_throw_when_underlying_put_always_throw_test() throws Exception {
     OffHeapChainMap<Long> offheapChainMap = getOffHeapChainMapLongMock();
     ChainStorageEngine<Long> storageEngine = getChainStorageEngineLongMock();
@@ -138,7 +140,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
       .when(offheapChainMap).put(anyLong(), any(Chain.class));
 
     OffHeapServerStore offHeapServerStore = new OffHeapServerStore(singletonList(offheapChainMap), mock(KeySegmentMapper.class));
-    offHeapServerStore.put(43L, mock(Chain.class));
+    assertThrows(OversizeMappingException.class, () -> offHeapServerStore.put(43L, mock(Chain.class)));
   }
 
   @Test
@@ -269,31 +271,25 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
   }
 
   @Test
-  public void testCrossSegmentShrinking() {
-    long seed = System.nanoTime();
-    Random random = new Random(seed);
-    try {
-      OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), MEGABYTES.toBytes(1L), MEGABYTES.toBytes(1)), DEFAULT_MAPPER, false);
+  public void testCrossSegmentShrinking(Random random) {
+    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), MEGABYTES.toBytes(1L), MEGABYTES.toBytes(1)), DEFAULT_MAPPER, false);
 
-      ByteBuffer smallValue = ByteBuffer.allocate(1024);
-      for (int i = 0; i < 10000; i++) {
-        try {
-          store.getAndAppend(random.nextInt(500), smallValue.duplicate());
-        } catch (OversizeMappingException e) {
-          //ignore
-        }
+    ByteBuffer smallValue = ByteBuffer.allocate(1024);
+    for (int i = 0; i < 10000; i++) {
+      try {
+        store.getAndAppend(random.nextInt(500), smallValue.duplicate());
+      } catch (OversizeMappingException e) {
+        //ignore
       }
+    }
 
-      ByteBuffer largeValue = ByteBuffer.allocate(100 * 1024);
-      for (int i = 0; i < 10000; i++) {
-        try {
-          store.getAndAppend(random.nextInt(500), largeValue.duplicate());
-        } catch (OversizeMappingException e) {
-          //ignore
-        }
+    ByteBuffer largeValue = ByteBuffer.allocate(100 * 1024);
+    for (int i = 0; i < 10000; i++) {
+      try {
+        store.getAndAppend(random.nextInt(500), largeValue.duplicate());
+      } catch (OversizeMappingException e) {
+        //ignore
       }
-    } catch (Throwable t) {
-      throw (AssertionError) new AssertionError("Failed with seed " + seed).initCause(t);
     }
   }
 
@@ -310,14 +306,14 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
       store.getAndAppend(i, smallValue.duplicate());
     }
 
-    Assert.assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
+    assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
 
     //asserts above already guarantee that occupiedMemory <= maxBytes and that occupiedMemory <= allocatedMemory
-    Assert.assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+    assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
 
-    Assert.assertThat(store.getSize(), is(smallLoopCount));
+    assertThat(store.getSize(), is(smallLoopCount));
 
     int multiplier = 100;
     long largeLoopCount = 5 + smallLoopCount;
@@ -326,14 +322,14 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
       store.getAndAppend(i, largeValue.duplicate());
     }
 
-    Assert.assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo( (smallLoopCount * oneKb) + ( (largeLoopCount - smallLoopCount) * oneKb * multiplier) ));
-    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
+    assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo( (smallLoopCount * oneKb) + ( (largeLoopCount - smallLoopCount) * oneKb * multiplier) ));
+    assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
 
     //asserts above already guarantee that occupiedMemory <= maxBytes and that occupiedMemory <= allocatedMemory
-    Assert.assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+    assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
 
-    Assert.assertThat(store.getSize(), is(smallLoopCount + (largeLoopCount - smallLoopCount)));
+    assertThat(store.getSize(), is(smallLoopCount + (largeLoopCount - smallLoopCount)));
 
   }
 

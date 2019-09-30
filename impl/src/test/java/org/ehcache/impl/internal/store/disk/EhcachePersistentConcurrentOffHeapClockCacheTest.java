@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.AbstractEhcacheOffHeapBackingMapTest;
@@ -29,13 +28,14 @@ import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.util.Factory;
 
+import java.io.File;
 import java.io.IOException;
 
 import static org.ehcache.config.Eviction.noAdvice;
@@ -46,8 +46,12 @@ import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHeapBackingMapTest {
 
-  @Rule
-  public final TemporaryFolder folder = new TemporaryFolder();
+  private File storage;
+
+  @BeforeEach
+  public void storage(@TempDir File storage) {
+    this.storage = new File(storage, "storage.data");
+  }
 
   @Override
   @SuppressWarnings("unchecked")
@@ -66,7 +70,7 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining());
-      MappedPageSource pageSource = new MappedPageSource(folder.newFile(), true, configuration.getMaximumSize());
+      MappedPageSource pageSource = new MappedPageSource(storage, true, configuration.getMaximumSize());
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, EhcachePersistentConcurrentOffHeapClockCacheTest.class.getClassLoader());
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentConcurrentOffHeapClockCacheTest.class.getClassLoader());
       PersistentPortability<String> keyPortability = persistent(new SerializerPortability<>(keySerializer));

@@ -17,7 +17,7 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

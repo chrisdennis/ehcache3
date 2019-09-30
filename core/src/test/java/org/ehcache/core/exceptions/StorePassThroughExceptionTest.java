@@ -16,7 +16,7 @@
 package org.ehcache.core.exceptions;
 
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 

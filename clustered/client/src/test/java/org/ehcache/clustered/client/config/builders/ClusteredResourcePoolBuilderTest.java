@@ -21,19 +21,20 @@ import org.ehcache.clustered.client.config.SharedClusteredResourcePool;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.Matchers;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 
 public class ClusteredResourcePoolBuilderTest {
 
   @Test
-  public void dedicated2Arg() throws Exception {
+  public void dedicated2Arg() {
     ResourcePool pool = ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.GB);
     assertThat(pool, is(instanceOf(DedicatedClusteredResourcePool.class)));
     assertThat(pool.getType(), Matchers.is(ClusteredResourceType.Types.DEDICATED));
@@ -43,13 +44,13 @@ public class ClusteredResourcePoolBuilderTest {
     assertThat(((DedicatedClusteredResourcePool)pool).getFromResource(), is(nullValue()));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void dedicated2ArgUnitNull() throws Exception {
-    ClusteredResourcePoolBuilder.clusteredDedicated(16, null);
+  @Test
+  public void dedicated2ArgUnitNull() {
+    assertThrows(NullPointerException.class, () -> ClusteredResourcePoolBuilder.clusteredDedicated(16, null));
   }
 
   @Test
-  public void dedicated3Arg() throws Exception {
+  public void dedicated3Arg() {
     ResourcePool pool = ClusteredResourcePoolBuilder.clusteredDedicated("resourceId", 16, MemoryUnit.GB);
     assertThat(pool, is(instanceOf(DedicatedClusteredResourcePool.class)));
     assertThat(pool.getType(), is(ClusteredResourceType.Types.DEDICATED));
@@ -60,7 +61,7 @@ public class ClusteredResourcePoolBuilderTest {
   }
 
   @Test
-  public void dedicated3ArgFromNull() throws Exception {
+  public void dedicated3ArgFromNull() {
     ResourcePool pool = ClusteredResourcePoolBuilder.clusteredDedicated(null, 16, MemoryUnit.GB);
     assertThat(pool, is(instanceOf(DedicatedClusteredResourcePool.class)));
     assertThat(pool.getType(), is(ClusteredResourceType.Types.DEDICATED));
@@ -70,13 +71,13 @@ public class ClusteredResourcePoolBuilderTest {
     assertThat(((DedicatedClusteredResourcePool)pool).getFromResource(), is(nullValue()));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void dedicated3ArgUnitNull() throws Exception {
-    ClusteredResourcePoolBuilder.clusteredDedicated("resourceId", 16, null);
+  @Test
+  public void dedicated3ArgUnitNull() {
+    assertThrows(NullPointerException.class, () -> ClusteredResourcePoolBuilder.clusteredDedicated("resourceId", 16, null));
   }
 
   @Test
-  public void shared() throws Exception {
+  public void shared() {
     ResourcePool pool = ClusteredResourcePoolBuilder.clusteredShared("resourceId");
     assertThat(pool, is(instanceOf(SharedClusteredResourcePool.class)));
     assertThat(pool.getType(), is(ClusteredResourceType.Types.SHARED));
@@ -84,8 +85,8 @@ public class ClusteredResourcePoolBuilderTest {
     assertThat(((SharedClusteredResourcePool)pool).getSharedResourcePool(), is("resourceId"));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void sharedSharedResourceNull() throws Exception {
-    ClusteredResourcePoolBuilder.clusteredShared(null);
+  @Test
+  public void sharedSharedResourceNull() {
+    assertThrows(NullPointerException.class, () -> ClusteredResourcePoolBuilder.clusteredShared(null));
   }
 }

@@ -16,9 +16,9 @@
 package org.ehcache.jsr107;
 
 import org.hamcrest.Matcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -51,7 +51,7 @@ public class StatisticsTest {
   private Eh107CacheStatisticsMXBean diskStatistics;
   private Cache<String, String> diskCache;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-stats.xml").toURI(), ClassLoader.getSystemClassLoader());
@@ -65,7 +65,7 @@ public class StatisticsTest {
     diskStatistics = (Eh107CacheStatisticsMXBean) ((Eh107Cache<String, String>) diskCache).getStatisticsMBean();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     cacheManager.close();
   }

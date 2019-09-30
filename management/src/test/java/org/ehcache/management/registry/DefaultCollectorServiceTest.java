@@ -24,7 +24,8 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.notification.ContextualNotification;
@@ -41,11 +42,12 @@ import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class DefaultCollectorServiceTest {
 
-  @Test(timeout = 6000)
+  @Test
+  @Timeout(6)
   public void test_collector() throws Exception {
     final Queue<Object> messages = new ConcurrentLinkedQueue<>();
     final List<String> notifs = new ArrayList<>(7);

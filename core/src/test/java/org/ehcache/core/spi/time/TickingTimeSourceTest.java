@@ -16,8 +16,8 @@
 
 package org.ehcache.core.spi.time;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,7 +25,7 @@ public class TickingTimeSourceTest {
 
   private final TickingTimeSource tickingTimeSource = new TickingTimeSource(1L, 1000L);
 
-  @After
+  @AfterEach
   public void after() {
     tickingTimeSource.stop();
   }

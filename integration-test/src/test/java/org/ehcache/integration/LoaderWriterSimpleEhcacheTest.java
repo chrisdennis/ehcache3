@@ -22,16 +22,16 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -51,7 +51,7 @@ public class LoaderWriterSimpleEhcacheTest {
   private Cache<Number, CharSequence> testCache;
   private CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter;
 
-  @Before
+  @BeforeEach
   @SuppressWarnings("unchecked")
   public void setUp() throws Exception {
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
@@ -65,7 +65,7 @@ public class LoaderWriterSimpleEhcacheTest {
             .build());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (cacheManager != null) {
       cacheManager.close();

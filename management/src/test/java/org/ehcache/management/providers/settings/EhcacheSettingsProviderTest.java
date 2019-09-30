@@ -28,16 +28,14 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.SharedManagementService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultSharedManagementService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.context.CapabilityContext;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.Duration;
@@ -45,24 +43,20 @@ import java.util.Collection;
 import java.util.Scanner;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(JUnit4.class)
 public class EhcacheSettingsProviderTest {
-
-  @ClassRule
-  public static TemporaryFolder ROOT = new TemporaryFolder();
 
   CacheManager cacheManager;
   SharedManagementService sharedManagementService = new DefaultSharedManagementService();
   ObjectMapper mapper = new ObjectMapper();
 
-  @Before
+  @BeforeEach
   public void before() {
     mapper.addMixIn(CapabilityContext.class, CapabilityContextMixin.class);
   }
 
-  @After
+  @AfterEach
   public void after() {
     if (cacheManager != null) {
       cacheManager.close();
@@ -70,7 +64,7 @@ public class EhcacheSettingsProviderTest {
   }
 
   @Test
-  public void test_standalone_ehcache() throws IOException {
+  public void test_standalone_ehcache(@TempDir File persistenceDir) throws IOException {
     CacheConfiguration<String, String> cacheConfiguration1 = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
         newResourcePoolsBuilder()
             .heap(10, EntryUnit.ENTRIES)
@@ -95,7 +89,7 @@ public class EhcacheSettingsProviderTest {
 
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(sharedManagementService)
-        .using(new DefaultPersistenceConfiguration(ROOT.newFolder("test_standalone_ehcache")))
+        .using(new DefaultPersistenceConfiguration(persistenceDir))
       .using(serviceConfiguration)
         .withCache("cache-1", cacheConfiguration1)
         .withCache("cache-2", cacheConfiguration2)

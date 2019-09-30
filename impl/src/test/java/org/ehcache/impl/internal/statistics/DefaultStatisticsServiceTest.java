@@ -24,25 +24,21 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.spi.test.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class DefaultStatisticsServiceTest {
 
   private static final String CACHE = "myCache";
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   private final DefaultStatisticsService service = new DefaultStatisticsService();
   private CacheManager cacheManager;
 
-  @Before
+  @BeforeEach
   public void before() {
     CacheConfigurationBuilder<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -88,9 +84,8 @@ public class DefaultStatisticsServiceTest {
   }
 
   @Test
-  public void startInMaintenance() throws Exception {
-    expectedException.expect(IllegalStateException.class);
-    service.stateTransition(Status.UNINITIALIZED, Status.MAINTENANCE);
+  public void startInMaintenance() {
+    assertThrows(IllegalStateException.class, () -> service.stateTransition(Status.UNINITIALIZED, Status.MAINTENANCE));
   }
 
 }

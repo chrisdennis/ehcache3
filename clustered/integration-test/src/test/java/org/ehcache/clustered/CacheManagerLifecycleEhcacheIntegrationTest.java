@@ -53,6 +53,7 @@ import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
+import static org.ehcache.testing.Utilities.substitute;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -192,22 +193,5 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
   @AfterClass
   public static void closeAssertionConnection() throws IOException {
     ASSERTION_CONNECTION.close();
-  }
-
-  static URL substitute(URL input, String variable, String substitution) throws IOException {
-    File output = File.createTempFile(input.getFile(), ".substituted", new File("build"));
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(output));
-         BufferedReader reader = new BufferedReader(new InputStreamReader(input.openStream(), "UTF-8"))) {
-      while (true) {
-        String line = reader.readLine();
-        if (line == null) {
-          break;
-        } else {
-          writer.write(line.replace("${" + variable + "}", substitution));
-          writer.newLine();
-        }
-      }
-    }
-    return output.toURI().toURL();
   }
 }

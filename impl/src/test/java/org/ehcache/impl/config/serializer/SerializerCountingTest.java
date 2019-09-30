@@ -27,12 +27,12 @@ import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,8 +42,8 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * SerializerCountingTest
@@ -54,21 +54,18 @@ public class SerializerCountingTest {
 
   private CacheManager cacheManager;
 
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
-
-  @Before
+  @BeforeEach
   @SuppressWarnings("unchecked")
-  public void setUp() {
+  public void setUp(@TempDir File persistenceDir) {
     cacheManager = newCacheManagerBuilder()
         .using(new DefaultSerializationProviderConfiguration().addSerializerFor(Serializable.class, (Class) CountingSerializer.class)
                                                               .addSerializerFor(Long.class, (Class) CountingSerializer.class)
                                                               .addSerializerFor(String.class, (Class) CountingSerializer.class))
-        .with(new CacheManagerPersistenceConfiguration(folder.getRoot()))
+        .with(new CacheManagerPersistenceConfiguration(persistenceDir))
         .build(true);
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     clearCounters();
     if (cacheManager != null) {

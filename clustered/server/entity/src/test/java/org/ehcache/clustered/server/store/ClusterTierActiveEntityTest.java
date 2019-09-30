@@ -44,12 +44,14 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.store.ClusterTierActiveEntity.InvalidationHolder;
+import org.ehcache.testing.extensions.Randomness;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.IsInstanceOf;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -83,8 +85,10 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
+import static org.assertj.core.api.Assertions.fail;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -97,8 +101,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.CombinableMatcher.both;
 import static org.hamcrest.core.CombinableMatcher.either;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -109,6 +112,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(Randomness.class)
 public class ClusterTierActiveEntityTest {
 
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
@@ -121,7 +125,7 @@ public class ClusterTierActiveEntityTest {
   private ServerStoreConfiguration defaultStoreConfiguration;
   private ClusterTierEntityConfiguration defaultConfiguration;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     defaultRegistry = new OffHeapIdentifierRegistry();
     defaultRegistry.addResource(defaultResource, 10, MemoryUnit.MEGABYTES);
@@ -130,9 +134,9 @@ public class ClusterTierActiveEntityTest {
       defaultStoreConfiguration);
   }
 
-  @Test(expected = ConfigurationException.class)
-  public void testConfigNull() throws Exception {
-    new ClusterTierActiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER);
+  @Test
+  public void testConfigNull() {
+    assertThrows(ConfigurationException.class, () -> new ClusterTierActiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER));
   }
 
   @Test
@@ -923,14 +927,12 @@ public class ClusterTierActiveEntityTest {
   }
 
   @Test
-  public void testLoadExistingRecoversInflightInvalidationsForEventualCache() throws Exception {
+  public void testLoadExistingRecoversInflightInvalidationsForEventualCache(Random random) throws Exception {
     ClusterTierActiveEntity activeEntity = new ClusterTierActiveEntity(defaultRegistry, defaultConfiguration, DEFAULT_MAPPER);
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
     ehcacheStateService.createStore(defaultStoreName, defaultStoreConfiguration, false);  //Passive would have done this before failover
 
     InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
-
-    Random random = new Random();
     random.ints(0, 100).limit(10).forEach(invalidationTracker::trackHashInvalidation);
 
     activeEntity.loadExisting();

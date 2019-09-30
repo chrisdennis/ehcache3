@@ -16,28 +16,25 @@
 
 package org.ehcache.impl.store;
 
-import org.junit.Test;
-
-import java.util.Random;
+import org.ehcache.testing.extensions.Randomness;
+import org.ehcache.testing.extensions.Randomness.Random;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * HashUtilsTest
  */
+@ExtendWith(Randomness.class)
 public class HashUtilsTest {
 
-  @Test
-  public void testHashTransform() {
-    Random random = new Random();
-    for (int i = 0; i < 10; i++) {
-      int hash = random.nextInt();
-      long longHash = HashUtils.intHashToLong(hash);
-      int inthash = HashUtils.longHashToInt(longHash);
-
-      assertThat(inthash, is(hash));
-    }
+  @RepeatedTest(10)
+  public void testHashTransform(@Random int hash) {
+    long longHash = HashUtils.intHashToLong(hash);
+    int inthash = HashUtils.longHashToInt(longHash);
+    assertThat(inthash, is(hash));
   }
 
 }

@@ -21,7 +21,7 @@ import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.model.ConfigType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXException;
 
 import java.io.File;

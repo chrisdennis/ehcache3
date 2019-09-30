@@ -18,11 +18,11 @@ package org.ehcache.impl.internal.copy;
 
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,8 +46,8 @@ public class SerializingCopierTest {
     assertEquals(in, copied);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testThrowsNPEWhenNoSerializerPassedToConstructor() {
-    new SerializingCopier<>(null);
+    assertThrows(NullPointerException.class, () -> new SerializingCopier<>(null));
   }
 }

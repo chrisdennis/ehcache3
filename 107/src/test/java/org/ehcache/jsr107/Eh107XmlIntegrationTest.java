@@ -16,8 +16,8 @@
 package org.ehcache.jsr107;
 
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.pany.domain.Client;
 import com.pany.domain.Customer;
@@ -37,14 +37,11 @@ import javax.cache.CacheManager;
 import javax.cache.Caching;
 import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableCacheEntryListenerConfiguration;
 import javax.cache.configuration.MutableConfiguration;
-import javax.cache.event.CacheEntryListener;
 import javax.cache.expiry.CreatedExpiryPolicy;
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.EternalExpiryPolicy;
-import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CompletionListenerFuture;
@@ -65,7 +62,7 @@ public class Eh107XmlIntegrationTest {
   private CacheManager cacheManager;
   private CachingProvider cachingProvider;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     cachingProvider = Caching.getCachingProvider();
     cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-107-integration.xml")

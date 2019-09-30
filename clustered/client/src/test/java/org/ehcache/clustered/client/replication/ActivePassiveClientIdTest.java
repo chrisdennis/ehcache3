@@ -35,9 +35,9 @@ import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityServi
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.core.store.StoreConfigurationImpl;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.terracotta.client.message.tracker.OOOMessageHandler;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
@@ -78,7 +78,7 @@ public class ActivePassiveClientIdTest {
   private OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> activeMessageHandler;
   private OOOMessageHandler<EhcacheEntityMessage, EhcacheEntityResponse> passiveMessageHandler;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     this.observableEhcacheServerEntityService = new ObservableEhcacheServerEntityService();
     this.observableClusterTierServerEntityService = new ObservableClusterTierServerEntityService();
@@ -123,7 +123,7 @@ public class ActivePassiveClientIdTest {
     passiveMessageHandler = passiveEntity.getMessageHandler();
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if(service.isConnected()) {
       service.stop();

@@ -17,8 +17,7 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ObjectStreamException;
 import java.io.Serializable;
@@ -28,6 +27,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.createClass
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  *
@@ -47,7 +47,7 @@ public class ReadObjectNoDataTest {
     pushTccl(createClassNameRewritingLoader(C_R.class, B_R.class, A_R.class));
     try {
       Object out = s.read(b);
-      Assert.assertTrue(out.getClass().getField("called").getBoolean(out));
+      assertTrue(out.getClass().getField("called").getBoolean(out));
     } finally {
       popTccl();
     }

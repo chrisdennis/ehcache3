@@ -47,10 +47,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.CoreMatchers;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
@@ -68,14 +67,15 @@ import java.util.concurrent.Executors;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -89,9 +89,6 @@ import static org.mockito.Mockito.when;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class EhcacheManagerTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
 
   private static Map<String, CacheConfiguration<?, ?>> newCacheMap() {
     return new HashMap<>();
@@ -146,24 +143,14 @@ public class EhcacheManagerTest {
   public void testConstructionThrowsWhenNotBeingToResolveService() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     final DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class);
-    try {
-      new EhcacheManager(config);
-      fail("Should have thrown...");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString(NoSuchService.class.getName()));
-    }
+    assertThat(assertThrows(IllegalStateException.class, () -> new EhcacheManager(config)).getMessage(), containsString(NoSuchService.class.getName()));
   }
 
   @Test
   public void testCreationFailsOnDuplicateServiceCreationConfiguration() {
     Map<String, CacheConfiguration<?, ?>> caches = newCacheMap();
     DefaultConfiguration config = new DefaultConfiguration(caches, null, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class, (ServiceCreationConfiguration<NoSuchService, Void>) () -> NoSuchService.class);
-    try {
-      new EhcacheManager(config);
-      fail("Should have thrown ...");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("NoSuchService"));
-    }
+    assertThat(assertThrows(IllegalStateException.class, () -> new EhcacheManager(config)).getMessage(), containsString("NoSuchService"));
   }
 
   @Test
@@ -368,7 +355,7 @@ public class EhcacheManagerTest {
     }
   }
 
-  @Ignore
+  @Disabled
   @Test
   public void testLifeCyclesCacheLoaders() throws Exception {
 
@@ -784,7 +771,8 @@ public class EhcacheManagerTest {
 
   }
 
-  @Test(timeout = 2000L)
+  @Test
+  @Timeout(2)
   public void testCloseWhenCacheCreationFailsDuringInitialization() throws Exception {
     Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(any(Set.class), any(Collection.class))).thenReturn(1);
@@ -834,10 +822,8 @@ public class EhcacheManagerTest {
     thread.start();
     thread.join(1000);
 
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage("State is MAINTENANCE, yet you don't own it!");
-
-    manager.destroyCache("test");
+    IllegalStateException failure = assertThrows(IllegalStateException.class, () -> manager.destroyCache("test"));
+    assertThat(failure.getMessage(), is("State is MAINTENANCE, yet you don't own it!"));
   }
 
   @Test
@@ -852,11 +838,8 @@ public class EhcacheManagerTest {
 
     EhcacheManager manager = new EhcacheManager(config, services);
 
-    expectedException.expect(StateTransitionException.class);
-    expectedException.expectMessage("failed");
-
-    manager.destroyCache("test");
-
+    StateTransitionException failure = assertThrows(StateTransitionException.class, () -> manager.destroyCache("test"));
+    assertThat(failure.getMessage(), is("failed"));
     assertThat(manager.getStatus(), equalTo(Status.UNINITIALIZED));
   }
 

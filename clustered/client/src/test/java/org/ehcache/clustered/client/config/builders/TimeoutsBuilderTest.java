@@ -16,7 +16,7 @@
 package org.ehcache.clustered.client.config.builders;
 
 import org.ehcache.clustered.client.config.Timeouts;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;

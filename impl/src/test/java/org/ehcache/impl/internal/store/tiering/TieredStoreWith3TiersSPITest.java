@@ -27,15 +27,16 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.core.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
-import org.ehcache.impl.internal.persistence.TestDiskResourceService;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStoreSPITest;
@@ -45,6 +46,8 @@ import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStoreSPITest;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.persistence.DefaultDiskResourceService;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
@@ -61,8 +64,13 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -87,19 +95,18 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
   private final TieredStore.Provider provider = new TieredStore.Provider();
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<>();
 
-  @Rule
-  public final TemporaryFolder folder = new TemporaryFolder();
+  private LocalPersistenceService fileService;
+  private DiskResourceService diskResourceService;
 
-  @Rule
-  public TestDiskResourceService diskResourceService = new TestDiskResourceService();
-
-  @Override
-  protected StoreFactory<String, String> getStoreFactory() {
-    return storeFactory;
-  }
-
-  @Before
-  public void setUp() throws IOException {
+  @BeforeEach
+  public void startDiskResourceService(@TempDir File persistenceDir) {
+    fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(persistenceDir));
+    fileService.start(null);
+    diskResourceService = new DefaultDiskResourceService();
+    @SuppressWarnings("unchecked")
+    ServiceProvider<Service> sp = Mockito.mock(ServiceProvider.class);
+    Mockito.when(sp.getService(LocalPersistenceService.class)).thenReturn(fileService);
+    diskResourceService.start(sp);
 
     storeFactory = new StoreFactory<String, String>() {
       final AtomicInteger aliasCounter = new AtomicInteger();
@@ -320,16 +327,25 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     };
   }
 
-  @After
-  public void tearDown() throws CachePersistenceException {
+  @AfterEach
+  public void stopDiskResourceService() throws CachePersistenceException {
     try {
-      for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
-        provider.releaseStore(entry.getKey());
-        diskResourceService.destroy(entry.getValue());
+      try {
+        for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
+          provider.releaseStore(entry.getKey());
+          diskResourceService.destroy(entry.getValue());
+        }
+      } finally {
+        diskResourceService.stop();
       }
     } finally {
-      diskResourceService.stop();
+      fileService.stop();
     }
+  }
+
+  @Override
+  protected StoreFactory<String, String> getStoreFactory() {
+    return storeFactory;
   }
 
   private ResourcePools buildResourcePools(Long capacityConstraint) {

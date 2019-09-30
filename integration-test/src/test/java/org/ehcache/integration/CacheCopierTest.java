@@ -28,9 +28,9 @@ import org.ehcache.impl.copy.ReadWriteCopier;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -39,9 +39,9 @@ import java.nio.charset.Charset;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Created by alsu on 01/09/15.
@@ -52,13 +52,13 @@ public class CacheCopierTest {
   CacheConfigurationBuilder<Long, Person> baseConfig = newCacheConfigurationBuilder(Long.class, Person.class, heap(5));
 
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .build(true);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     cacheManager.close();
   }

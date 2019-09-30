@@ -22,14 +22,13 @@ import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsC
 import org.ehcache.expiry.ExpiryPolicy;
 
 import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assume.assumeThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class EternalChainResolverTest extends AbstractChainResolverTest {
 
   @Override
   protected ChainResolver<Long, String> createChainResolver(ExpiryPolicy<? super Long, ? super String> expiryPolicy, OperationsCodec<Long, String> codec) {
-    assumeThat(expiryPolicy, is(noExpiration()));
+    assumeTrue(expiryPolicy.equals(noExpiration()));
     return new EternalChainResolver<>(codec);
   }
 }

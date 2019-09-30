@@ -17,17 +17,18 @@
 package org.ehcache.impl.config.loaderwriter;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.ehcache.test.MockitoUtil.mock;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
 
 public class DefaultCacheLoaderWriterProviderConfigurationTest {
 
-  @Test @SuppressWarnings("unchecked")
+  @Test
+  @SuppressWarnings("unchecked")
   public void testDeriveDetachesCorrectly() {
     DefaultCacheLoaderWriterProviderConfiguration configuration = new DefaultCacheLoaderWriterProviderConfiguration();
     configuration.addLoaderFor("foo", (Class<? extends CacheLoaderWriter<?, ?>>) mock(CacheLoaderWriter.class).getClass());

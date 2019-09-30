@@ -16,12 +16,30 @@
 
 package org.ehcache.transactions.xa.internal.journal;
 
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
+
 /**
  * @author Ludovic Orban
  */
+@ExtendWith(TransientJournalTest.JournalResolver.class)
 public class TransientJournalTest extends AbstractJournalTest {
-  @Override
-  protected Journal<Long> createJournal() {
-    return new TransientJournal<>();
+
+  static class JournalResolver implements ParameterResolver {
+
+    @Override
+    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+      return parameterContext.getParameter().getType().isAssignableFrom(TransientJournal.class);
+    }
+
+    @Override
+    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+      return new TransientJournal<>();
+    }
   }
+
+
 }

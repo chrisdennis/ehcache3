@@ -22,26 +22,21 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.FluentConfigurationBuilder;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.ehcache.core.spi.service.ServiceUtils;
-import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
-import org.ehcache.impl.config.resilience.DefaultResilienceStrategyConfiguration;
 import org.hamcrest.core.Is;
-import org.hamcrest.core.IsCollectionContaining;
+import org.hamcrest.core.IsIterableContaining;
 import org.hamcrest.core.IsInstanceOf;
 import org.hamcrest.core.IsNot;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.URI;
-import java.util.List;
-import java.util.stream.Collectors;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ConfigurationDerivation {
 
@@ -71,7 +66,7 @@ public class ConfigurationDerivation {
       .build();
     //end::removeService[]
 
-    Assert.assertThat(withoutClustering.getServiceCreationConfigurations(), IsNot.not(IsCollectionContaining.hasItem(
+   assertThat(withoutClustering.getServiceCreationConfigurations(), IsNot.not(IsIterableContaining.hasItem(
       IsInstanceOf.instanceOf(ClusteringServiceConfiguration.class))));
   }
 
@@ -91,10 +86,10 @@ public class ConfigurationDerivation {
       .build();
     //end::updateService[]
 
-    Assert.assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
+   assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
       configuration.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), Is.is(Consistency.STRONG));
 
-    Assert.assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
+   assertThat(ServiceUtils.findSingletonAmongst(ClusteredStoreConfiguration.class,
       changedConsistency.getCacheConfigurations().get("cache").getServiceConfigurations()).getConsistency(), Is.is(Consistency.EVENTUAL));
   }
 

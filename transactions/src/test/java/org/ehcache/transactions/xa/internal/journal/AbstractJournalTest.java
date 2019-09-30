@@ -18,9 +18,7 @@ package org.ehcache.transactions.xa.internal.journal;
 
 import org.ehcache.transactions.xa.internal.TransactionId;
 import org.ehcache.transactions.xa.utils.TestXid;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,29 +28,16 @@ import java.util.Map;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * @author Ludovic Orban
  */
 public abstract class AbstractJournalTest {
 
-  protected Journal<Long> journal;
-
-  @Before
-  public void setUp() throws Exception {
-    journal = createJournal();
-    journal.open();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    journal.close();
-  }
-
   @Test
-  public void testGetInDoubtKeysReturnsCorrectKeysAfterSavedCollectionCleared() throws Exception {
+  public void testGetInDoubtKeysReturnsCorrectKeysAfterSavedCollectionCleared(Journal<Long> journal) {
     Collection<Long> keys = new ArrayList<>(Arrays.asList(1L, 2L, 3L));
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), keys);
     keys.clear();
@@ -62,7 +47,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testSaveAndRecoverHappyPath() throws Exception {
+  public void testSaveAndRecoverHappyPath(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveInDoubt(new TransactionId(new TestXid(1, 0)), Arrays.asList(4L, 5L, 6L));
 
@@ -85,7 +70,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testSaveInDoubtTwiceThrows() throws Exception {
+  public void testSaveInDoubtTwiceThrows(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     try {
       journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(4L, 5L, 6L));
@@ -96,19 +81,19 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testSaveRolledBackTwiceWorks() throws Exception {
+  public void testSaveRolledBackTwiceWorks(Journal<Long> journal) {
     journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), false);
     journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), false);
   }
 
   @Test
-  public void testSaveCommittedTwiceWorks() throws Exception {
+  public void testSaveCommittedTwiceWorks(Journal<Long> journal) throws Exception {
     journal.saveCommitted(new TransactionId(new TestXid(0, 0)), false);
     journal.saveCommitted(new TransactionId(new TestXid(0, 0)), false);
   }
 
   @Test
-  public void testHeuristicDecisionsNotReportedByRecover() throws Exception {
+  public void testHeuristicDecisionsNotReportedByRecover(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true);
 
@@ -116,7 +101,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testHeuristicDecisionsReported() throws Exception {
+  public void testHeuristicDecisionsReported(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveInDoubt(new TransactionId(new TestXid(1, 0)), Arrays.asList(4L, 5L, 6L));
     journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true);
@@ -129,7 +114,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testHeuristicDecisionsForget() throws Exception {
+  public void testHeuristicDecisionsForget(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveInDoubt(new TransactionId(new TestXid(1, 0)), Arrays.asList(4L, 5L, 6L));
     journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true);
@@ -147,7 +132,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testCannotForgetUnknownTransaction() throws Exception {
+  public void testCannotForgetUnknownTransaction(Journal<Long> journal) {
     try {
       journal.forget(new TransactionId(new TestXid(0, 0)));
       fail("expected IllegalStateException");
@@ -157,7 +142,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testCannotForgetNonHeuristicTransaction() throws Exception {
+  public void testCannotForgetNonHeuristicTransaction(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     try {
       journal.forget(new TransactionId(new TestXid(0, 0)));
@@ -168,7 +153,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testCannotOverwriteHeuristicCommitWithNonHeuristic() throws Exception {
+  public void testCannotOverwriteHeuristicCommitWithNonHeuristic(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true);
     try {
@@ -180,7 +165,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testCannotOverwriteHeuristicRollbackWithNonHeuristic() throws Exception {
+  public void testCannotOverwriteHeuristicRollbackWithNonHeuristic(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), true);
     try {
@@ -192,7 +177,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testCannotSaveCommitHeuristicWhenNoInDoubtRecordExists() throws Exception {
+  public void testCannotSaveCommitHeuristicWhenNoInDoubtRecordExists(Journal<Long> journal) {
     try {
       journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true);
       fail("expected IllegalStateException");
@@ -202,7 +187,7 @@ public abstract class AbstractJournalTest {
   }
 
   @Test
-  public void testCannotSaveRollbackHeuristicWhenNoInDoubtRecordExists() throws Exception {
+  public void testCannotSaveRollbackHeuristicWhenNoInDoubtRecordExists(Journal<Long> journal) {
     try {
       journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), true);
       fail("expected IllegalStateException");
@@ -210,6 +195,4 @@ public abstract class AbstractJournalTest {
       // expected
     }
   }
-
-  protected abstract Journal<Long> createJournal();
 }

@@ -18,48 +18,29 @@ package org.ehcache.clustered.common;
 
 import java.util.Collections;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
-import static org.junit.Assert.fail;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ServerSideConfigurationTest {
 
   @Test
   public void testNullDefaultPoolThrowsNPE() {
-    try {
-      new ServerSideConfiguration(null, Collections.<String, Pool>emptyMap());
-      fail("Expected NullPointerException");
-    } catch (NullPointerException e) {
-      //expected
-    }
+    assertThrows(NullPointerException.class, () -> new ServerSideConfiguration(null, Collections.<String, Pool>emptyMap()));
   }
 
   @Test
   public void testPoolUsingDefaultWithNoDefaultThrowsIAE() {
-    try {
-      new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(1)));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(1))));
   }
 
   @Test
   public void testDefaultPoolWithIllegalSize() {
-    try {
-      new Pool(0);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> new Pool(0));
   }
 
   @Test
   public void testPoolWithIllegalSize() {
-    try {
-      new Pool(0, "foo");
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> new Pool(0, "foo"));
   }
 }

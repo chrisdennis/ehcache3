@@ -19,67 +19,53 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@RunWith(Parameterized.class)
 public class XmlConfigTest {
 
-  @Parameterized.Parameters
-  public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{
-        {
-            "ehcache-management-1.xml",
-            new DefaultManagementRegistryConfiguration()
-        },
-        {
-            "ehcache-management-2.xml",
-            new DefaultManagementRegistryConfiguration()
-                .setCacheManagerAlias("my-cache-manager-name")
-                .addTags("webapp-name", "jboss-1", "server-node-1")
-        },
-        {
-            "ehcache-management-3.xml",
-            new DefaultManagementRegistryConfiguration()
-                .setCacheManagerAlias("my-cache-manager-name")
-                .addTags("webapp-name", "jboss-1", "server-node-1")
-                .setCollectorExecutorAlias("my-collectorExecutorAlias")
-        },
-        {
-            "ehcache-management-4.xml",
-            new DefaultManagementRegistryConfiguration()
-                .setCacheManagerAlias("my-cache-manager-name")
-                .addTags("webapp-name", "jboss-1", "server-node-1")
-        },
-        {
-            "ehcache-management-5.xml",
-            new DefaultManagementRegistryConfiguration()
-                .setCacheManagerAlias("my-cache-manager-name")
-                .addTags("webapp-name", "jboss-1", "server-node-1")
-        }
-    });
+  static class Params implements ArgumentsProvider {
+    @Override
+    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+      return Stream.of(
+        arguments("ehcache-management-1.xml",
+          new DefaultManagementRegistryConfiguration()),
+        arguments("ehcache-management-2.xml",
+          new DefaultManagementRegistryConfiguration()
+            .setCacheManagerAlias("my-cache-manager-name")
+            .addTags("webapp-name", "jboss-1", "server-node-1")),
+        arguments("ehcache-management-3.xml",
+          new DefaultManagementRegistryConfiguration()
+            .setCacheManagerAlias("my-cache-manager-name")
+            .addTags("webapp-name", "jboss-1", "server-node-1")
+            .setCollectorExecutorAlias("my-collectorExecutorAlias")),
+        arguments("ehcache-management-4.xml",
+          new DefaultManagementRegistryConfiguration()
+            .setCacheManagerAlias("my-cache-manager-name")
+            .addTags("webapp-name", "jboss-1", "server-node-1")),
+        arguments("ehcache-management-5.xml",
+          new DefaultManagementRegistryConfiguration()
+            .setCacheManagerAlias("my-cache-manager-name")
+            .addTags("webapp-name", "jboss-1", "server-node-1"))
+      );
+    }
   }
 
-  private final String xml;
-  private final DefaultManagementRegistryConfiguration expectedConfiguration;
-
-  public XmlConfigTest(String xml, DefaultManagementRegistryConfiguration expectedConfiguration) {
-    this.xml = xml;
-    this.expectedConfiguration = expectedConfiguration;
-  }
-
-  @Test
-  public void test_config_loaded() throws Exception {
+  @ParameterizedTest
+  @ArgumentsSource(Params.class)
+  public void test_config_loaded(String xml, DefaultManagementRegistryConfiguration expectedConfiguration) {
     CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(new XmlConfiguration(getClass().getClassLoader().getResource(xml)));
     myCacheManager.init();
     try {

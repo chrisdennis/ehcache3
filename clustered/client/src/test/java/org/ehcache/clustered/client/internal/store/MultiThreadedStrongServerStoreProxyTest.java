@@ -17,15 +17,17 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -36,9 +38,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
@@ -55,9 +58,9 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
   }
 
   @Test
-  public void testConcurrentHashInvalidationListenerWithAppend() throws Exception {
+  public void testConcurrentHashInvalidationListenerWithAppend(@Cluster URI clusterUri) throws Exception {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(ENTITY_NAME, getServerStoreConfiguration(), true, true);
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, ENTITY_NAME, getServerStoreConfiguration(), true, true);
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy(ENTITY_NAME, clientEntity1, mock(ServerCallback.class));
 
     ExecutorService executor =  Executors.newSingleThreadExecutor();
@@ -65,7 +68,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
     CountDownLatch afterValidationLatch = new CountDownLatch(1);
     executor.submit(() -> {
       try {
-        SimpleClusterTierClientEntity clientEntity2 = createClientEntity(ENTITY_NAME, getServerStoreConfiguration(), false, false);
+        SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, ENTITY_NAME, getServerStoreConfiguration(), false, false);
         StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy(ENTITY_NAME, clientEntity2, new ServerCallback() {
           @Override
           public void onInvalidateHash(long hash, Chain evictedChain) {
@@ -93,7 +96,7 @@ public class MultiThreadedStrongServerStoreProxyTest extends AbstractServerStore
         clientEntity2.validate(getServerStoreConfiguration());
         afterValidationLatch.countDown();
       } catch (Exception e) {
-        Assert.fail("Unexpected Exception " + e.getMessage());
+        fail("Unexpected Exception " + e.getMessage());
       }
     });
 

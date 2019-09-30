@@ -17,7 +17,7 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * @author Abhilash

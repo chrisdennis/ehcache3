@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.classes;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -84,20 +85,20 @@ public class ClassInstanceProviderTest {
     assertThat(obj.theString, is(nullValue()));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testReleaseInstanceByAnotherProvider() throws Exception {
     ClassInstanceProvider<String, ClassInstanceConfiguration<String>, String> classInstanceProvider = new ClassInstanceProvider<>(null, null);
 
-    classInstanceProvider.releaseInstance("foo");
+    assertThrows(IllegalArgumentException.class, () -> classInstanceProvider.releaseInstance("foo"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testReleaseSameInstanceMultipleTimesThrows() throws Exception {
     ClassInstanceProvider<String, ClassInstanceConfiguration<String>, String> classInstanceProvider = new ClassInstanceProvider<>(null, null);
     classInstanceProvider.providedVsCount.put("foo", new AtomicInteger(1));
 
     classInstanceProvider.releaseInstance("foo");
-    classInstanceProvider.releaseInstance("foo");
+    assertThrows(IllegalArgumentException.class, () -> classInstanceProvider.releaseInstance("foo"));
   }
 
   @Test
@@ -111,7 +112,7 @@ public class ClassInstanceProviderTest {
     verify(closeable).close();
   }
 
-  @Test(expected = IOException.class)
+  @Test
   public void testReleaseCloseableInstanceThrows() throws Exception {
     ClassInstanceProvider<String, ClassInstanceConfiguration<Closeable>, Closeable> classInstanceProvider = new ClassInstanceProvider<>(null, null);
     Closeable closeable = mock(Closeable.class);
@@ -119,7 +120,7 @@ public class ClassInstanceProviderTest {
     classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
     classInstanceProvider.instantiated.add(closeable);
 
-    classInstanceProvider.releaseInstance(closeable);
+    assertThrows(IOException.class, () -> classInstanceProvider.releaseInstance(closeable));
   }
 
   @Test

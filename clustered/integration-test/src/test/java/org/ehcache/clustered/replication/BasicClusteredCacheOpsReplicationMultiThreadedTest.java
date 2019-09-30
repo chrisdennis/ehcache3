@@ -43,8 +43,6 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -63,6 +61,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -106,8 +105,6 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
   @Rule
   public final TestName testName = new TestName();
 
-  private final Logger log = LoggerFactory.getLogger(getClass());
-
   private List<Cache<Long, BlobValue>> caches;
 
   private final ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -147,15 +144,13 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends Clustere
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
 
     List<Runnable> unprocessed = executorService.shutdownNow();
-    if(!unprocessed.isEmpty()) {
-      log.warn("Tearing down with {} unprocess task", unprocessed);
-    }
     if(cacheManager1 != null && cacheManager1.getStatus() != Status.UNINITIALIZED) {
       cacheManager1.close();
     }
     if(cacheManager2 != null && cacheManager2.getStatus() != Status.UNINITIALIZED) {
       cacheManager2.close();
     }
+    assertThat(unprocessed, is(empty()));
   }
 
   @Test(timeout=180000)

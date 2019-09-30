@@ -28,8 +28,8 @@ import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.TestInvokeContext;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.terracotta.client.message.tracker.OOOMessageHandlerConfiguration;
 import org.terracotta.client.message.tracker.OOOMessageHandlerImpl;
 import org.terracotta.entity.BasicServiceConfiguration;
@@ -53,14 +53,15 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.fail;
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.ChainUtils.sequencedChainOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 public class ClusterTierPassiveEntityTest {
@@ -75,7 +76,7 @@ public class ClusterTierPassiveEntityTest {
   private ServerStoreConfiguration defaultStoreConfiguration;
   private ClusterTierEntityConfiguration defaultConfiguration;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     defaultRegistry = new OffHeapIdentifierRegistry();
     defaultRegistry.addResource(defaultResource, 10, MemoryUnit.MEGABYTES);
@@ -84,9 +85,9 @@ public class ClusterTierPassiveEntityTest {
       defaultStoreConfiguration);
   }
 
-  @Test(expected = ConfigurationException.class)
-  public void testConfigNull() throws Exception {
-    new ClusterTierPassiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER);
+  @Test
+  public void testConfigNull() {
+    assertThrows(ConfigurationException.class, () -> new ClusterTierPassiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER));
   }
 
   @Test

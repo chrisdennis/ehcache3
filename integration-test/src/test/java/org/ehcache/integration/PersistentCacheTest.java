@@ -22,12 +22,8 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.StateTransitionException;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.integration.util.JavaExec;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.Serializable;
@@ -35,25 +31,18 @@ import java.nio.channels.OverlappingFileLockException;
 import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static junit.framework.TestCase.fail;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class PersistentCacheTest {
 
-  @ClassRule
-  public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-  @Rule
-  public TestName testName = new TestName();
-
   @Test
-  public void testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass() throws Exception {
-    File folder = temporaryFolder.newFolder(testName.getMethodName());
+  public void testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass(@TempDir File folder) throws Exception {
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
           .with(new CacheManagerPersistenceConfiguration(folder))
@@ -102,8 +91,7 @@ public class PersistentCacheTest {
   }
 
   @Test
-  public void testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass() throws Exception {
-    File folder = temporaryFolder.newFolder(testName.getMethodName());
+  public void testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass(@TempDir File folder) throws Exception {
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(folder))
@@ -139,15 +127,14 @@ public class PersistentCacheTest {
 
   @Test
   @SuppressWarnings("try")
-  public void testPersistentCachesColliding() throws Exception {
-    File folder = temporaryFolder.newFolder(testName.getMethodName());
+  public void testPersistentCachesColliding(@TempDir File folder) throws Exception {
     try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
       .with(new CacheManagerPersistenceConfiguration(folder)).build(true)) {
       CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(folder))
         .build(true)
         .close();
-      Assert.fail("Expected StateTransitionException");
+      fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
       assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by this process"));
       assertThat(e.getCause().getCause(), instanceOf(OverlappingFileLockException.class));
@@ -155,8 +142,7 @@ public class PersistentCacheTest {
   }
 
   @Test
-  public void testPersistentCachesCollidingCrossProcess() throws Exception {
-    File folder = temporaryFolder.newFolder(testName.getMethodName());
+  public void testPersistentCachesCollidingCrossProcess(@TempDir File folder) throws Exception {
     File ping = new File(folder, "ping");
     File pong = new File(folder, "pong");
 
@@ -164,7 +150,7 @@ public class PersistentCacheTest {
     while(!ping.exists());
     try {
       CacheManagerBuilder.newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(folder)).build(true).close();
-      Assert.fail("Expected StateTransitionException");
+      fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
       assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by another process"));
     } finally {

@@ -20,10 +20,10 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * TerracottaUriXmlTest

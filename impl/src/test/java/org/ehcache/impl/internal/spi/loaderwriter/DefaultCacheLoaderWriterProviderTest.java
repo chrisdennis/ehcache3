@@ -29,8 +29,8 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
-import org.hamcrest.core.IsCollectionContaining;
-import org.junit.Test;
+import org.hamcrest.core.IsIterableContaining;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,7 +39,7 @@ import java.util.Map;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class DefaultCacheLoaderWriterProviderTest {
@@ -99,7 +99,7 @@ public class DefaultCacheLoaderWriterProviderTest {
             .build());
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
+    assertThat(serviceConfiguration, IsIterableContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(DefaultCacheLoaderWriterConfiguration.class)));
     cacheManager.close();
   }
 

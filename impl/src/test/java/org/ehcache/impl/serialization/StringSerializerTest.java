@@ -19,40 +19,45 @@ package org.ehcache.impl.serialization;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Random;
-import org.junit.Test;
 
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * StringSerializerTest
  */
+@ExtendWith(Randomness.class)
 public class StringSerializerTest {
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testSerializeThrowsOnNull() {
-    new StringSerializer().serialize(null);
-  }
-
-  @Test(expected = NullPointerException.class)
-  public void testReadThrowsOnNull() throws ClassNotFoundException {
-    new StringSerializer().read(null);
+    assertThrows(NullPointerException.class, () -> new StringSerializer().serialize(null));
   }
 
   @Test
-  public void testSimpleString() throws ClassNotFoundException {
-    testString("eins");
+  public void testReadThrowsOnNull() {
+    assertThrows(NullPointerException.class, () -> new StringSerializer().read(null));
   }
 
   @Test
-  public void testAllCharacters() throws ClassNotFoundException {
+  public void testSimpleString(Random random) throws ClassNotFoundException {
+    testString(random, "eins");
+  }
+
+  @Test
+  public void testAllCharacters(Random random) throws ClassNotFoundException {
     char c = Character.MIN_VALUE;
     do {
-      testString(String.valueOf(c++));
+      testString(random, String.valueOf(c++));
     } while (c != Character.MIN_VALUE);
   }
 
-  private static void testString(String s) throws ClassNotFoundException {
+  private static void testString(Random rndm, String s) throws ClassNotFoundException {
     StringSerializer serializer = new StringSerializer();
     ByteBuffer serialized = serializer.serialize(s);
 
@@ -60,8 +65,6 @@ public class StringSerializerTest {
     assertThat(read, is(s));
 
     assertThat(serializer.equals(s, serialized), is(true));
-
-    Random rndm = new Random();
 
     String padded = s + (char) rndm.nextInt();
     assertThat(serializer.equals(padded, serialized.asReadOnlyBuffer()), is(false));

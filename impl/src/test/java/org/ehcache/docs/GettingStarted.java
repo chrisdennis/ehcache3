@@ -37,12 +37,10 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.EnumSet;
@@ -52,7 +50,7 @@ import java.util.function.Supplier;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Samples to get started with Ehcache 3
@@ -63,9 +61,6 @@ import static org.junit.Assert.assertThat;
  */
 @SuppressWarnings("unused")
 public class GettingStarted {
-
-  @Rule
-  public final TemporaryFolder diskPath = new TemporaryFolder();
 
   @Test
   public void cachemanagerExample() {
@@ -92,10 +87,10 @@ public class GettingStarted {
   }
 
   @Test
-  public void threeTiersCacheManager() throws Exception {
+  public void threeTiersCacheManager(@TempDir File persistenceDir) throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <1>
+        .with(CacheManagerBuilder.persistence(persistenceDir)) // <1>
         .withCache("threeTieredCache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -356,10 +351,6 @@ public class GettingStarted {
     public PersonSerializer() {
       super(ClassLoader.getSystemClassLoader());
     }
-  }
-
-  private String getStoragePath() throws IOException {
-    return diskPath.newFolder().getAbsolutePath();
   }
 
   public static class CustomExpiry implements ExpiryPolicy<Long, String> {

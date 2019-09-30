@@ -18,9 +18,8 @@ package org.ehcache.impl.persistence;
 
 import org.ehcache.impl.serialization.TransientStateHolder;
 import org.ehcache.spi.persistence.StateHolder;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,7 +28,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * FileBasedStateRepositoryTest
@@ -38,12 +37,8 @@ public class FileBasedStateRepositoryTest {
 
   private static String HOLDER_FILE_NAME = "holder-0-myHolder.bin";
 
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
-
   @Test
-  public void testHolderSave() throws Exception {
-    File directory = folder.newFolder("testSave");
+  public void testHolderSave(@TempDir File directory) throws Exception {
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
     String holderName = "myHolder";
     StateHolder<Long, String> myHolder = stateRepository.getPersistentStateHolder(holderName, Long.class, String.class, c -> true, null);
@@ -65,8 +60,7 @@ public class FileBasedStateRepositoryTest {
   }
 
   @Test
-  public void testHolderLoad() throws Exception {
-    File directory = folder.newFolder("testLoad");
+  public void testHolderLoad(@TempDir File directory) throws Exception {
     String holderName = "myHolder";
     StateHolder<Long, String> map = new TransientStateHolder<>();
     map.putIfAbsent(42L, "Again? That's not even funny anymore!!");
@@ -84,8 +78,7 @@ public class FileBasedStateRepositoryTest {
   }
 
   @Test
-  public void testIndexProperlySetAfterLoad() throws Exception {
-    File directory = folder.newFolder("testIndexAfterLoad");
+  public void testIndexProperlySetAfterLoad(@TempDir File directory) throws Exception {
     String holderName = "myHolder";
 
     try (FileOutputStream fos = new FileOutputStream(new File(directory, HOLDER_FILE_NAME));

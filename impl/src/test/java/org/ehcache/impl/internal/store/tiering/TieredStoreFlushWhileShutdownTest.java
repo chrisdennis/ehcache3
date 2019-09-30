@@ -36,9 +36,8 @@ import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
@@ -48,18 +47,13 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
 public class TieredStoreFlushWhileShutdownTest {
 
-  @Rule
-  public final TemporaryFolder folder = new TemporaryFolder();
-
   @Test
-  public void testTieredStoreReleaseFlushesEntries() throws Exception {
-    File persistenceLocation = folder.newFolder("testTieredStoreReleaseFlushesEntries");
-
+  public void testTieredStoreReleaseFlushesEntries(@TempDir File persistenceLocation) throws Exception {
     Store.Configuration<Number, String> configuration = new Store.Configuration<Number, String>() {
 
       @Override

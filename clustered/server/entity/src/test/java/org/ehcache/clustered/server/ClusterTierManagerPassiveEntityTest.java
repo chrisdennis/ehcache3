@@ -25,8 +25,8 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.ehcache.clustered.server.store.InvalidMessage;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
@@ -46,25 +46,26 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 public class ClusterTierManagerPassiveEntityTest {
 
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
-  @Before
+  @BeforeEach
   public void setClientId() {
   }
 
-  @Test(expected = ConfigurationException.class)
-  public void testConfigNull() throws Exception {
-    new ClusterTierManagerPassiveEntity(null, null, null);
+  @Test
+  public void testConfigNull() {
+    assertThrows(ConfigurationException.class, () -> new ClusterTierManagerPassiveEntity(null, null, null));
   }
 
   /**

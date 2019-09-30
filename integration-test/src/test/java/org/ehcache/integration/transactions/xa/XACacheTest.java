@@ -35,11 +35,10 @@ import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import javax.transaction.RollbackException;
 import javax.transaction.Status;
@@ -58,16 +57,13 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * @author Ludovic Orban
  */
 public class XACacheTest {
-
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
 
   private File storagePath;
 
@@ -77,9 +73,9 @@ public class XACacheTest {
 
   private BitronixTransactionManager transactionManager;
 
-  @Before
-  public void setUpBtmConfig() throws Exception {
-    storagePath = folder.newFolder();
+  @BeforeEach
+  public void setUpBtmConfig(@TempDir File folder) throws Exception {
+    storagePath = folder;
 
     initTransactionManagerServices();
 
@@ -94,7 +90,7 @@ public class XACacheTest {
         .setGracefulShutdownInterval(0);
   }
 
-  @After
+  @AfterEach
   public void tearDownBtm() throws Exception {
     if(cacheManager != null) {
       cacheManager.close();

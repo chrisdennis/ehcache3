@@ -26,18 +26,17 @@ import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.transactions.xa.utils.TestXid;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -46,7 +45,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -61,10 +60,9 @@ import static org.mockito.Mockito.when;
 /**
  * @author Ludovic Orban
  */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class XATransactionContextTest {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
   private Store<Long, SoftLock<String>> underlyingStore;
@@ -235,7 +233,7 @@ public class XATransactionContextTest {
 
     assertThat(xaTransactionContext.prepare(), is(3));
 
-    Assert.assertThat(savedInDoubt.get(), containsInAnyOrder(1L, 2L, 3L));
+   assertThat(savedInDoubt.get(), containsInAnyOrder(1L, 2L, 3L));
 
     verify(journal, times(1)).saveInDoubt(eq(new TransactionId(new TestXid(0, 0))), any(Collection.class));
     verify(journal, times(0)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());
@@ -376,7 +374,7 @@ public class XATransactionContextTest {
 
     xaTransactionContext.commitInOnePhase();
 
-    Assert.assertThat(savedInDoubtCollectionRef.get(), containsInAnyOrder(1L, 2L, 3L));
+   assertThat(savedInDoubtCollectionRef.get(), containsInAnyOrder(1L, 2L, 3L));
 
     verify(journal, times(1)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), eq(false));
     verify(journal, times(0)).saveRolledBack(eq(new TransactionId(new TestXid(0, 0))), anyBoolean());

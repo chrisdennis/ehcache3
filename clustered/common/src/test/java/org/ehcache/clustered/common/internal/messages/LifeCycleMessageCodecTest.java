@@ -20,15 +20,15 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
 import static java.nio.ByteBuffer.wrap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * LifeCycleMessageCodecTest
@@ -40,7 +40,7 @@ public class LifeCycleMessageCodecTest {
   private final LifeCycleMessageFactory factory = new LifeCycleMessageFactory();
   private final LifeCycleMessageCodec codec = new LifeCycleMessageCodec(new CommonConfigCodec());
 
-  @Before
+  @BeforeEach
   public void setUp() {
   }
 

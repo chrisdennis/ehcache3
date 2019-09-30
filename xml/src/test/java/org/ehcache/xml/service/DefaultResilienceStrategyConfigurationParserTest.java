@@ -22,7 +22,7 @@ import org.ehcache.xml.NiResilience;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CacheType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.pany.ehcache.integration.TestResilienceStrategy;
 

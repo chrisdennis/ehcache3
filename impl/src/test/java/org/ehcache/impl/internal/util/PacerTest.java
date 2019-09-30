@@ -16,8 +16,8 @@
 package org.ehcache.impl.internal.util;
 
 import org.ehcache.core.spi.time.TimeSource;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,7 +36,7 @@ public class PacerTest {
 
   private AtomicLong time = new AtomicLong(now);
 
-  @Before
+  @BeforeEach
   public void before() {
     TimeSource source = () -> time.get();
     pacer = new Pacer(source, 10);

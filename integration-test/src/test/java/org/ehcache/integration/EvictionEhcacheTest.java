@@ -20,16 +20,16 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author Ludovic Orban
@@ -38,13 +38,13 @@ public class EvictionEhcacheTest {
 
   private CacheManager cacheManager;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     cacheManager = builder.build(true);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (cacheManager != null) {
       cacheManager.close();

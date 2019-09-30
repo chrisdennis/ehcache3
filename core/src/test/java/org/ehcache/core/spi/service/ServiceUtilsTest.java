@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.service;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;

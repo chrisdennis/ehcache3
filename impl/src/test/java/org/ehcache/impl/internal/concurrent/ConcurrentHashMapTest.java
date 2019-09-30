@@ -16,7 +16,9 @@
 
 package org.ehcache.impl.internal.concurrent;
 
-import org.junit.Test;
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Collection;
 import java.util.Map;
@@ -28,11 +30,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author Alex Snaps
  */
+@ExtendWith(Randomness.class)
 public class ConcurrentHashMapTest {
 
     @Test
@@ -115,54 +118,54 @@ public class ConcurrentHashMapTest {
     }
 
     @Test
-    public void testRandomSampleOnEmptyMap() {
+    public void testRandomSampleOnEmptyMap(Random random) {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
-        assertThat(map.getEvictionCandidate(new Random(), 1, null, noAdvice()), nullValue());
+        assertThat(map.getEvictionCandidate(random, 1, null, noAdvice()), nullValue());
     }
 
     @Test
-    public void testEmptyRandomSample() {
+    public void testEmptyRandomSample(Random random) {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
-        assertThat(map.getEvictionCandidate(new Random(), 0, null, noAdvice()), nullValue());
+        assertThat(map.getEvictionCandidate(random, 0, null, noAdvice()), nullValue());
     }
 
     @Test
-    public void testOversizedRandomSample() {
+    public void testOversizedRandomSample(Random random) {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("foo", "bar");
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(random, 2, null, noAdvice());
         assertThat(candidate.getKey(), is("foo"));
         assertThat(candidate.getValue(), is("bar"));
     }
 
     @Test
-    public void testUndersizedRandomSample() {
+    public void testUndersizedRandomSample(Random random) {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, (t, t1) -> 0, noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(random, 2, (t, t1) -> 0, noAdvice());
         assertThat(candidate, notNullValue());
     }
 
     @Test
-    public void testFullyAdvisedAgainstEvictionRandomSample() {
+    public void testFullyAdvisedAgainstEvictionRandomSample(Random random) {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, (key, value) -> true);
+        Entry<String, String> candidate = map.getEvictionCandidate(random, 2, null, (key, value) -> true);
         assertThat(candidate, nullValue());
     }
 
     @Test
-    public void testSelectivelyAdvisedAgainstEvictionRandomSample() {
+    public void testSelectivelyAdvisedAgainstEvictionRandomSample(Random random) {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 20, (t, t1) -> 0, (key, value) -> key.length() > 1);
+        Entry<String, String> candidate = map.getEvictionCandidate(random, 20, (t, t1) -> 0, (key, value) -> key.length() > 1);
         assertThat(candidate.getKey().length(), is(1));
     }
 

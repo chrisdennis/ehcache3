@@ -20,15 +20,15 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -43,36 +43,24 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author Henri Tremblay
  */
+@ExtendWith(PassthroughServer.class)
+@PassthroughServer.ServerResource(name = "primary-server-resource", size = 64)
+@PassthroughServer.ServerResource(name = "secondary-server-resource", size = 64)
 public class ClusteredConcurrencyTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
   private static final String CACHE_NAME = "clustered-cache";
 
   private AtomicReference<Throwable> exception = new AtomicReference<>();
 
-  @Before
-  public void definePassthroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-      new UnitTestConnectionService.PassthroughServerBuilder()
-        .resource("primary-server-resource", 64, MemoryUnit.MB)
-        .resource("secondary-server-resource", 64, MemoryUnit.MB)
-        .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
-
   @Test
-  public void test() throws Throwable {
+  public void test(@Cluster URI clusterUri) throws Throwable {
     final int THREAD_NUM = 50;
 
     final CountDownLatch latch = new CountDownLatch(THREAD_NUM + 1);
 
     List<Thread> threads = new ArrayList<>(THREAD_NUM);
     for (int i = 0; i < THREAD_NUM; i++) {
-      Thread t1 = new Thread(content(latch));
+      Thread t1 = new Thread(content(latch, clusterUri));
       t1.start();
       threads.add(t1);
     }
@@ -90,11 +78,11 @@ public class ClusteredConcurrencyTest {
     }
   }
 
-  private Runnable content(final CountDownLatch latch) {
+  private Runnable content(final CountDownLatch latch, URI clusterUri) {
     return () -> {
       try {
         CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI)
+          .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager"))
             .autoCreate(server -> server.defaultServerResource("primary-server-resource")
               .resourcePool("resource-pool-a", 8, MemoryUnit.MB)
               .resourcePool("resource-pool-b", 8, MemoryUnit.MB, "secondary-server-resource")))

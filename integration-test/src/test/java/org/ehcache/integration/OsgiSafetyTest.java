@@ -17,11 +17,11 @@
 package org.ehcache.integration;
 
 import org.ehcache.core.osgi.SafeOsgi;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class OsgiSafetyTest {
 

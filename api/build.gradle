@@ -17,6 +17,11 @@
 plugins {
   id 'org.ehcache.build.deploy'
   id 'biz.aQute.bnd.builder'
+  id 'java-test-fixtures'
+}
+
+dependencies {
+  testFixturesApi 'org.junit.jupiter:junit-jupiter-api:5.5.2'
 }
 
 checkstyle {

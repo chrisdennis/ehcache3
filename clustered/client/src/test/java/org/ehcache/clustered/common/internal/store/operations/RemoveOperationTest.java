@@ -20,13 +20,13 @@ import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.common.internal.store.operations.Operation.BYTE_SIZE_BYTES;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.LONG_SIZE_BYTES;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RemoveOperationTest {
 
@@ -72,10 +72,10 @@ public class RemoveOperationTest {
     assertEquals(key, decodedOperation.getKey());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testDecodeThrowsOnInvalidType() throws Exception {
     ByteBuffer buffer = ByteBuffer.wrap(new byte[] {10});
-    new RemoveOperation<Long, String>(buffer, keySerializer);
+    assertThrows(IllegalArgumentException.class, () -> new RemoveOperation<Long, String>(buffer, keySerializer));
   }
 
   @Test

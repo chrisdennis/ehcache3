@@ -23,4 +23,11 @@ dependencies {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
   testImplementation "org.terracotta:statistics:$parent.statisticVersion"
+
+  testImplementation('junit:junit:4.12') {
+    exclude group:'org.hamcrest'
+  }
+  testRuntimeOnly('org.junit.vintage:junit-vintage-engine:5.5.2') {
+    exclude group:'org.hamcrest'
+  }
 }

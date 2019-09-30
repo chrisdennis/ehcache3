@@ -15,11 +15,11 @@
  */
 package org.ehcache.jsr107;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,8 +28,8 @@ import java.util.Properties;
 
 import javax.cache.CacheException;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class DefaultConfigurationResolverTest {
 
@@ -37,7 +37,7 @@ public class DefaultConfigurationResolverTest {
     return new URI("cheese://" + System.nanoTime());
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     // just in case to prevent cross talk between test methods
     System.getProperties().remove(DefaultConfigurationResolver.DEFAULT_CONFIG_PROPERTY_NAME);

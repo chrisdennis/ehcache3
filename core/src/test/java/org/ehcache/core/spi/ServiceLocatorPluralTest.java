@@ -21,18 +21,19 @@ import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.hamcrest.Matchers;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.oneOf;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests handling of {@link PluralService} by {@link ServiceLocator}.
@@ -119,20 +120,20 @@ public class ServiceLocatorPluralTest {
     dependencySet.with(alphaServiceProvider);
 
     assertThat(dependencySet.providersOf(AlphaServiceProviderImpl.class),
-        everyItem(isOneOf(alphaServiceProvider)));
+        everyItem(is(oneOf(alphaServiceProvider))));
     assertThat(dependencySet.providersOf(AlphaServiceProvider.class),
-        everyItem(Matchers.<AlphaServiceProvider>isOneOf(alphaServiceProvider)));
+        everyItem(Matchers.is(oneOf(alphaServiceProvider))));
     assertThat(dependencySet.providersOf(PluralServiceProvider.class),
-        everyItem(Matchers.<PluralServiceProvider>isOneOf(alphaServiceProvider)));
+        everyItem(Matchers.is(oneOf(alphaServiceProvider))));
 
     dependencySet.with(betaServiceProvider);
 
     assertThat(dependencySet.providersOf(BetaServiceProviderImpl.class),
-        everyItem(isOneOf(betaServiceProvider)));
+        everyItem(is(oneOf(betaServiceProvider))));
     assertThat(dependencySet.providersOf(BetaServiceProvider.class),
-        everyItem(Matchers.<BetaServiceProvider>isOneOf(betaServiceProvider)));
+        everyItem(Matchers.is(oneOf(betaServiceProvider))));
     assertThat(dependencySet.providersOf(PluralServiceProvider.class),
-        everyItem(Matchers.<PluralServiceProvider>isOneOf(alphaServiceProvider, betaServiceProvider)));
+        everyItem(Matchers.is(oneOf(alphaServiceProvider, betaServiceProvider))));
   }
 }
 

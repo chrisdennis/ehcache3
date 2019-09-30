@@ -17,9 +17,9 @@ package org.ehcache.jsr107;
 
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.event.CacheEvent;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -30,7 +30,7 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author rism
@@ -39,13 +39,13 @@ public class UnwrapTest {
 
   private CacheManager cacheManager;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     cacheManager.close();
   }

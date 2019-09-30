@@ -18,13 +18,16 @@ package org.ehcache.clustered.client.config;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.Configuration;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 
 import static org.ehcache.core.spi.service.ServiceUtils.findSingletonAmongst;
+import static org.ehcache.testing.Utilities.substitute;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ClusteredConfigurationDerivationTest {
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
@@ -32,7 +35,8 @@ public class ClusteredConfigurationDerivationTest {
 
   @Test
   public void testUpdateUri() throws Exception {
-    final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource(SIMPLE_CLUSTER_XML));
+    URL xml = substitute(this.getClass().getResource(SIMPLE_CLUSTER_XML), "cluster-uri", "terracotta://example.com:9540/cachemanager");
+    final XmlConfiguration configuration = new XmlConfiguration(xml);
 
     Configuration newServer = configuration.derive().updateServices(ClusteringServiceConfiguration.class, existing ->
       existing.usingUri(UPDATED_CLUSTER_URI)).build();
@@ -40,8 +44,9 @@ public class ClusteredConfigurationDerivationTest {
   }
 
   @Test
-  public void testAddConsistency() {
-    final XmlConfiguration configuration = new XmlConfiguration(this.getClass().getResource(SIMPLE_CLUSTER_XML));
+  public void testAddConsistency() throws IOException {
+    URL xml = substitute(this.getClass().getResource(SIMPLE_CLUSTER_XML), "cluster-uri", "terracotta://example.com:9540/cachemanager");
+    final XmlConfiguration configuration = new XmlConfiguration(xml);
 
     Configuration newConsistency = configuration.derive().updateCache("simple-cache", existing ->
       existing.withService(new ClusteredStoreConfiguration(Consistency.STRONG))).build();

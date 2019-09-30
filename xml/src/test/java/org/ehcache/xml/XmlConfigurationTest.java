@@ -46,12 +46,10 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
-import org.hamcrest.core.IsCollectionContaining;
+import org.hamcrest.core.IsIterableContaining;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNull;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -98,21 +96,22 @@ import static org.ehcache.xml.XmlConfiguration.getClassForName;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
@@ -121,9 +120,6 @@ import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
  * @author Chris Dennis
  */
 public class XmlConfigurationTest {
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testDefaultTypesConfig() throws Exception {
@@ -169,7 +165,7 @@ public class XmlConfigurationTest {
     URL resource = XmlConfigurationTest.class.getResource("/configs/one-service.xml");
     Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
 
-    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), IsIterableContaining.hasItem(instanceOf(BarConfiguration.class)));
     assertThat(config.getCacheConfigurations().keySet(), hasSize(0));
   }
 
@@ -180,14 +176,14 @@ public class XmlConfigurationTest {
 
     assertThat(config.getServiceCreationConfigurations(), hasSize(0));
     assertThat(config.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsIterableContaining.hasItem(instanceOf(FooConfiguration.class)));
   }
 
   @Test
   public void testAllExtensions() {
     URL resource = XmlConfigurationTest.class.getResource("/configs/all-extensions.xml");
     Configuration config = new XmlConfiguration(new XmlConfiguration(resource));
-    assertThat(config.getServiceCreationConfigurations(), IsCollectionContaining.hasItem(instanceOf(BarConfiguration.class)));
+    assertThat(config.getServiceCreationConfigurations(), IsIterableContaining.hasItem(instanceOf(BarConfiguration.class)));
     CacheConfiguration<?, ?> cacheConfiguration = config.getCacheConfigurations().get("fancy");
     assertThat(cacheConfiguration.getServiceConfigurations(), hasItem(instanceOf(FooConfiguration.class)));
     assertThat(cacheConfiguration.getResourcePools().getResourceTypeSet(), hasItem(instanceOf(BazResource.Type.class)));
@@ -200,7 +196,7 @@ public class XmlConfigurationTest {
 
     assertThat(xmlConfig.getServiceCreationConfigurations(), hasSize(0));
     assertThat(xmlConfig.getCacheConfigurations().keySet(), hasItem("bar"));
-    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.hasItem(instanceOf(FooConfiguration.class)));
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations(), IsIterableContaining.hasItem(instanceOf(FooConfiguration.class)));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
 
@@ -429,7 +425,7 @@ public class XmlConfigurationTest {
     Iterator<ServiceConfiguration<?, ?>> it = orderedServiceConfigurations.iterator();
 
     DefaultSerializerConfiguration<?> keySerializationProviderConfiguration = (DefaultSerializerConfiguration<?>) it.next();
-    assertThat(keySerializationProviderConfiguration.getType(), isIn(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE }));
+    assertThat(keySerializationProviderConfiguration.getType(), is(in(new DefaultSerializerConfiguration.Type[] { DefaultSerializerConfiguration.Type.KEY, DefaultSerializerConfiguration.Type.VALUE })));
   }
 
   @Test
@@ -532,11 +528,11 @@ public class XmlConfigurationTest {
 
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = xmlConfig.getCacheConfigurations().get("bar").getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsIterableContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class).build().getServiceConfigurations();
 
-    assertThat(serviceConfiguration, IsCollectionContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
+    assertThat(serviceConfiguration, IsIterableContaining.hasItem(instanceOf(WriteBehindConfiguration.class)));
 
     for (ServiceConfiguration<?, ?> configuration : serviceConfiguration) {
       if(configuration instanceof WriteBehindConfiguration) {
@@ -623,23 +619,20 @@ public class XmlConfigurationTest {
 
   @Test
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The url can not be null");
-    new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock());
+    NullPointerException failure = assertThrows(NullPointerException.class, () -> new XmlConfiguration((URL) null, mock(ClassLoader.class), getClassLoaderMapMock()));
+    assertThat(failure.getMessage(), is("The url can not be null"));
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The classLoader can not be null");
-    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock());
+    NullPointerException failure = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock()));
+    assertThat(failure.getMessage(), is("The classLoader can not be null"));
   }
 
   @Test
   public void testNullCacheClassLoaderMapInConstructorThrowsNPE() throws Exception {
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("The cacheClassLoaders map can not be null");
-    new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null);
+    NullPointerException failure = assertThrows(NullPointerException.class, () -> new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), mock(ClassLoader.class), null));
+    assertThat(failure.getMessage(), is("The cacheClassLoaders map can not be null"));
   }
 
   @Test

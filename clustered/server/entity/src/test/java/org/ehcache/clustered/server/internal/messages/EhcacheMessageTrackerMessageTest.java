@@ -18,8 +18,8 @@ package org.ehcache.clustered.server.internal.messages;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.server.TestClientSourceId;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,7 +44,7 @@ public class EhcacheMessageTrackerMessageTest {
   private EhcacheEntityResponse r4 = new NullResponse();
   private EhcacheEntityResponse r5 = new NullResponse();
 
-  @Before
+  @BeforeEach
   public void before() {
     Map<Long, EhcacheEntityResponse> res1 = new HashMap<>();
     res1.put(3L, r3);

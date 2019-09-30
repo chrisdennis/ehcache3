@@ -17,12 +17,12 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * TemplateDefaultTest
@@ -32,7 +32,7 @@ public class FromTemplateCacheConfigurationBuilderDefaultTest {
   private XmlConfiguration xmlConfiguration;
   private CacheConfigurationBuilder<Object, Object> minimalTemplateBuilder;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     xmlConfiguration = new XmlConfiguration(getClass().getResource("/configs/template-defaults.xml"));
     minimalTemplateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate("minimal-template", Object.class, Object.class, heap(10));

@@ -22,7 +22,6 @@ import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ConnectionSource;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
@@ -30,11 +29,8 @@ import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.TimeType;
 import org.hamcrest.Matchers;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
 import org.xmlunit.diff.DefaultNodeMatcher;
@@ -49,6 +45,8 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
@@ -71,18 +69,16 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.core.IsIterableContaining.hasItem;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 public class ClusteringCacheManagerServiceConfigurationParserTest {
 
-  @ClassRule
-  public static final TemporaryFolder folder = new TemporaryFolder();
-
-  @Rule
-  public final TestName testName = new TestName();
+  @TempDir
+  public Path folder;
 
   /**
    * Ensures the {@link ClusteringCacheManagerServiceConfigurationParser} is locatable as a
@@ -302,7 +298,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     }
   }
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void testUrlAndServers() throws Exception {
     final String[] config = new String[]
       {
@@ -322,10 +318,10 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
         "</ehcache:config>"
       };
 
-    new XmlConfiguration(makeConfig(config));
+    assertThrows(XmlConfigurationException.class, () -> new XmlConfiguration(makeConfig(config)));
   }
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void testServersOnly() throws Exception {
     final String[] config = new String[]
       {
@@ -344,7 +340,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
         "</ehcache:config>"
       };
 
-    new XmlConfiguration(makeConfig(config));
+    assertThrows(XmlConfigurationException.class, () -> new XmlConfiguration(makeConfig(config)));
   }
 
   @Test
@@ -421,7 +417,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     assertThat(servers, is(expectedServers));
   }
 
-  @Test @SuppressWarnings("deprecation")
+  @Test
+  @SuppressWarnings("deprecation")
   public void testAutoCreateFalseMapsToExpecting() throws IOException {
     final String[] config = new String[]
       {
@@ -444,7 +441,8 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
     assertThat(clusterConfig.getClientMode(), is(ClusteringServiceConfiguration.ClientMode.EXPECTING));
   }
 
-  @Test @SuppressWarnings("deprecation")
+  @Test
+  @SuppressWarnings("deprecation")
   public void testAutoCreateTrueMapsToAutoCreate() throws IOException {
     final String[] config = new String[]
       {
@@ -601,7 +599,7 @@ public class ClusteringCacheManagerServiceConfigurationParserTest {
    * @throws IOException if an error is raised while creating or writing the XML configuration file
    */
   private URL makeConfig(final String[] lines) throws IOException {
-    final File configFile = folder.newFile(testName.getMethodName() + "_config.xml");
+    final File configFile = Files.createTempFile(folder, "config", ".xml").toFile();
 
     try (FileOutputStream fout = new FileOutputStream(configFile); OutputStreamWriter out = new OutputStreamWriter(fout, StandardCharsets.UTF_8)) {
       for (final String line : lines) {

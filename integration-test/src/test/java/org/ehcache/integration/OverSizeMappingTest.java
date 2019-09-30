@@ -17,7 +17,6 @@
 package org.ehcache.integration;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -25,7 +24,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;

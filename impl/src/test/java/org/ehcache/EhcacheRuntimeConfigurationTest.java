@@ -24,32 +24,30 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * @author rism
  */
 public class EhcacheRuntimeConfigurationTest {
 
-  @Rule
-  public final TemporaryFolder diskPath = new TemporaryFolder();
-
   @Test
-  public void testUpdateResources() throws Exception {
+  public void testUpdateResources(@TempDir File persistenceDir) throws Exception {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build()).build();
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(diskPath.newFolder("myData")))
+        .with(new CacheManagerPersistenceConfiguration(persistenceDir))
         .withCache("cache", cacheConfiguration).build(true)) {
 
       Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);

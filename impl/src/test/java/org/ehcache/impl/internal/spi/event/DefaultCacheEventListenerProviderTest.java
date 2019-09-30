@@ -27,8 +27,8 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.hamcrest.core.IsCollectionContaining;
-import org.junit.Test;
+import org.hamcrest.core.IsIterableContaining;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -37,7 +37,7 @@ import java.util.Set;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author rism
@@ -73,7 +73,7 @@ public class DefaultCacheEventListenerProviderTest {
             .build());
     Collection<ServiceConfiguration<?, ?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();
-    assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));
+    assertThat(serviceConfiguration, IsIterableContaining.<ServiceConfiguration<?, ?>>hasItem(instanceOf(DefaultCacheEventListenerConfiguration.class)));
     cacheManager.close();
   }
 

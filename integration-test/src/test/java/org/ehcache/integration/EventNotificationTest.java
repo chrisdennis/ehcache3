@@ -19,7 +19,6 @@ package org.ehcache.integration;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
-import org.ehcache.core.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -30,10 +29,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -50,8 +46,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class EventNotificationTest {
   private static final TestTimeSource testTimeSource = new TestTimeSource();
@@ -241,7 +237,6 @@ public class EventNotificationTest {
 
   @Test
   public void testEventFiringInCacheIterator() {
-    Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
     CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder()
             .heap(5L, EntryUnit.ENTRIES).build())
@@ -261,14 +256,10 @@ public class EventNotificationTest {
     cache.put(4L, "4");
     cache.put(5L, "5");
     assertThat(listener1.expired.get(), is(0));
-    for(Cache.Entry<Long, String> entry : cache) {
-      logger.info("Iterating over key : ", entry.getKey());
-    }
+    for(Cache.Entry<Long, String> entry : cache) {}
 
     testTimeSource.setTimeMillis(2000);
-    for(Cache.Entry<Long, String> entry : cache) {
-      logger.info("Iterating over key : ", entry.getKey());
-    }
+    for(Cache.Entry<Long, String> entry : cache) {}
 
     cacheManager.close();
 
@@ -405,8 +396,6 @@ public class EventNotificationTest {
 
     @Override
     public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
-      logger.info(event.getType().toString());
       eventTypeHashMap.put(event.getType(), eventCounter.get());
       eventCounter.getAndIncrement();
       if(event.getType() == EventType.EVICTED){
@@ -441,8 +430,6 @@ public class EventNotificationTest {
 
     @Override
     public void onEvent(final CacheEvent<? extends Object, ? extends Object> event) {
-      Logger logger = LoggerFactory.getLogger(EventNotificationTest.class + "-" + "EventNotificationTest");
-      logger.info(event.getType().toString());
       if(event.getType() == EventType.EVICTED){
         evicted.getAndIncrement();
       }
@@ -476,7 +463,6 @@ public class EventNotificationTest {
   }
 
   private static class CachePutOperator implements Runnable {
-    Logger logger = LoggerFactory.getLogger(EventNotificationTest.class + "-" + "EventNotificationTest");
     Cache<Number, Number> cache;
     int number;
 
@@ -489,7 +475,6 @@ public class EventNotificationTest {
     public void run() {
       for (int i = number; i < number + 10; i++) {
         cache.put(i , i);
-        logger.info(Thread.currentThread().getName() + " putting " + i);
       }
     }
   }

@@ -15,8 +15,8 @@
  */
 package org.ehcache.impl.internal.store.offheap;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -27,7 +27,7 @@ public class OffHeapStoreUtilsTest {
 
   private static final String PROPERTY = "stuff";
 
-  @After
+  @AfterEach
   public void tearDown() {
     System.getProperties().remove(OffHeapStoreUtils.PATH_PREFIX + PROPERTY);
   }

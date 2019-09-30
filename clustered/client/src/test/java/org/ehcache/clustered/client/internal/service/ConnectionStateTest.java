@@ -20,17 +20,17 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.connection.Connection;
 
 import java.io.IOException;
@@ -40,45 +40,26 @@ import java.util.Properties;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 64)
 public class ConnectionStateTest {
 
-  private static URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
-
-  private final ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
-          .cluster(CLUSTER_URI)
-          .autoCreate(c -> c)
-          .build();
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
-  @Before
-  public void definePassthroughServer() {
-    UnitTestConnectionService.add(CLUSTER_URI,
-            new UnitTestConnectionService.PassthroughServerBuilder()
-                    .resource("primary-server-resource", 64, MemoryUnit.MB)
-                    .resource("secondary-server-resource", 64, MemoryUnit.MB)
-                    .build());
-  }
-
-  @After
-  public void removePassthrough() {
-    expectedException.expect(IllegalStateException.class);
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
-
   @Test
-  public void testInitializeStateAfterConnectionCloses() throws Exception {
+  public void testInitializeStateAfterConnectionCloses(@Cluster URI clusterUri) throws Exception {
+    ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
+      .cluster(clusterUri.resolve("/cache-manager"))
+      .autoCreate(c -> c)
+      .build();
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
     connectionState.initClusterConnection();
 
-    closeConnection();
+    closeConnection(clusterUri);
 
-    expectedException.expect(IllegalStateException.class);
-    connectionState.getConnection().close();
+    assertThrows(IllegalStateException.class, () -> connectionState.getConnection().close());
 
     connectionState.initializeState();
 
@@ -90,13 +71,17 @@ public class ConnectionStateTest {
   }
 
   @Test
-  public void testCreateClusterTierEntityAfterConnectionCloses() throws Exception {
+  public void testCreateClusterTierEntityAfterConnectionCloses(@Cluster URI clusterUri) throws Exception {
+    ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
+      .cluster(clusterUri.resolve("/cache-manager"))
+      .autoCreate(c -> c)
+      .build();
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
     connectionState.initClusterConnection();
     connectionState.initializeState();
 
-    closeConnection();
+    connectionState.getConnection().close();
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
@@ -109,8 +94,8 @@ public class ConnectionStateTest {
   }
 
   //For test to simulate connection close as result of lease expiry
-  private void closeConnection() throws IOException {
-    Collection<Connection> connections = UnitTestConnectionService.getConnections(CLUSTER_URI);
+  private void closeConnection(URI clusterUri) throws IOException {
+    Collection<Connection> connections = UnitTestConnectionService.getConnections(clusterUri);
 
     assertThat(connections.size(), is(1));
 

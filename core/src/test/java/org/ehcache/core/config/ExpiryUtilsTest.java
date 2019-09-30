@@ -16,22 +16,18 @@
 package org.ehcache.core.config;
 
 import org.ehcache.expiry.ExpiryPolicy;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class ExpiryUtilsTest {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
   private ExpiryPolicy<Integer, Integer> expiry;

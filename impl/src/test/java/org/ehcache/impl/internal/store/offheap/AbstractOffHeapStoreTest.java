@@ -30,12 +30,14 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.testing.extensions.Randomness;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.QueryBuilder;
 import org.terracotta.statistics.OperationStatistic;
@@ -46,7 +48,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -59,11 +60,11 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -73,12 +74,13 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  *
  * @author cdennis
  */
+@ExtendWith(Randomness.class)
 public abstract class AbstractOffHeapStoreTest {
 
   private TestTimeSource timeSource = new TestTimeSource();
   private AbstractOffHeapStore<String, String> offHeapStore;
 
-  @After
+  @AfterEach
   public void after() {
     if(offHeapStore != null) {
       destroyStore(offHeapStore);
@@ -202,21 +204,21 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testEvictionAdvisor() throws StoreAccessException {
+  public void testEvictionAdvisor(Random random) throws StoreAccessException {
     ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L));
     EvictionAdvisor<String, byte[]> evictionAdvisor = (key, value) -> true;
 
-    performEvictionTest(timeSource, expiry, evictionAdvisor);
+    performEvictionTest(random, timeSource, expiry, evictionAdvisor);
   }
 
   @Test
-  public void testBrokenEvictionAdvisor() throws StoreAccessException {
+  public void testBrokenEvictionAdvisor(Random random) throws StoreAccessException {
     ExpiryPolicy<Object, Object> expiry = ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMillis(15L));
     EvictionAdvisor<String, byte[]> evictionAdvisor = (key, value) -> {
       throw new UnsupportedOperationException("Broken advisor!");
     };
 
-    performEvictionTest(timeSource, expiry, evictionAdvisor);
+    performEvictionTest(random, timeSource, expiry, evictionAdvisor);
   }
 
   @Test
@@ -495,14 +497,14 @@ public abstract class AbstractOffHeapStoreTest {
 
   protected abstract void destroyStore(AbstractOffHeapStore<?, ?> store);
 
-  private void performEvictionTest(TestTimeSource timeSource, ExpiryPolicy<Object, Object> expiry, EvictionAdvisor<String, byte[]> evictionAdvisor) throws StoreAccessException {
+  private void performEvictionTest(Random random, TestTimeSource timeSource, ExpiryPolicy<Object, Object> expiry, EvictionAdvisor<String, byte[]> evictionAdvisor) throws StoreAccessException {
     AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionAdvisor);
     try {
       @SuppressWarnings("unchecked")
       StoreEventListener<String, byte[]> listener = mock(StoreEventListener.class);
       offHeapStore.getStoreEventSource().addEventListener(listener);
 
-      byte[] value = getBytes(MemoryUnit.KB.toBytes(200));
+      byte[] value = getBytes(random, MemoryUnit.KB.toBytes(200));
       offHeapStore.put("key1", value);
       offHeapStore.put("key2", value);
       offHeapStore.put("key3", value);
@@ -545,11 +547,11 @@ public abstract class AbstractOffHeapStoreTest {
     return (OperationStatistic<StoreOperationOutcomes.ExpirationOutcome>) treeNode.getContext().attributes().get("this");
   }
 
-  private byte[] getBytes(long valueLength) {
+  private byte[] getBytes(Random random, long valueLength) {
     assertThat(valueLength, lessThan((long) Integer.MAX_VALUE));
     int valueLengthInt = (int) valueLength;
     byte[] value = new byte[valueLengthInt];
-    new Random().nextBytes(value);
+    random.nextBytes(value);
     return value;
   }
 

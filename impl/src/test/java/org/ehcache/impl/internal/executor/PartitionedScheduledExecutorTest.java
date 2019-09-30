@@ -15,18 +15,15 @@
  */
 package org.ehcache.impl.internal.executor;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,13 +35,14 @@ import static org.ehcache.impl.internal.executor.ExecutorUtil.waitFor;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class PartitionedScheduledExecutorTest {
 
   private OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
 
-  @After
+  @AfterEach
   public void after() {
     scheduler.shutdownNow();
   }
@@ -236,7 +234,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> Assert.fail("Should not run!"), 2, 1, MINUTES);
+      ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> fail("Should not run!"), 2, 1, MINUTES);
 
       executor.shutdown();
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
@@ -255,7 +253,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(() -> Assert.fail("Should not run!"), 2, 1, MINUTES);
+      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(() -> fail("Should not run!"), 2, 1, MINUTES);
 
       executor.shutdown();
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
@@ -295,7 +293,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(() -> Assert.fail("Should not run!"), 2, 1, MINUTES);
+      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(() -> fail("Should not run!"), 2, 1, MINUTES);
 
       assertThat(executor.shutdownNow(), hasSize(1));
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
@@ -314,7 +312,7 @@ public class PartitionedScheduledExecutorTest {
     try {
       PartitionedScheduledExecutor executor = new PartitionedScheduledExecutor(scheduler, worker);
 
-      ScheduledFuture<?> future = executor.schedule(() -> Assert.fail("Should not run!"), 2, MINUTES);
+      ScheduledFuture<?> future = executor.schedule(() -> fail("Should not run!"), 2, MINUTES);
 
       List<Runnable> remainingTasks = executor.shutdownNow();
       assertThat(remainingTasks, hasSize(1));

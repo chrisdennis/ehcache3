@@ -16,12 +16,15 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.terracotta.exception.ConnectionClosedException;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -38,7 +41,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
@@ -48,9 +51,9 @@ import static org.mockito.Mockito.when;
 public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   @Test
-  public void testServerSideEvictionFiresInvalidations() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.STRONG, false);
+  public void testServerSideEvictionFiresInvalidations(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testServerSideEvictionFiresInvalidations", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testServerSideEvictionFiresInvalidations", Consistency.STRONG, false);
 
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
@@ -124,9 +127,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testHashInvalidationListenerWithAppend() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithAppend", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithAppend", Consistency.STRONG, false);
+  public void testHashInvalidationListenerWithAppend(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testHashInvalidationListenerWithAppend", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testHashInvalidationListenerWithAppend", Consistency.STRONG, false);
 
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
@@ -159,9 +162,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testConcurrentHashInvalidationListenerWithAppend() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testConcurrentHashInvalidationListenerWithAppend", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testConcurrentHashInvalidationListenerWithAppend", Consistency.STRONG, false);
+  public void testConcurrentHashInvalidationListenerWithAppend(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testConcurrentHashInvalidationListenerWithAppend", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testConcurrentHashInvalidationListenerWithAppend", Consistency.STRONG, false);
 
     final AtomicBoolean invalidating = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(2);
@@ -217,9 +220,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", Consistency.STRONG, false);
+  public void testHashInvalidationListenerWithGetAndAppend(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testHashInvalidationListenerWithGetAndAppend", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testHashInvalidationListenerWithGetAndAppend", Consistency.STRONG, false);
 
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
 
@@ -252,9 +255,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testAllInvalidationListener() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAllInvalidationListener", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAllInvalidationListener", Consistency.STRONG, false);
+  public void testAllInvalidationListener(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testAllInvalidationListener", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testAllInvalidationListener", Consistency.STRONG, false);
 
     final AtomicBoolean invalidatedAll = new AtomicBoolean();
 
@@ -287,9 +290,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testConcurrentAllInvalidationListener() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testConcurrentAllInvalidationListener", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testConcurrentAllInvalidationListener", Consistency.STRONG, false);
+  public void testConcurrentAllInvalidationListener(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testConcurrentAllInvalidationListener", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testConcurrentAllInvalidationListener", Consistency.STRONG, false);
 
     final AtomicBoolean invalidating = new AtomicBoolean();
     final CountDownLatch latch = new CountDownLatch(2);
@@ -346,9 +349,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testAppendInvalidationUnblockedByDisconnection() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAppendInvalidationUnblockedByDisconnection", Consistency.STRONG, false);
+  public void testAppendInvalidationUnblockedByDisconnection(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testAppendInvalidationUnblockedByDisconnection", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testAppendInvalidationUnblockedByDisconnection", Consistency.STRONG, false);
 
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testAppendInvalidationUnblockedByDisconnection", clientEntity2, new ServerCallback() {
@@ -382,9 +385,9 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testClearInvalidationUnblockedByDisconnection() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testClearInvalidationUnblockedByDisconnection", Consistency.STRONG, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testClearInvalidationUnblockedByDisconnection", Consistency.STRONG, false);
+  public void testClearInvalidationUnblockedByDisconnection(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testClearInvalidationUnblockedByDisconnection", Consistency.STRONG, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testClearInvalidationUnblockedByDisconnection", Consistency.STRONG, false);
 
     StrongServerStoreProxy serverStoreProxy1 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity1, mock(ServerCallback.class));
     StrongServerStoreProxy serverStoreProxy2 = new StrongServerStoreProxy("testClearInvalidationUnblockedByDisconnection", clientEntity2, new ServerCallback() {

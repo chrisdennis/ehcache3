@@ -17,13 +17,13 @@ package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xmlunit.diff.DefaultNodeMatcher;
 import org.xmlunit.diff.ElementSelectors;
 
 import java.net.URL;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 /**

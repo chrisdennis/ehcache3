@@ -16,8 +16,8 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 import java.nio.ByteBuffer;
@@ -43,7 +43,7 @@ public class EhcacheCodecTest {
 
   private EhcacheCodec codec;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     initMocks(this);
 

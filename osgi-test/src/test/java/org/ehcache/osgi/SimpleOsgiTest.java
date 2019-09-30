@@ -155,7 +155,12 @@ public class SimpleOsgiTest {
     public static void testCustomCopier() {
       CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-          .withService(new DefaultCopierConfiguration<>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
+          .withService(new DefaultCopierConfiguration<>(new ReadWriteCopier<String>() {
+            @Override
+            public String copy(String obj) {
+              return new String(obj);
+            }
+          }, DefaultCopierConfiguration.Type.VALUE))
           .withClassLoader(TestMethods.class.getClassLoader())
           .build())
         .build(true);
@@ -187,14 +192,5 @@ public class SimpleOsgiTest {
 
       assertThat(osgiAvailableClasses, hasItems(jdkAvailableClasses.toArray(new String[0])));
     }
-
-    public static class StringCopier extends ReadWriteCopier<String> {
-
-      @Override
-      public String copy(String obj) {
-        return new String(obj);
-      }
-    }
-
   }
 }

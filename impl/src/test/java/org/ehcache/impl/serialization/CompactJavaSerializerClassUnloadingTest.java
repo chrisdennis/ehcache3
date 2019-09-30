@@ -24,9 +24,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 /**
  *
@@ -39,7 +41,7 @@ public class CompactJavaSerializerClassUnloadingTest {
   public volatile WeakReference<Class<?>> classRef;
   public volatile Serializable specialObject;
 
-  @Before
+  @BeforeEach
   public void createSpecialObject() throws Exception {
     ClassLoader duplicate = new DuplicateClassLoader(SpecialClass.class.getClassLoader());
 
@@ -76,8 +78,8 @@ public class CompactJavaSerializerClassUnloadingTest {
       StatefulSerializer<Serializable> serializer = new CompactJavaSerializer<>(null);
       serializer.init(new TransientStateRepository());
       specialObject = serializer.read(serializer.serialize(specialObject));
-      Assert.assertEquals(SpecialClass.class.getName(), specialObject.getClass().getName());
-      Assert.assertNotSame(SpecialClass.class, specialObject.getClass());
+      assertEquals(SpecialClass.class.getName(), specialObject.getClass().getName());
+      assertNotSame(SpecialClass.class, specialObject.getClass());
     } finally {
       specialObject = null;
       Thread.currentThread().setContextClassLoader(null);

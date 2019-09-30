@@ -36,7 +36,9 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.junit.Test;
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -46,8 +48,8 @@ import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnB
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -58,6 +60,7 @@ import static org.mockito.Mockito.when;
  * @author Abhilash
  *
  */
+@ExtendWith(Randomness.class)
 public abstract class AbstractWriteBehindTestBase {
 
   protected abstract CacheManagerBuilder<CacheManager> managerBuilder();
@@ -212,7 +215,7 @@ public abstract class AbstractWriteBehindTestBase {
   }
 
   @Test
-  public void testAllGetsReturnLatestDataWithKeyCollision() {
+  public void testAllGetsReturnLatestDataWithKeyCollision(Random random) {
     WriteBehindTestLoaderWriter<String, String> loaderWriter = new WriteBehindTestLoaderWriter<>();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = getMockedCacheLoaderWriterProvider(loaderWriter);
 
@@ -222,7 +225,6 @@ public abstract class AbstractWriteBehindTestBase {
         .withService(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
         .build());
 
-      Random random = new Random();
       Set<String> keys = new HashSet<>();
       for (int i = 0; i < 40; i++) {
         int index = random.nextInt(15);

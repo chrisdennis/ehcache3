@@ -26,8 +26,13 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.impl.persistence.DefaultDiskResourceService;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.CachePersistenceException;
@@ -37,7 +42,6 @@ import org.ehcache.impl.internal.store.offheap.portability.AssertingOffHeapValue
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
-import org.ehcache.impl.internal.persistence.TestDiskResourceService;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
@@ -52,10 +56,13 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.test.MockitoUtil;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 import org.terracotta.context.query.Matcher;
@@ -63,6 +70,7 @@ import org.terracotta.context.query.Query;
 import org.terracotta.context.query.QueryBuilder;
 import org.terracotta.statistics.OperationStatistic;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -89,7 +97,6 @@ import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_DISK_SEGMENTS;
 import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.DEFAULT_WRITER_CONCURRENCY;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
-import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -104,11 +111,32 @@ import static org.terracotta.context.query.Matchers.hasAttribute;
 
 public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
-  @Rule
-  public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+  private LocalPersistenceService fileService;
+  private DiskResourceService diskResourceService;
 
-  @Rule
-  public final TestDiskResourceService diskResourceService = new TestDiskResourceService();
+  @BeforeEach
+  public void startDiskResourceService(@TempDir File persistenceDir) {
+    fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(persistenceDir));
+    fileService.start(null);
+    diskResourceService = new DefaultDiskResourceService();
+    @SuppressWarnings("unchecked")
+    ServiceProvider<Service> sp = mock(ServiceProvider.class);
+    Mockito.when(sp.getService(LocalPersistenceService.class)).thenReturn(fileService);
+    diskResourceService.start(sp);
+  }
+
+  @AfterEach
+  public void stopDiskResourceService() {
+    DiskResourceService ps = diskResourceService;
+    LocalPersistenceService ls = fileService;
+    diskResourceService = null;
+    fileService = null;
+    try {
+      ps.stop();
+    } finally {
+      ls.stop();
+    }
+  }
 
   @Test
   public void testRecovery() throws StoreAccessException, IOException {
@@ -129,7 +157,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testRecoveryFailureWhenValueTypeChangesToIncompatibleClass() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider)
+    ServiceLocator serviceLocator = dependencySet().with(fileService).with(diskResourceService).with(provider)
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
@@ -180,7 +208,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testRecoveryWithArrayType() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider)
+    ServiceLocator serviceLocator = dependencySet().with(fileService).with(diskResourceService).with(provider)
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
@@ -226,7 +254,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testProvidingOffHeapDiskStoreConfiguration() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider)
+    ServiceLocator serviceLocator = dependencySet().with(fileService).with(diskResourceService).with(provider)
       .with(mock(CacheManagerProviderService.class, Answers.RETURNS_DEEP_STUBS)).build();
     serviceLocator.startAllServices();
 
@@ -370,10 +398,11 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void diskStoreShrinkingTest() throws Exception {
+  public void diskStoreShrinkingTest(@TempDir File persistenceDir) throws Exception {
+    persistenceDir = new File(persistenceDir, "different");
 
     try (CacheManager manager = newCacheManagerBuilder()
-      .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
+      .with(persistence(persistenceDir))
       .build(true)) {
 
       CacheConfigurationBuilder<Long, CacheValue> cacheConfigurationBuilder = newCacheConfigurationBuilder(Long.class, CacheValue.class,

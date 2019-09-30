@@ -22,12 +22,12 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * XmlConsistencyTest
@@ -36,7 +36,7 @@ public class XmlConsistencyTest {
 
   private Configuration xmlConfiguration;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     xmlConfiguration = new XmlConfiguration(this.getClass().getResource("/configs/consistency.xml"));
   }

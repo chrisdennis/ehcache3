@@ -22,11 +22,10 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.util.TestCacheConfig;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.resilience.ResilienceStrategy;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.helpers.NOPLogger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -49,20 +48,19 @@ public class CacheConfigurationChangeListenerTest {
   private Ehcache<Object, Object> cache;
 
   @SuppressWarnings({ "unchecked"})
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     this.store = mock(Store.class);
     this.eventNotifier = mock(CacheEventDispatcher.class);
     ResilienceStrategy<Object, Object> resilienceStrategy = mock(ResilienceStrategy.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
     this.config = new TestCacheConfig<>(Object.class, Object.class, createResourcePools(2L));
-    this.cache = new Ehcache<>(config, store, resilienceStrategy, eventNotifier,
-      LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"), loaderWriter);
+    this.cache = new Ehcache<>(config, store, resilienceStrategy, eventNotifier, NOPLogger.NOP_LOGGER, loaderWriter);
     cache.init();
     this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     cache.close();
   }
@@ -98,8 +96,6 @@ public class CacheConfigurationChangeListenerTest {
     @Override
     public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
       this.eventSet.add(event);
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
-      logger.info("Setting size: "+event.getNewValue().toString());
     }
   }
 }

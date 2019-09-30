@@ -25,11 +25,10 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
+import java.io.File;
 import java.net.URL;
 import java.time.Duration;
 
@@ -37,9 +36,6 @@ import java.time.Duration;
  * GettingStarted
  */
 public class GettingStarted {
-
-  @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder();
 
   @Test
   public void xmlConfigSample() throws Exception {
@@ -67,10 +63,10 @@ public class GettingStarted {
   }
 
   @Test
-  public void testXmlToString() throws IOException {
+  public void testXmlToString(@TempDir File persistenceDir) {
     // tag::xmlTranslation[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(tmpDir.newFile("myData")))
+      .with(CacheManagerBuilder.persistence(persistenceDir))
       .withCache("threeTieredCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()

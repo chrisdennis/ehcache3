@@ -16,10 +16,10 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class MemorySizeParserTest {
 
@@ -41,18 +41,7 @@ public class MemorySizeParserTest {
 
   @Test
   public void testParseErrors() {
-    try {
-      MemorySizeParser.parse("-1G");
-      Assert.fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
-
-    try {
-      MemorySizeParser.parse("1000y");
-      Assert.fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> MemorySizeParser.parse("-1G"));
+    assertThrows(IllegalArgumentException.class, () -> MemorySizeParser.parse("1000y"));
   }
 }

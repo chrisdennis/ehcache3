@@ -16,40 +16,33 @@
 
 package org.ehcache.impl.serialization;
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.testing.extensions.Randomness;
+import org.ehcache.testing.extensions.Randomness.Random;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.Random;
-
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@ExtendWith(Randomness.class)
 public class DoubleSerializerTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DoubleSerializerTest.class);
+  @RepeatedTest(100)
+  public void testCanSerializeAndDeserialize(@Random double value) throws ClassNotFoundException {
+    DoubleSerializer serializer = new DoubleSerializer();
+    double read = serializer.read(serializer.serialize(value));
+    assertThat(read, is(value));
+  }
 
   @Test
-  public void testCanSerializeAndDeserialize() throws ClassNotFoundException {
-    DoubleSerializer serializer = new DoubleSerializer();
-    long now = System.currentTimeMillis();
-    LOGGER.info("LongSerializer test with seed {}", now);
-    Random random = new Random(now);
-
-    for (int i = 0; i < 100; i++) {
-      double l = random.nextDouble();
-      double read = serializer.read(serializer.serialize(l));
-      assertThat(read, is(l));
-    }
+  public void testReadThrowsOnNullInput() {
+    assertThrows(NullPointerException.class, () -> new DoubleSerializer().read(null));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testReadThrowsOnNullInput() throws ClassNotFoundException {
-    new DoubleSerializer().read(null);
-  }
-
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testSerializeThrowsOnNullInput() {
-    new DoubleSerializer().serialize(null);
+    assertThrows(NullPointerException.class, () -> new DoubleSerializer().serialize(null));
   }
 }

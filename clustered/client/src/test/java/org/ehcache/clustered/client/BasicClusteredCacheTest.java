@@ -19,17 +19,18 @@ package org.ehcache.clustered.client;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.statistics.DefaultStatisticsService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -44,35 +45,22 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Provides basic tests for creation of a cache using a {@link org.ehcache.clustered.client.internal.store.ClusteredStore ClusteredStore}.
  */
+@ExtendWith(Randomness.class)
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 64)
 public class BasicClusteredCacheTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
-
-  @Before
-  public void definePassthroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-        new PassthroughServerBuilder()
-            .resource("primary-server-resource", 64, MemoryUnit.MB)
-            .resource("secondary-server-resource", 64, MemoryUnit.MB)
-            .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
-
   @Test
-  public void testClusteredCacheSingleClient() throws Exception {
+  public void testClusteredCacheSingleClient(@Cluster URI clusterUri) throws Exception {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
@@ -87,10 +75,10 @@ public class BasicClusteredCacheTest {
   }
 
   @Test
-  public void testClusteredCacheTwoClients() throws Exception {
+  public void testClusteredCacheTwoClients(@Cluster URI clusterUri) throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
@@ -115,10 +103,10 @@ public class BasicClusteredCacheTest {
   }
 
   @Test
-  public void testClustered3TierCacheTwoClients() throws Exception {
+  public void testClustered3TierCacheTwoClients(@Cluster URI clusterUri) throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
                     .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
@@ -167,10 +155,10 @@ public class BasicClusteredCacheTest {
   }
 
   @Test
-  public void testTieredClusteredCache() throws Exception {
+  public void testTieredClusteredCache(@Cluster URI clusterUri) throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                     heap(2)
                     .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
@@ -185,9 +173,9 @@ public class BasicClusteredCacheTest {
   }
 
   @Test
-  public void testClusteredCacheWithSerializableValue() throws Exception {
+  public void testClusteredCacheWithSerializableValue(@Cluster URI clusterUri) throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate(c -> c))
+        newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, Person.class,
                     newResourcePoolsBuilder().with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
@@ -205,15 +193,15 @@ public class BasicClusteredCacheTest {
   }
 
   @Test
-  public void testLargeValues() throws Exception {
+  public void testLargeValues(@Cluster URI clusterUri, Random random) throws Exception {
     DefaultStatisticsService statisticsService = new DefaultStatisticsService();
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
             newCacheManagerBuilder()
                     .using(statisticsService)
-                    .with(cluster(CLUSTER_URI).autoCreate(c -> c))
+                    .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
                     .withCache("small-cache", newCacheConfigurationBuilder(Long.class, BigInteger.class,
                             ResourcePoolsBuilder.newResourcePoolsBuilder()
-                                    .with(clusteredDedicated("secondary-server-resource", 4, MemoryUnit.MB))));
+                                    .with(clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB))));
 
     // The idea here is to add big things in the cache, and cause eviction of them to see if something crashes
 
@@ -221,7 +209,6 @@ public class BasicClusteredCacheTest {
 
       Cache<Long, BigInteger> cache = cacheManager.getCache("small-cache", Long.class, BigInteger.class);
 
-      Random random = new Random();
       for (long i = 0; i < 100; i++) {
         BigInteger value = new BigInteger(30 * 1024 * 128 * (1 + random.nextInt(10)), random);
         cache.put(i, value);

@@ -28,25 +28,25 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * StatefulSerializerTest
  */
 public class StatefulSerializerTest {
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     TransactionManagerServices.getConfiguration().setJournal("null").setServerId(getClass().getSimpleName());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (TransactionManagerServices.isTransactionManagerRunning()) {
       TransactionManagerServices.getTransactionManager().shutdown();

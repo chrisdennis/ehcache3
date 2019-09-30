@@ -18,17 +18,19 @@ package org.ehcache.jsr107.internal;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Jsr107ServiceConfigurationParserTest
  */
 public class Jsr107ServiceConfigurationParserTest {
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void testTranslateServiceCreationConfiguration() {
     Jsr107ServiceConfigurationParser configTranslator = new Jsr107ServiceConfigurationParser();
 
@@ -40,7 +42,7 @@ public class Jsr107ServiceConfigurationParserTest {
       new Jsr107Configuration("tiny-template", templateMap, jsr107CompliantAtomics,
         ConfigurationElementState.ENABLED, ConfigurationElementState.DISABLED);
 
-    configTranslator.unparseServiceCreationConfiguration(serviceCreationConfiguration);
+    assertThrows(XmlConfigurationException.class, () -> configTranslator.unparseServiceCreationConfiguration(serviceCreationConfiguration));
   }
 
 }

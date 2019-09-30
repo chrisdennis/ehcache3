@@ -21,8 +21,8 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 import java.nio.ByteBuffer;
@@ -46,7 +46,7 @@ public class EhcacheServerCodecTest {
 
   private EhcacheServerCodec serverCodec;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     initMocks(this);
     serverCodec = new EhcacheServerCodec(clientCodec, replicationCodec);

@@ -17,17 +17,15 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.core.spi.store.events.StoreEvent;
-import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.event.EventType;
 import org.hamcrest.Matcher;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.Set;
@@ -45,10 +43,8 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 /**
  * InvocationScopedEventSinkTest
  */
+@ExtendWith(MockitoExtension.class)
 public class InvocationScopedEventSinkTest {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
   private StoreEventListener<String, String> listener;
@@ -57,7 +53,7 @@ public class InvocationScopedEventSinkTest {
   private BlockingQueue<FireableStoreEventHolder<String, String>> blockingQueue;
   private Set<StoreEventListener<String, String>> storeEventListeners;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     storeEventListeners = Collections.singleton(listener);
     blockingQueue = new ArrayBlockingQueue<>(10);

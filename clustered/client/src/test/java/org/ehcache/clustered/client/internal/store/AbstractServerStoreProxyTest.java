@@ -21,8 +21,10 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.ClientEntityService;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -32,51 +34,43 @@ import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.connection.Connection;
+import org.terracotta.connection.ConnectionFactory;
+import org.terracotta.entity.EntityServerService;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
 
+import static java.util.Arrays.asList;
+
+@ExtendWith(PassthroughServer.class)
+@PassthroughServer.ServerResource(name = "defaultResource", size = 128)
+@ServerEntityService(ClusterTierManagerServerEntityService.class)
+@ServerEntityService(VoltronReadWriteLockServerEntityService.class)
+@ClientEntityService(ClusterTierManagerClientEntityService.class)
+@ClientEntityService(ClusterTierClientEntityService.class)
+@ClientEntityService(VoltronReadWriteLockEntityClientService.class)
 public abstract class AbstractServerStoreProxyTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
-  private static final UnitTestConnectionService CONNECTION_SERVICE = new UnitTestConnectionService();
+  @ServerEntityService
+  public static ObservableClusterTierServerEntityService observableClusterTierService = new ObservableClusterTierServerEntityService();
 
-  protected static ObservableClusterTierServerEntityService observableClusterTierService;
-
-  @BeforeClass
-  public static void createCluster() {
-    UnitTestConnectionService.add(CLUSTER_URI, new PassthroughServerBuilder()
-      .serverEntityService(new ClusterTierManagerServerEntityService())
-      .clientEntityService(new ClusterTierManagerClientEntityService())
-      .serverEntityService(observableClusterTierService = new ObservableClusterTierServerEntityService())
-      .clientEntityService(new ClusterTierClientEntityService())
-      .serverEntityService(new VoltronReadWriteLockServerEntityService())
-      .clientEntityService(new VoltronReadWriteLockEntityClientService())
-      .resource("defaultResource", 128, MemoryUnit.MB).build());
-  }
-
-  @AfterClass
-  public static void destroyCluster() {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-    observableClusterTierService = null;
-  }
-
-  protected static SimpleClusterTierClientEntity createClientEntity(String name,
+  protected static SimpleClusterTierClientEntity createClientEntity(URI clusterUri, String name,
                                                                   ServerStoreConfiguration configuration,
                                                                   boolean create) throws Exception {
-    return createClientEntity(name, configuration, create, true);
+    return createClientEntity(clusterUri, name, configuration, create, true);
   }
 
-  protected static SimpleClusterTierClientEntity createClientEntity(String name,
+  protected static SimpleClusterTierClientEntity createClientEntity(URI clusterUri, String name,
                                                                     ServerStoreConfiguration configuration,
                                                                     boolean create,
                                                                     boolean validate) throws Exception {
-    Connection connection = CONNECTION_SERVICE.connect(CLUSTER_URI, new Properties());
+    Connection connection = ConnectionFactory.connect(clusterUri, new Properties());
 
     // Create ClusterTierManagerClientEntity if needed
     ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(
@@ -93,7 +87,7 @@ public abstract class AbstractServerStoreProxyTest {
     return clientEntity;
   }
 
-  protected static SimpleClusterTierClientEntity createClientEntity(String name, Consistency consistency, boolean create) throws Exception {
+  protected static SimpleClusterTierClientEntity createClientEntity(URI clusterUri, String name, Consistency consistency, boolean create) throws Exception {
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(8L, MemoryUnit.MB);
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class
@@ -101,7 +95,7 @@ public abstract class AbstractServerStoreProxyTest {
       Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
       .getName(), consistency, false);
 
-    return createClientEntity(name, serverStoreConfiguration, create);
+    return createClientEntity(clusterUri, name, serverStoreConfiguration, create);
   }
 
 }

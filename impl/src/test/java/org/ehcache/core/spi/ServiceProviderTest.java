@@ -23,13 +23,13 @@ import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
-import org.hamcrest.core.IsCollectionContaining;
+import org.hamcrest.core.IsIterableContaining;
 import org.hamcrest.core.IsSame;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -56,10 +56,10 @@ public class ServiceProviderTest {
     serviceLocator.startAllServices();
 
     assertThat(serviceLocator.getServicesOfType(CachingTier.Provider.class),
-      IsCollectionContaining.<CachingTier.Provider>hasItem(IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider)));
+      IsIterableContaining.<CachingTier.Provider>hasItem(IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider)));
     assertThat(serviceLocator.getServicesOfType(AuthoritativeTier.Provider.class),
-      IsCollectionContaining.<AuthoritativeTier.Provider>hasItem(IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider)));
+      IsIterableContaining.<AuthoritativeTier.Provider>hasItem(IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider)));
     assertThat(serviceLocator.getServicesOfType(OffHeapDiskStore.Provider.class),
-      IsCollectionContaining.<OffHeapDiskStore.Provider>hasItem(IsSame.<OffHeapDiskStore.Provider>sameInstance(diskStoreProvider)));
+      IsIterableContaining.<OffHeapDiskStore.Provider>hasItem(IsSame.<OffHeapDiskStore.Provider>sameInstance(diskStoreProvider)));
   }
 }

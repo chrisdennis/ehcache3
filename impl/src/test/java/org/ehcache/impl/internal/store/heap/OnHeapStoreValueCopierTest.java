@@ -28,15 +28,16 @@ import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
@@ -45,39 +46,41 @@ import static org.ehcache.test.MockitoUtil.mock;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
 /**
  * OnHeapStoreValueCopierTest
  */
-@RunWith(Parameterized.class)
 public class OnHeapStoreValueCopierTest {
 
-  private static final Long KEY = 42L;
-  public static final Value VALUE = new Value("TheAnswer");
-  public static final Supplier<Boolean> NOT_REPLACE_EQUAL = () -> false;
-  public static final Supplier<Boolean> REPLACE_EQUAL = () -> true;
+  @ParameterizedTest(name = "copyForRead: {0} - copyForWrite: {1}")
+  @ArgumentsSource(OnHeapStoreKeyCopierTest.Params.class)
+  @interface TestAllCopierSettings {}
 
-  @Parameterized.Parameters(name = "copyForRead: {0} - copyForWrite: {1}")
-  public static Collection<Object[]> config() {
-    return Arrays.asList(new Object[][] {
-        {false, false}, {false, true}, {true, false}, {true, true}
-    });
+  static class Params implements ArgumentsProvider {
+
+    @Override
+    public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+      return Stream.of(
+        arguments(false, false),
+        arguments(false, true),
+        arguments(true, false),
+        arguments(true, true)
+      );
+    }
   }
 
-  @Parameterized.Parameter(value = 0)
-  public boolean copyForRead;
-
-  @Parameterized.Parameter(value = 1)
-  public boolean copyForWrite;
-
-  private OnHeapStore<Long, Value> store;
+  private static final Long KEY = 42L;
+  private static final Value VALUE = new Value("TheAnswer");
+  private static final Supplier<Boolean> NOT_REPLACE_EQUAL = () -> false;
+  private static final Supplier<Boolean> REPLACE_EQUAL = () -> true;
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  @Before
-  public void setUp() {
+  @BeforeEach
+  public OnHeapStore<Long, Value> createStore(boolean copyForRead, boolean copyForWrite) {
     Store.Configuration<Long, Value> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Long.class);
@@ -104,120 +107,130 @@ public class OnHeapStoreValueCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, new IdentityCopier<>(), valueCopier, new NoopSizeOfEngine(),
+    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, new IdentityCopier<>(), valueCopier, new NoopSizeOfEngine(),
       NullStoreEventDispatcher.<Long, Value>nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
-  @Test
-  public void testPutAndGet() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testPutAndGet(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     store.put(KEY, VALUE);
 
     Store.ValueHolder<Value> firstStoreValue = store.get(KEY);
     Store.ValueHolder<Value> secondStoreValue = store.get(KEY);
-    compareValues(VALUE, firstStoreValue.get());
-    compareValues(VALUE, secondStoreValue.get());
-    compareReadValues(firstStoreValue.get(), secondStoreValue.get());
+    compareValues(copyForRead, copyForWrite, VALUE, firstStoreValue.get());
+    compareValues(copyForRead, copyForWrite, VALUE, secondStoreValue.get());
+    compareReadValues(copyForRead, firstStoreValue.get(), secondStoreValue.get());
   }
 
-  @Test
-  public void testGetAndCompute() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testGetAndCompute(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     store.put(KEY, VALUE);
     Store.ValueHolder<Value> computedVal = store.getAndCompute(KEY, (aLong, value) -> VALUE);
     Store.ValueHolder<Value> oldValue = store.get(KEY);
     store.getAndCompute(KEY, (aLong, value) -> {
-      compareReadValues(value, oldValue.get());
+      compareReadValues(copyForRead, value, oldValue.get());
       return value;
     });
 
-    compareValues(VALUE, computedVal.get());
+    compareValues(copyForRead, copyForWrite, VALUE, computedVal.get());
   }
 
-  @Test
-  public void testComputeWithoutReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testComputeWithoutReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, NOT_REPLACE_EQUAL, () -> false);
     store.computeAndGet(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.get());
+      compareReadValues(copyForRead, value, firstValue.get());
       return value;
     }, NOT_REPLACE_EQUAL, () -> false);
 
-    compareValues(VALUE, firstValue.get());
+    compareValues(copyForRead, copyForWrite, VALUE, firstValue.get());
   }
 
-  @Test
-  public void testComputeWithReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testComputeWithReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     final Store.ValueHolder<Value> firstValue = store.computeAndGet(KEY, (aLong, value) -> VALUE, REPLACE_EQUAL, () -> false);
     store.computeAndGet(KEY, (aLong, value) -> {
-      compareReadValues(value, firstValue.get());
+      compareReadValues(copyForRead, value, firstValue.get());
       return value;
     }, REPLACE_EQUAL, () -> false);
 
-    compareValues(VALUE, firstValue.get());
+    compareValues(copyForRead, copyForWrite, VALUE, firstValue.get());
   }
 
-  @Test
-  public void testComputeIfAbsent() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testComputeIfAbsent(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     Store.ValueHolder<Value> computedValue = store.computeIfAbsent(KEY, aLong -> VALUE);
     Store.ValueHolder<Value> secondComputedValue = store.computeIfAbsent(KEY, aLong -> {
       fail("There should have been a mapping");
       return null;
     });
-    compareValues(VALUE, computedValue.get());
-    compareReadValues(computedValue.get(), secondComputedValue.get());
+    compareValues(copyForRead, copyForWrite, VALUE, computedValue.get());
+    compareReadValues(copyForRead, computedValue.get(), secondComputedValue.get());
   }
 
-  @Test
-  public void testBulkCompute() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkCompute(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet());
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
+      compareReadValues(copyForRead, results.get(KEY).get(), entries.iterator().next().getValue());
       return entries;
     });
-    compareValues(VALUE, results.get(KEY).get());
+    compareValues(copyForRead, copyForWrite, VALUE, results.get(KEY).get());
   }
 
-  @Test
-  public void testBulkComputeWithoutReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkComputeWithoutReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet(), NOT_REPLACE_EQUAL);
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
+      compareReadValues(copyForRead, results.get(KEY).get(), entries.iterator().next().getValue());
       return entries;
     }, NOT_REPLACE_EQUAL);
-    compareValues(VALUE, results.get(KEY).get());
+    compareValues(copyForRead, copyForWrite, VALUE, results.get(KEY).get());
   }
 
-  @Test
-  public void testBulkComputeWithReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkComputeWithReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), entries -> singletonMap(KEY, VALUE).entrySet(), REPLACE_EQUAL);
     store.bulkCompute(singleton(KEY), entries -> {
-      compareReadValues(results.get(KEY).get(), entries.iterator().next().getValue());
+      compareReadValues(copyForRead, results.get(KEY).get(), entries.iterator().next().getValue());
       return entries;
     }, REPLACE_EQUAL);
-    compareValues(VALUE, results.get(KEY).get());
+    compareValues(copyForRead, copyForWrite, VALUE, results.get(KEY).get());
   }
 
-  @Test
-  public void testBulkComputeIfAbsent() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkComputeIfAbsent(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     Map<Long, Store.ValueHolder<Value>> results = store.bulkComputeIfAbsent(singleton(KEY), longs -> singletonMap(KEY, VALUE).entrySet());
     Map<Long, Store.ValueHolder<Value>> secondResults = store.bulkComputeIfAbsent(singleton(KEY), longs -> {
       fail("There should have been a mapping!");
       return null;
     });
-    compareValues(VALUE, results.get(KEY).get());
-    compareReadValues(results.get(KEY).get(), secondResults.get(KEY).get());
+    compareValues(copyForRead, copyForWrite, VALUE, results.get(KEY).get());
+    compareReadValues(copyForRead, results.get(KEY).get(), secondResults.get(KEY).get());
   }
 
-  @Test
-  public void testIterator() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testIterator(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    OnHeapStore<Long, Value> store = createStore(copyForRead, copyForWrite);
     store.put(KEY, VALUE);
     Store.Iterator<Cache.Entry<Long, Store.ValueHolder<Value>>> iterator = store.iterator();
     assertThat(iterator.hasNext(), is(true));
     while (iterator.hasNext()) {
       Cache.Entry<Long, Store.ValueHolder<Value>> entry = iterator.next();
-      compareValues(entry.getValue().get(), VALUE);
+      compareValues(copyForRead, copyForWrite, entry.getValue().get(), VALUE);
     }
   }
 
-  private void compareValues(Value first, Value second) {
+  private void compareValues(boolean copyForRead, boolean copyForWrite, Value first, Value second) {
     if (copyForRead || copyForWrite) {
       assertThat(first, not(sameInstance(second)));
     } else {
@@ -225,7 +238,7 @@ public class OnHeapStoreValueCopierTest {
     }
   }
 
-  private void compareReadValues(Value first, Value second) {
+  private void compareReadValues(boolean copyForRead, Value first, Value second) {
     if (copyForRead) {
       assertThat(first, not(sameInstance(second)));
     } else {

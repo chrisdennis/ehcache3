@@ -15,9 +15,9 @@
  */
 package org.ehcache.jsr107;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.net.URISyntaxException;
 
@@ -27,7 +27,7 @@ import javax.cache.Caching;
 import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author rism
@@ -36,14 +36,14 @@ import static org.junit.Assert.assertThat;
 public class SerializerTest {
   private CacheManager cacheManager;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     CachingProvider cachingProvider = Caching.getCachingProvider();
     cacheManager = cachingProvider.getCacheManager(getClass().getResource("/ehcache-107-serializer.xml")
         .toURI(), cachingProvider.getDefaultClassLoader());
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     cacheManager.close();
   }

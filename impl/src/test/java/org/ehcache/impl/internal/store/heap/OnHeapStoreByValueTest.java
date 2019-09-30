@@ -33,7 +33,7 @@ import org.ehcache.core.spi.store.AbstractValueHolder;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -44,7 +44,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressWarnings("serial")
 public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {

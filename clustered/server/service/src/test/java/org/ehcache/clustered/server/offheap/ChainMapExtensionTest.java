@@ -19,7 +19,7 @@ import org.ehcache.clustered.common.internal.store.Element;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.paging.OffHeapStorageArea;
@@ -41,9 +41,9 @@ import static org.ehcache.clustered.ChainUtils.chainOf;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
 
 /**
  * Test extensibility of chain map storage engine, including binary engine capabilities.

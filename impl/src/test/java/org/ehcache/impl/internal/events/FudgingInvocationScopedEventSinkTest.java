@@ -20,8 +20,8 @@ import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.hamcrest.Matcher;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import java.util.HashSet;
@@ -46,7 +46,7 @@ public class FudgingInvocationScopedEventSinkTest {
   private Matcher<StoreEvent<String, String>> createdMatcher = eventType(EventType.CREATED);
   private Matcher<StoreEvent<String, String>> evictedMatcher = eventType(EventType.EVICTED);
 
-  @Before
+  @BeforeEach
   public void setUp() {
     Set<StoreEventListener<String, String>> storeEventListeners = new HashSet<>();
     listener = mock(StoreEventListener.class);

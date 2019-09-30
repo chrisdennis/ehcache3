@@ -20,11 +20,9 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,9 +32,11 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Alex Snaps
@@ -45,18 +45,12 @@ public class PersistentCacheManagerTest {
 
   private static final String TEST_CACHE_ALIAS = "test123";
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @Rule
-  public final TemporaryFolder folder = new TemporaryFolder();
-
   private File rootDirectory;
   private CacheManagerBuilder<PersistentCacheManager> builder;
 
-  @Before
-  public void setup() throws IOException {
-    rootDirectory = folder.newFolder("testInitializesDiskResourceService");
+  @BeforeEach
+  public void setup(@TempDir File dir) throws IOException {
+    rootDirectory = dir;
     assertTrue(rootDirectory.delete());
     builder = newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory));
   }
@@ -79,9 +73,8 @@ public class PersistentCacheManagerTest {
   @Test
   public void testDestroyCache_NullAliasNotAllowed() throws CachePersistenceException {
     PersistentCacheManager manager = builder.build(true);
-    thrown.expect(NullPointerException.class);
-    thrown.expectMessage("Alias cannot be null");
-    manager.destroyCache(null);
+    NullPointerException failure = assertThrows(NullPointerException.class, () -> manager.destroyCache(null));
+    assertThat(failure.getMessage(), is("Alias cannot be null"));
   }
 
   @Test

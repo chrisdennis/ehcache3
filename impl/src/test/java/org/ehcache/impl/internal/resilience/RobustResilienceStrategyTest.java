@@ -17,19 +17,15 @@ package org.ehcache.impl.internal.resilience;
 
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
-
-import java.util.Arrays;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.of;
@@ -37,10 +33,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class RobustResilienceStrategyTest {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
   private RecoveryStore<Integer> store;
@@ -50,7 +44,7 @@ public class RobustResilienceStrategyTest {
 
   private final StoreAccessException accessException = new StoreAccessException("The exception");
 
-  @After
+  @AfterEach
   public void noMoreInteractions() {
     verifyNoMoreInteractions(store);
   }

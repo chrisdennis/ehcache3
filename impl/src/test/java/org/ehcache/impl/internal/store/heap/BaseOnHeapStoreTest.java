@@ -36,12 +36,13 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.Extension;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.mockito.InOrder;
 
 import java.time.Duration;
@@ -52,6 +53,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -62,8 +64,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -81,11 +83,11 @@ public abstract class BaseOnHeapStoreTest {
   protected StoreEventDispatcher<Object, Object> eventDispatcher;
   protected StoreEventSink<Object, Object> eventSink;
 
-  @Rule
-  public TestRule watchman = new TestWatcher() {
+  @RegisterExtension
+  public static final Extension watchman = new TestWatcher() {
     @Override
-    protected void failed(Throwable e, Description description) {
-      if (e.getMessage().startsWith("test timed out after")) {
+    public void testFailed(ExtensionContext context, Throwable e) {
+      if (e instanceof TimeoutException) {
         System.err.println(buildThreadDump());
       }
     }
@@ -116,7 +118,7 @@ public abstract class BaseOnHeapStoreTest {
     }
   };
 
-  @Before
+  @BeforeEach
   @SuppressWarnings("unchecked")
   public void setUp() {
     eventDispatcher = mock(StoreEventDispatcher.class);
@@ -1162,7 +1164,8 @@ public abstract class BaseOnHeapStoreTest {
     }
   }
 
-  @Test(timeout = 2000L)
+  @Test
+  @Timeout(2)
   public void testEvictionDoneUnderEvictedKeyLockScope() throws Exception {
     final OnHeapStore<String, String> store = newStore();
 
@@ -1209,7 +1212,8 @@ public abstract class BaseOnHeapStoreTest {
     store.put("keyC", "valueC");
   }
 
-  @Test(timeout = 2000L)
+  @Test
+  @Timeout(2)
   public void testIteratorExpiryHappensUnderExpiredKeyLockScope() throws Exception {
     TestTimeSource testTimeSource = new TestTimeSource();
     final OnHeapStore<String, String> store = newStore(testTimeSource, ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(10)));

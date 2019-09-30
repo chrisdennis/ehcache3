@@ -17,7 +17,7 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 
@@ -25,7 +25,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.createClass
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  *

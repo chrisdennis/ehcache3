@@ -21,7 +21,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;

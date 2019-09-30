@@ -23,17 +23,21 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.expiry.ExpiryPolicy;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
-import org.ehcache.impl.internal.persistence.TestDiskResourceService;
 import org.ehcache.impl.internal.store.offheap.BasicOffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.persistence.DefaultDiskResourceService;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
@@ -43,12 +47,16 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.test.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mockito;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
@@ -70,14 +78,19 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<>();
 
-  @Rule
-  public final TemporaryFolder folder = new TemporaryFolder();
+  private LocalPersistenceService fileService;
+  private DiskResourceService diskResourceService;
 
-  @Rule
-  public final TestDiskResourceService diskResourceService = new TestDiskResourceService();
+  @BeforeEach
+  public void startDiskResourceService(@TempDir File persistenceDir) {
+    fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(persistenceDir));
+    fileService.start(null);
+    diskResourceService = new DefaultDiskResourceService();
+    @SuppressWarnings("unchecked")
+    ServiceProvider<Service> sp = Mockito.mock(ServiceProvider.class);
+    Mockito.when(sp.getService(LocalPersistenceService.class)).thenReturn(fileService);
+    diskResourceService.start(sp);
 
-  @Before
-  public void setUp() throws Exception {
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
 
       final AtomicInteger index = new AtomicInteger();
@@ -207,6 +220,19 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         }
       }
     };
+  }
+
+  @AfterEach
+  public void stopDiskResourceService() {
+    DiskResourceService ps = diskResourceService;
+    LocalPersistenceService ls = fileService;
+    diskResourceService = null;
+    fileService = null;
+    try {
+      ps.stop();
+    } finally {
+      ls.stop();
+    }
   }
 
   @After

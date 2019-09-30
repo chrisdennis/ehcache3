@@ -39,8 +39,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.hamcrest.core.IsCollectionContaining;
-import org.junit.Test;
+import org.hamcrest.core.IsIterableContaining;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 
 import java.util.AbstractMap;
@@ -55,9 +55,9 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.spi.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.core.IsIterableContaining.hasItems;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -257,8 +257,8 @@ public class EhcacheBulkMethodsITest {
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.withLoaderWriter(cacheLoaderWriter).build();
     CacheManager cacheManager = managerBuilder.withCache("myCache", cacheConfiguration).build(true);
 
-    when(cacheLoaderWriter.loadAll(argThat(IsCollectionContaining.<String>hasItem("key0")))).thenReturn(new HashMap(){{put("key0","value0");}});
-    when(cacheLoaderWriter.loadAll(argThat(IsCollectionContaining.<String>hasItem("key2")))).thenReturn(new HashMap(){{put("key2","value2");}});
+    when(cacheLoaderWriter.loadAll(argThat(IsIterableContaining.<String>hasItem("key0")))).thenReturn(new HashMap(){{put("key0","value0");}});
+    when(cacheLoaderWriter.loadAll(argThat(IsIterableContaining.<String>hasItem("key2")))).thenReturn(new HashMap(){{put("key2","value2");}});
 
     Cache<String, String> myCache = cacheManager.getCache("myCache", String.class, String.class);
 

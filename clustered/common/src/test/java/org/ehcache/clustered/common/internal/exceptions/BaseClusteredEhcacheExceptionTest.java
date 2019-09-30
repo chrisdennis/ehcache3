@@ -17,17 +17,17 @@
 package org.ehcache.clustered.common.internal.exceptions;
 
 import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.junit.AssumptionViolatedException;
+import org.junit.jupiter.api.Test;
+import org.opentest4j.TestAbortedException;
 
 import java.lang.reflect.Constructor;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.typeCompatibleWith;
-import static org.junit.Assert.assertThat;
 
 /**
  * Foundation for tests on {@link ClusterException} subclasses.
@@ -57,7 +57,7 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusterExcepti
     try {
       constructor = testClass.getConstructor(String.class);
     } catch (NoSuchMethodException e) {
-      throw new AssumptionViolatedException("No public " + testClass.getSimpleName() +"(String) constructor");
+      throw new TestAbortedException("No public " + testClass.getSimpleName() +"(String) constructor");
     }
     return constructor.newInstance(message);
   }
@@ -77,7 +77,7 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusterExcepti
     try {
       constructor = testClass.getConstructor(String.class, Throwable.class);
     } catch (NoSuchMethodException e) {
-      throw new AssumptionViolatedException("No public " + testClass.getSimpleName() +"(String, Throwable) constructor");
+      throw new TestAbortedException("No public " + testClass.getSimpleName() +"(String, Throwable) constructor");
     }
     return constructor.newInstance(message, cause);
   }
@@ -96,7 +96,7 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusterExcepti
     try {
       constructor = testClass.getConstructor(Throwable.class);
     } catch (NoSuchMethodException e) {
-      throw new AssumptionViolatedException("No public " + testClass.getSimpleName() +"(Throwable) constructor");
+      throw new TestAbortedException("No public " + testClass.getSimpleName() +"(Throwable) constructor");
     }
     return constructor.newInstance(cause);
   }

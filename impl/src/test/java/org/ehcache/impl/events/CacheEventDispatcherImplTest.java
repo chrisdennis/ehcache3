@@ -23,13 +23,11 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.EnumSet;
 import java.util.concurrent.CountDownLatch;
@@ -37,7 +35,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
@@ -55,7 +54,7 @@ public class CacheEventDispatcherImplTest {
   private ExecutorService unorderedExecutor;
   private StoreEventSource storeEventDispatcher;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     orderedExecutor = mock(ExecutorService.class);
     unorderedExecutor = mock(ExecutorService.class);
@@ -70,7 +69,7 @@ public class CacheEventDispatcherImplTest {
     listener = mock(CacheEventListener.class);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     orderedExecutor.shutdownNow();
     unorderedExecutor.shutdownNow();
@@ -125,15 +124,15 @@ public class CacheEventDispatcherImplTest {
     verify(storeEventDispatcher).setEventOrdering(true);
   }
 
-  @Test(expected=IllegalStateException.class)
+  @Test
   public void testDuplicateRegistration() {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
-    eventService.registerCacheEventListener(listener, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
+    assertThrows(IllegalStateException.class, () -> eventService.registerCacheEventListener(listener, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.EXPIRED)));
   }
 
-  @Test(expected=IllegalStateException.class)
+  @Test
   public void testUnknownListenerDeregistration() {
-    eventService.deregisterCacheEventListener(listener);
+    assertThrows(IllegalStateException.class, () -> eventService.deregisterCacheEventListener(listener));
   }
 
   @Test

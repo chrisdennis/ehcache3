@@ -17,7 +17,7 @@ package org.ehcache.core.events;
 
 import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;

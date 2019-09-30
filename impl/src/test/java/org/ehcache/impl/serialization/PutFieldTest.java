@@ -17,8 +17,7 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -30,6 +29,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.createClass
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  *
@@ -50,15 +50,15 @@ public class PutFieldTest {
     try {
       Foo foo = (Foo) s.read(encodedA);
 
-      Assert.assertEquals(true, foo.z);
-      Assert.assertEquals(5, foo.b);
-      Assert.assertEquals('5', foo.c);
-      Assert.assertEquals(5, foo.s);
-      Assert.assertEquals(5, foo.i);
-      Assert.assertEquals(5, foo.j);
-      Assert.assertEquals(5, foo.f, 0.0f);
-      Assert.assertEquals(5, foo.d, 0.0);
-      Assert.assertEquals("5", foo.str);
+      assertEquals(true, foo.z);
+      assertEquals(5, foo.b);
+      assertEquals('5', foo.c);
+      assertEquals(5, foo.s);
+      assertEquals(5, foo.i);
+      assertEquals(5, foo.j);
+      assertEquals(5, foo.f, 0.0f);
+      assertEquals(5, foo.d, 0.0);
+      assertEquals("5", foo.str);
     } finally {
       popTccl();
     }
@@ -77,8 +77,8 @@ public class PutFieldTest {
     try {
       Bar bar = (Bar) s.read(encodedA);
 
-      Assert.assertEquals("qwerty", bar.s1);
-      Assert.assertEquals("asdfg", bar.s2);
+      assertEquals("qwerty", bar.s1);
+      assertEquals("asdfg", bar.s2);
     } finally {
       popTccl();
     }

@@ -33,16 +33,12 @@ import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,23 +46,20 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * @author Ludovic Orban
  */
 public class XAGettingStarted {
 
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
-
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     TransactionManagerServices.getConfiguration().setJournal("null").setServerId(getClass().getSimpleName());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (TransactionManagerServices.isTransactionManagerRunning()) {
       TransactionManagerServices.getTransactionManager().shutdown();
@@ -164,14 +157,14 @@ public class XAGettingStarted {
   }
 
   @Test
-  public void testXACacheWithThreeTiers() throws Exception {
+  public void testXACacheWithThreeTiers(@TempDir File persistenceDir) throws Exception {
     // tag::testXACacheWithThreeTiers[]
     BitronixTransactionManager transactionManager =
         TransactionManagerServices.getTransactionManager(); // <1>
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
-        .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
+        .with(CacheManagerBuilder.persistence(persistenceDir)) // <3>
         .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <4>
                 ResourcePoolsBuilder.newResourcePoolsBuilder() // <5>
                         .heap(10, EntryUnit.ENTRIES)
@@ -212,13 +205,7 @@ public class XAGettingStarted {
     // end::testXACacheWithXMLConfig[]
   }
 
-  private String getStoragePath() throws IOException {
-    return folder.newFolder().getAbsolutePath();
-  }
-
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(SampleLoaderWriter.class);
 
     private final Map<K, V> data = new HashMap<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -231,9 +218,7 @@ public class XAGettingStarted {
     public V load(K key) {
       lock.readLock().lock();
       try {
-        V v = data.get(key);
-        LOGGER.info("Key - '{}', Value - '{}' successfully loaded", key, v);
-        return v;
+        return data.get(key);
       } finally {
         lock.readLock().unlock();
       }
@@ -249,7 +234,6 @@ public class XAGettingStarted {
       lock.writeLock().lock();
       try {
         data.put(key, value);
-        LOGGER.info("Key - '{}', Value - '{}' successfully written", key, value);
       } finally {
         lock.writeLock().unlock();
       }
@@ -261,7 +245,6 @@ public class XAGettingStarted {
       try {
         for (Map.Entry<? extends K, ? extends V> entry : entries) {
           data.put(entry.getKey(), entry.getValue());
-          LOGGER.info("Key - '{}', Value - '{}' successfully written in batch", entry.getKey(), entry.getValue());
         }
       } finally {
         lock.writeLock().unlock();
@@ -273,7 +256,6 @@ public class XAGettingStarted {
       lock.writeLock().lock();
       try {
         data.remove(key);
-        LOGGER.info("Key - '{}' successfully deleted", key);
       } finally {
         lock.writeLock().unlock();
       }
@@ -285,7 +267,6 @@ public class XAGettingStarted {
       try {
         for (K key : keys) {
           data.remove(key);
-          LOGGER.info("Key - '{}' successfully deleted in batch", key);
         }
       } finally {
         lock.writeLock().unlock();

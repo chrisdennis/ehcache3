@@ -17,12 +17,11 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.util.ChainBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.ehcache.clustered.Matchers.hasPayloads;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  */

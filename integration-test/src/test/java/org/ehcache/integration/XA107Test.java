@@ -24,18 +24,18 @@ import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class XA107Test {
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     TransactionManagerServices.getConfiguration().setJournal("null").setServerId(getClass().getSimpleName());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (TransactionManagerServices.isTransactionManagerRunning()) {
       TransactionManagerServices.getTransactionManager().shutdown();

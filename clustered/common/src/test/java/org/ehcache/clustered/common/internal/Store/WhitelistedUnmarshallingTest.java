@@ -19,8 +19,7 @@ package org.ehcache.clustered.common.internal.Store;
 import org.ehcache.clustered.common.internal.store.Util;
 import org.ehcache.clustered.common.internal.store.ValueWrapper;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ObjectStreamClass;
 import java.nio.ByteBuffer;
@@ -29,8 +28,9 @@ import java.util.Date;
 import java.util.function.Predicate;
 
 import static org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec.WHITELIST_PREDICATE;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class WhitelistedUnmarshallingTest {
 
@@ -52,7 +52,7 @@ public class WhitelistedUnmarshallingTest {
   private <T> void unmarshallingCheck(T t, Predicate<Class<?>> isClassPermitted) {
     @SuppressWarnings("unchecked")
     T unmarshalled = (T) Util.unmarshall(ByteBuffer.wrap(Util.marshall(t)), isClassPermitted);
-    Assert.assertThat(unmarshalled, Matchers.is(t));
+    assertThat(unmarshalled, Matchers.is(t));
   }
 
   private <T> void unmarshallingStateRepoMessagesCheck(T t) {

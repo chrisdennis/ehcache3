@@ -18,7 +18,8 @@ package org.ehcache.clustered.client;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
@@ -29,21 +30,18 @@ import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
+import static java.time.Duration.ofSeconds;
 import static java.util.EnumSet.allOf;
-import static org.awaitility.Awaitility.await;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -52,40 +50,25 @@ import static org.ehcache.config.builders.ExpiryPolicyBuilder.timeToLiveExpirati
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 
+@ExtendWith(PassthroughServer.class)
+@PassthroughServer.ServerResource(name = "primary-server-resource", size = 32)
 public class ClusteredEventsTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
-
-  @Rule
-  public final TestName runningTest = new TestName();
-
-  @Before
-  public void definePassthroughServer() {
-    UnitTestConnectionService.add(CLUSTER_URI,
-      new UnitTestConnectionService.PassthroughServerBuilder()
-        .resource("primary-server-resource", 32, MemoryUnit.MB)
-        .build());
-  }
-
-  @After
-  public void removePassthroughServer() {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
-
   @Test
-  public void testNonExpiringEventSequence() {
+  public void testNonExpiringEventSequence(TestInfo runningTest, @Cluster URI clusterUri) {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-        .with(cluster(CLUSTER_URI).autoCreate(s -> s.defaultServerResource("primary-server-resource")))
-        .withCache(runningTest.getMethodName(), newCacheConfigurationBuilder(Long.class, String.class,
+        .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(s -> s.defaultServerResource("primary-server-resource")))
+        .withCache(runningTest.getDisplayName(), newCacheConfigurationBuilder(Long.class, String.class,
           newResourcePoolsBuilder().with(clusteredDedicated(16, MemoryUnit.MB))));
 
     try (PersistentCacheManager driver = clusteredCacheManagerBuilder.build(true)) {
-      Cache<Long, String> driverCache = driver.getCache(runningTest.getMethodName(), Long.class, String.class);
+      Cache<Long, String> driverCache = driver.getCache(runningTest.getDisplayName(), Long.class, String.class);
       try (PersistentCacheManager observer = clusteredCacheManagerBuilder.build(true)) {
-        Cache<Long, String> observerCache = observer.getCache(runningTest.getMethodName(), Long.class, String.class);
+        Cache<Long, String> observerCache = observer.getCache(runningTest.getDisplayName(), Long.class, String.class);
 
         List<CacheEvent<? extends Long, ? extends String>> driverEvents = new ArrayList<>();
         driverCache.getRuntimeConfiguration().registerCacheEventListener(driverEvents::add, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, allOf(EventType.class));
@@ -112,7 +95,7 @@ public class ClusteredEventsTest {
           updated(1L, "bat", "bag"),
           removed(1L, "bag"));
 
-        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+        assertTimeout(ofSeconds(10), () -> {
           assertThat(driverEvents, expectedSequence);
           assertThat(observerEvents, expectedSequence);
         });
@@ -121,21 +104,21 @@ public class ClusteredEventsTest {
   }
 
   @Test
-  public void testExpiringEventSequence() {
+  public void testExpiringEventSequence(TestInfo runningTest, @Cluster URI clusterUri) {
     TestTimeSource timeSource = new TestTimeSource();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
         .using(new TimeSourceConfiguration(timeSource))
-        .with(cluster(CLUSTER_URI).autoCreate(s -> s.defaultServerResource("primary-server-resource")))
-        .withCache(runningTest.getMethodName(), newCacheConfigurationBuilder(Long.class, String.class,
+        .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(s -> s.defaultServerResource("primary-server-resource")))
+        .withCache(runningTest.getDisplayName(), newCacheConfigurationBuilder(Long.class, String.class,
           newResourcePoolsBuilder().with(clusteredDedicated(16, MemoryUnit.MB)))
           .withExpiry(timeToLiveExpiration(Duration.ofMillis(1000))));
 
     try (PersistentCacheManager driver = clusteredCacheManagerBuilder.build(true)) {
-      Cache<Long, String> driverCache = driver.getCache(runningTest.getMethodName(), Long.class, String.class);
+      Cache<Long, String> driverCache = driver.getCache(runningTest.getDisplayName(), Long.class, String.class);
       try (PersistentCacheManager observer = clusteredCacheManagerBuilder.build(true)) {
-        Cache<Long, String> observerCache = observer.getCache(runningTest.getMethodName(), Long.class, String.class);
+        Cache<Long, String> observerCache = observer.getCache(runningTest.getDisplayName(), Long.class, String.class);
 
         List<CacheEvent<? extends Long, ? extends String>> driverEvents = new ArrayList<>();
         driverCache.getRuntimeConfiguration().registerCacheEventListener(driverEvents::add, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, allOf(EventType.class));
@@ -162,7 +145,7 @@ public class ClusteredEventsTest {
           created(1L, "baz"),
           expired(1L, "baz"));
 
-        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+        assertTimeout(ofSeconds(10), () -> {
           assertThat(driverEvents, expectedSequence);
           assertThat(observerEvents, expectedSequence);
         });

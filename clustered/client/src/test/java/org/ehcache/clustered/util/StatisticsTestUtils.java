@@ -18,10 +18,8 @@ package org.ehcache.clustered.util;
 
 import org.ehcache.core.spi.store.Store;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Assert;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.statistics.OperationStatistic;
@@ -30,6 +28,8 @@ import org.terracotta.statistics.ValueStatistic;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * StatisticsTestUtils
@@ -62,18 +62,18 @@ public class StatisticsTestUtils {
 
     final OperationStatistic<E> operationStatistic = getOperationStatistic(store, statsClass);
     for (final E statId : changed) {
-      Assert.assertThat(String.format("Value for %s.%s", statId.getDeclaringClass().getName(), statId.name()),
+     assertThat(String.format("Value for %s.%s", statId.getDeclaringClass().getName(), statId.name()),
           getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(1L));
     }
     for (final E statId : unchanged) {
-      Assert.assertThat(String.format("Value for %s.%s", statId.getDeclaringClass().getName(), statId.name()),
+     assertThat(String.format("Value for %s.%s", statId.getDeclaringClass().getName(), statId.name()),
           getStatistic(operationStatistic, statId), StatisticMatcher.equalTo(0L));
     }
   }
 
   public static <E extends Enum<E>> void validateStat(final Store<?, ?> store, E outcome, long count) {
     OperationStatistic<E> operationStatistic = getOperationStatistic(store, outcome.getDeclaringClass());
-    Assert.assertThat(getStatistic(operationStatistic, outcome), StatisticMatcher.equalTo(count));
+   assertThat(getStatistic(operationStatistic, outcome), StatisticMatcher.equalTo(count));
   }
 
   /**
@@ -153,7 +153,6 @@ public class StatisticsTestUtils {
       }
     }
 
-    @Factory
     public static Matcher<Number> equalTo(final Number expected) {
       return new StatisticMatcher(Number.class, expected);
     }

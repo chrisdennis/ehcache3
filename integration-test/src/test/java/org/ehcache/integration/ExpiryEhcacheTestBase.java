@@ -22,9 +22,9 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -35,7 +35,7 @@ import java.util.Map;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author Ludovic Orban
@@ -46,7 +46,7 @@ public abstract class ExpiryEhcacheTestBase {
   private Cache<Number, CharSequence> testCache;
   private final TestTimeSource manualTimeSource = new TestTimeSource();
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     manualTimeSource.setTimeMillis(0L);
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder().using(new TimeSourceConfiguration(manualTimeSource));
@@ -56,7 +56,7 @@ public abstract class ExpiryEhcacheTestBase {
     testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.build());
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (cacheManager != null) {
       cacheManager.close();

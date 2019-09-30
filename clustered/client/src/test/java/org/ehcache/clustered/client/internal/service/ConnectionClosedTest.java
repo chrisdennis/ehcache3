@@ -19,13 +19,15 @@ package org.ehcache.clustered.client.internal.service;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionPropertyNames;
 
@@ -41,38 +43,21 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 64)
 public class ConnectionClosedTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://connection.com:9540/timeout");
-
-  @Before
-  public void definePassthroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-            new UnitTestConnectionService.PassthroughServerBuilder()
-                    .resource("primary-server-resource", 64, MemoryUnit.MB)
-                    .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    try {
-      UnitTestConnectionService.remove(CLUSTER_URI);
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), is("Connection already closed"));
-    }
-  }
-
   @Test
-  public void testCacheOperationThrowsAfterConnectionClosed() throws Exception {
+  public void testCacheOperationThrowsAfterConnectionClosed(@Cluster URI clusterUri) throws Exception {
 
     ResourcePoolsBuilder resourcePoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder()
             .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB));
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
             newCacheManagerBuilder()
-                    .with(cluster(CLUSTER_URI)
+                    .with(cluster(clusterUri.resolve("/cache-manager"))
                             .timeouts(TimeoutsBuilder
                                     .timeouts()
                                     .connection(Duration.ofSeconds(20))
@@ -84,7 +69,7 @@ public class ConnectionClosedTest {
 
     Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
 
-    Collection<Properties> connectionProperties = UnitTestConnectionService.getConnectionProperties(CLUSTER_URI);
+    Collection<Properties> connectionProperties = UnitTestConnectionService.getConnectionProperties(clusterUri);
 
     assertThat(connectionProperties.size(), is(1));
     Properties properties = connectionProperties.iterator().next();
@@ -94,7 +79,7 @@ public class ConnectionClosedTest {
     cache.put(1L, "value");
     assertThat(cache.get(1L), is("value"));
 
-    Collection<Connection> connections = UnitTestConnectionService.getConnections(CLUSTER_URI);
+    Collection<Connection> connections = UnitTestConnectionService.getConnections(clusterUri);
 
     assertThat(connections.size(), is(1));
 

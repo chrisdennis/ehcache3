@@ -15,13 +15,13 @@
  */
 package org.ehcache.expiry;
 
+import org.junit.jupiter.api.Test;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
 
 @SuppressWarnings("deprecation")
 public class ExpirationsTest {

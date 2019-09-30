@@ -23,11 +23,11 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.spi.test.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
 
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.mockito.Mockito.mock;
@@ -39,14 +39,8 @@ public class CacheManagerListenerTest {
   private EhcacheManager cacheManager;
   private CacheManagerListener cacheManagerListener;
 
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
-  @Before
-  public void before() {
+  @BeforeEach
+  public void before(@TempDir File persistenceDir) {
     CacheConfigurationBuilder<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -55,7 +49,7 @@ public class CacheManagerListenerTest {
     cacheManagerListener = mock(CacheManagerListener.class);
 
     cacheManager = (EhcacheManager) CacheManagerBuilder.newCacheManagerBuilder()
-      .with(new CacheManagerPersistenceConfiguration(folder.getRoot()))
+      .with(new CacheManagerPersistenceConfiguration(persistenceDir))
       .withCache(CACHE, cacheConfiguration)
       .build();
     cacheManager.registerListener(cacheManagerListener);

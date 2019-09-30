@@ -27,11 +27,10 @@ import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -39,17 +38,12 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SerializersTest {
 
-  @Rule
-  public TemporaryFolder temporaryFolder = new TemporaryFolder();
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   @Test
-  public void testStatefulSerializer() throws Exception {
+  public void testStatefulSerializer(@TempDir File persistenceDir) throws Exception {
     StatefulSerializerImpl<Long> serializer = new StatefulSerializerImpl<>();
     testSerializerWithByRefHeapCache(serializer);
     assertThat(serializer.initCount, is(0));
@@ -67,15 +61,15 @@ public class SerializersTest {
     assertThat(serializer.initCount, is(1));
 
     serializer = new StatefulSerializerImpl<>();
-    testSerializerWithDiskCache(serializer);
+    testSerializerWithDiskCache(serializer, persistenceDir);
     assertThat(serializer.initCount, is(1));
 
     serializer = new StatefulSerializerImpl<>();
-    testSerializerWithHeapDiskCache(serializer);
+    testSerializerWithHeapDiskCache(serializer, persistenceDir);
     assertThat(serializer.initCount, is(1));
 
     serializer = new StatefulSerializerImpl<>();
-    testSerializerWithThreeTierCache(serializer);
+    testSerializerWithThreeTierCache(serializer, persistenceDir);
     assertThat(serializer.initCount, is(1));
 
   }
@@ -87,7 +81,7 @@ public class SerializersTest {
           newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
             .withKeySerializer(serializer)
         );
-    cmBuilder.build(true);
+    cmBuilder.build(true).close();
   }
 
   private void testSerializerWithByValueHeapCache(Serializer<Long> serializer) throws Exception {
@@ -98,7 +92,7 @@ public class SerializersTest {
             .withKeyCopier(SerializingCopier.<Long>asCopierClass())
             .withKeySerializer(serializer)
         );
-    cmBuilder.build(true);
+    cmBuilder.build(true).close();
   }
 
   private void testSerializerWithOffheapCache(Serializer<Long> serializer) throws Exception {
@@ -108,7 +102,7 @@ public class SerializersTest {
           newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().offheap(2, MemoryUnit.MB))
             .withKeySerializer(serializer)
         );
-    cmBuilder.build(true);
+    cmBuilder.build(true).close();
   }
 
   private void testSerializerWithHeapOffheapCache(Serializer<Long> serializer) throws Exception {
@@ -118,40 +112,40 @@ public class SerializersTest {
           newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
             .withKeySerializer(serializer)
         );
-    cmBuilder.build(true);
+    cmBuilder.build(true).close();
   }
 
-  private void testSerializerWithDiskCache(Serializer<Long> serializer) throws Exception {
+  private void testSerializerWithDiskCache(Serializer<Long> serializer, File persistenceDir) throws Exception {
     CacheManagerBuilder<PersistentCacheManager> cmBuilder =
       newCacheManagerBuilder()
-        .with(persistence(temporaryFolder.newFolder().getAbsolutePath()))
+        .with(persistence(persistenceDir))
         .withCache("diskCache",
           newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().disk(8, MemoryUnit.MB, true))
             .withKeySerializer(serializer)
         );
-    cmBuilder.build(true);
+    cmBuilder.build(true).close();
   }
 
-  private void testSerializerWithHeapDiskCache(Serializer<Long> serializer) throws Exception {
+  private void testSerializerWithHeapDiskCache(Serializer<Long> serializer, File persistenceDir) throws Exception {
     CacheManagerBuilder<PersistentCacheManager> cmBuilder =
       newCacheManagerBuilder()
-        .with(persistence(temporaryFolder.newFolder().getAbsolutePath()))
+        .with(persistence(persistenceDir))
         .withCache("heapDiskCache",
           newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(8, MemoryUnit.MB, true))
             .withKeySerializer(serializer)
         );
-    cmBuilder.build(true);
+    cmBuilder.build(true).close();
   }
 
-  private void testSerializerWithThreeTierCache(Serializer<Long> serializer) throws Exception {
+  private void testSerializerWithThreeTierCache(Serializer<Long> serializer, File persistenceDir) throws Exception {
     CacheManagerBuilder<PersistentCacheManager> cmBuilder =
       newCacheManagerBuilder()
-        .with(persistence(temporaryFolder.newFolder().getAbsolutePath()))
+        .with(persistence(persistenceDir))
         .withCache("heapOffheapDiskCache",
           newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB).disk(8, MemoryUnit.MB, true))
             .withKeySerializer(serializer)
         );
-    cmBuilder.build(true);
+    cmBuilder.build(true).close();
   }
 
   public static class StatefulSerializerImpl<T> implements StatefulSerializer<T> {

@@ -23,33 +23,26 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class CacheManagerDestroyRemovesPersistenceTest {
 
   public static final String PERSISTENT_CACHE = "persistent-cache";
 
-  @Rule
-  public final TemporaryFolder diskPath = new TemporaryFolder();
-
   private PersistentCacheManager persistentCacheManager;
 
   @Test
-  public void testDestroyRemovesPersistenceData () throws Exception {
-    File file = new File(getStoragePath(), "myData");
+  public void testDestroyRemovesPersistenceData (@TempDir File file) throws CachePersistenceException {
     initCacheManager(file);
     putValuesInCacheAndCloseCacheManager();
 
@@ -61,8 +54,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   }
 
   @Test
-  public void testDestroyCacheDestroysPersistenceContext() throws Exception {
-    File file = new File(getStoragePath(), "testDestroy");
+  public void testDestroyCacheDestroysPersistenceContext(@TempDir File file) throws CachePersistenceException {
     initCacheManager(file);
 
     persistentCacheManager.destroyCache(PERSISTENT_CACHE);
@@ -71,8 +63,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   }
 
   @Test
-  public void testCreateCacheWithSameAliasAfterDestroy() throws Exception {
-    File file = new File(getStoragePath(), "testDestroy");
+  public void testCreateCacheWithSameAliasAfterDestroy(@TempDir File file) throws CachePersistenceException {
     initCacheManager(file);
 
     persistentCacheManager.destroyCache(PERSISTENT_CACHE);
@@ -89,8 +80,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   }
 
   @Test
-  public void testDestroyCacheWithUnknownAlias() throws Exception {
-    File file = new File(getStoragePath(), "testDestroyUnknownAlias");
+  public void testDestroyCacheWithUnknownAlias(@TempDir File file) throws CachePersistenceException {
     initCacheManager(file);
 
     Cache<Long, String > cache = persistentCacheManager.getCache(PERSISTENT_CACHE, Long.class, String.class);
@@ -123,9 +113,5 @@ public class CacheManagerDestroyRemovesPersistenceTest {
         persistentCacheManager.getCache(PERSISTENT_CACHE, Long.class, String.class);
     preConfigured.put(1L, "foo");
     persistentCacheManager.close();
-  }
-
-  private String getStoragePath() throws IOException {
-    return diskPath.newFolder().getAbsolutePath();
   }
 }

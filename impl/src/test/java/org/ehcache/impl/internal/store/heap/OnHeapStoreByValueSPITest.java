@@ -37,7 +37,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -59,7 +59,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
     return storeFactory;
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
 
     storeFactory = new StoreFactory<String, String>() {

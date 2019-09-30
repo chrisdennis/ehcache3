@@ -19,7 +19,6 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -32,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 

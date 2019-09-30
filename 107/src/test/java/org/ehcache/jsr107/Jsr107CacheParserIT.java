@@ -18,19 +18,21 @@ package org.ehcache.jsr107;
 import org.ehcache.config.Configuration;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.URL;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Jsr107CacheParserIT
  */
 public class Jsr107CacheParserIT {
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void testJsr107CacheXmlTranslationToString() {
     URL resource = Jsr107CacheParserIT.class.getResource("/ehcache-107.xml");
     Configuration config = new XmlConfiguration(resource);
-    XmlConfiguration xmlConfig = new XmlConfiguration(config);
+    assertThrows(XmlConfigurationException.class, () -> new XmlConfiguration(config));
   }
 }

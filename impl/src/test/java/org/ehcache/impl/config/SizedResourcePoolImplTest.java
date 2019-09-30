@@ -18,18 +18,20 @@ package org.ehcache.impl.config;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.EntryUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SizedResourcePoolImplTest {
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void poolSizeMustBeGreaterThan0() {
-    new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 0, EntryUnit.ENTRIES, false);
+    assertThrows(IllegalArgumentException.class, () -> new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, 0, EntryUnit.ENTRIES, false));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void poolSizeMustNotBeNegative() {
-    new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, -42L, EntryUnit.ENTRIES, false);
+    assertThrows(IllegalArgumentException.class, () -> new SizedResourcePoolImpl<>(ResourceType.Core.HEAP, -42L, EntryUnit.ENTRIES, false));
   }
 
 }

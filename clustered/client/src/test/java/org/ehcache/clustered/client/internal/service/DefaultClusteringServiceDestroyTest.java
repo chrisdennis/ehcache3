@@ -24,8 +24,8 @@ import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.DestroyInProgressException;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.spi.service.MaintainableService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.terracotta.connection.Connection;
@@ -40,8 +40,8 @@ import java.util.Set;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -65,7 +65,7 @@ public class DefaultClusteringServiceDestroyTest {
   @Mock
   private EntityRef<VoltronReadWriteLockClient, Object, Void> lockEntityRef;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     MockConnectionService.mockConnection = connection;

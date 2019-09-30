@@ -16,6 +16,8 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.Matchers;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
@@ -25,8 +27,9 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.Is;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
@@ -40,8 +43,8 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.CombinableMatcher.either;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -51,9 +54,9 @@ import static org.mockito.Mockito.verify;
 public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   @Test
-  public void testInvalidationsContainChains() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testInvalidationsContainChains", Consistency.EVENTUAL, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testInvalidationsContainChains", Consistency.EVENTUAL, false);
+  public void testInvalidationsContainChains(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testInvalidationsContainChains", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testInvalidationsContainChains", Consistency.EVENTUAL, false);
 
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Chain> store1InvalidatedChains = new CopyOnWriteArrayList<>();
@@ -161,9 +164,9 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testAppendFireEvents() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAppendFireEvents", Consistency.EVENTUAL, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAppendFireEvents", Consistency.EVENTUAL, false);
+  public void testAppendFireEvents(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testAppendFireEvents", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testAppendFireEvents", Consistency.EVENTUAL, false);
 
     final List<ByteBuffer> store1AppendedBuffers = new CopyOnWriteArrayList<>();
     final List<Chain> store1Chains = new CopyOnWriteArrayList<>();
@@ -258,8 +261,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testGetKeyNotPresent() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testGetKeyNotPresent", Consistency.EVENTUAL, true);
+  public void testGetKeyNotPresent(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testGetKeyNotPresent", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetKeyNotPresent", clientEntity, mock(ServerCallback.class));
 
     Chain chain = serverStoreProxy.get(1);
@@ -268,8 +271,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testAppendKeyNotPresent() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testAppendKeyNotPresent", Consistency.EVENTUAL, true);
+  public void testAppendKeyNotPresent(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testAppendKeyNotPresent", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testAppendKeyNotPresent", clientEntity, mock(ServerCallback.class));
 
     serverStoreProxy.append(2, createPayload(2));
@@ -280,8 +283,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAfterMultipleAppendsOnSameKey() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testGetAfterMultipleAppendsOnSameKey", Consistency.EVENTUAL, true);
+  public void testGetAfterMultipleAppendsOnSameKey(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testGetAfterMultipleAppendsOnSameKey", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAfterMultipleAppendsOnSameKey", clientEntity, mock(ServerCallback.class));
 
     serverStoreProxy.append(3L, createPayload(3L));
@@ -296,8 +299,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAndAppendKeyNotPresent() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testGetAndAppendKeyNotPresent", Consistency.EVENTUAL, true);
+  public void testGetAndAppendKeyNotPresent(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testGetAndAppendKeyNotPresent", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAndAppendKeyNotPresent", clientEntity, mock(ServerCallback.class));
     Chain chain = serverStoreProxy.getAndAppend(4L, createPayload(4L));
 
@@ -310,8 +313,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAndAppendMultipleTimesOnSameKey() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testGetAndAppendMultipleTimesOnSameKey", Consistency.EVENTUAL, true);
+  public void testGetAndAppendMultipleTimesOnSameKey(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testGetAndAppendMultipleTimesOnSameKey", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testGetAndAppendMultipleTimesOnSameKey", clientEntity, mock(ServerCallback.class));
     serverStoreProxy.getAndAppend(5L, createPayload(5L));
     serverStoreProxy.getAndAppend(5L, createPayload(55L));
@@ -323,8 +326,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testReplaceAtHeadSuccessFull() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testReplaceAtHeadSuccessFull", Consistency.EVENTUAL, true);
+  public void testReplaceAtHeadSuccessFull(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testReplaceAtHeadSuccessFull", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testReplaceAtHeadSuccessFull", clientEntity, mock(ServerCallback.class));
     serverStoreProxy.append(20L, createPayload(200L));
     serverStoreProxy.append(20L, createPayload(2000L));
@@ -349,8 +352,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testClear() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testClear", Consistency.EVENTUAL, true);
+  public void testClear(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testClear", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testClear", clientEntity, mock(ServerCallback.class));
     serverStoreProxy.append(1L, createPayload(100L));
 
@@ -360,10 +363,10 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testResolveRequestIsProcessedAtThreshold() throws Exception {
+  public void testResolveRequestIsProcessedAtThreshold(@Cluster URI clusterUri) throws Exception {
     ByteBuffer buffer = createPayload(42L);
 
-    ClusterTierClientEntity clientEntity = createClientEntity("testResolveRequestIsProcessed", Consistency.EVENTUAL, true);
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testResolveRequestIsProcessed", Consistency.EVENTUAL, true);
     ServerCallback serverCallback = mock(ServerCallback.class);
     doAnswer(inv -> {
       ServerStoreProxy.ChainEntry entry = inv.getArgument(0);
@@ -386,8 +389,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testEmptyStoreIteratorIsEmpty() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testEmptyStoreIteratorIsEmpty", Consistency.EVENTUAL, true);
+  public void testEmptyStoreIteratorIsEmpty(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testEmptyStoreIteratorIsEmpty", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testEmptyStoreIteratorIsEmpty", clientEntity, mock(ServerCallback.class));
 
     Iterator<Chain> iterator = serverStoreProxy.iterator();
@@ -402,8 +405,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testSingleChainIterator() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testSingleChainIterator", Consistency.EVENTUAL, true);
+  public void testSingleChainIterator(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testSingleChainIterator", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testSingleChainIterator", clientEntity, mock(ServerCallback.class));
 
     serverStoreProxy.append(1L, createPayload(42L));
@@ -422,8 +425,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testSingleChainMultipleElements() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testSingleChainMultipleElements", Consistency.EVENTUAL, true);
+  public void testSingleChainMultipleElements(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testSingleChainMultipleElements", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testSingleChainMultipleElements", clientEntity, mock(ServerCallback.class));
 
     serverStoreProxy.append(1L, createPayload(42L));
@@ -443,8 +446,8 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testMultipleChains() throws Exception {
-    ClusterTierClientEntity clientEntity = createClientEntity("testMultipleChains", Consistency.EVENTUAL, true);
+  public void testMultipleChains(@Cluster URI clusterUri) throws Exception {
+    ClusterTierClientEntity clientEntity = createClientEntity(clusterUri, "testMultipleChains", Consistency.EVENTUAL, true);
     CommonServerStoreProxy serverStoreProxy = new CommonServerStoreProxy("testMultipleChains", clientEntity, mock(ServerCallback.class));
 
     serverStoreProxy.append(1L, createPayload(42L));

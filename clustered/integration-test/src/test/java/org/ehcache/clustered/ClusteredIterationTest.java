@@ -38,7 +38,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.any;
@@ -126,7 +126,7 @@ public class ClusteredIterationTest extends ClusteredTests {
       } catch (NoSuchElementException e) {
         //expected
       }
-      foundKeys.forEach(k -> assertThat(k, isIn(initialKeySet)));
+      foundKeys.forEach(k -> assertThat(k, is(in(initialKeySet))));
     }
   }
 

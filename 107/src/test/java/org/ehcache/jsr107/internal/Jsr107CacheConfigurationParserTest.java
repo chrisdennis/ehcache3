@@ -18,19 +18,21 @@ package org.ehcache.jsr107.internal;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Jsr107CacheConfigurationParserTest
  */
 public class Jsr107CacheConfigurationParserTest {
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void testTranslateServiceCreationConfigurationWithStatisticsManagementEnabled() {
     Jsr107CacheConfigurationParser configTranslator = new Jsr107CacheConfigurationParser();
     Jsr107CacheConfiguration cacheConfiguration =
       new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.DISABLED);
-    configTranslator.unparseServiceConfiguration(cacheConfiguration);
+    assertThrows(XmlConfigurationException.class, () -> configTranslator.unparseServiceConfiguration(cacheConfiguration));
   }
 
 }

@@ -22,18 +22,18 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.testing.extensions.Randomness;
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -47,9 +47,8 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 /**
  * DefaultStoreEventDispatcherTest
  */
+@ExtendWith(Randomness.class)
 public class DefaultStoreEventDispatcherTest {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStoreEventDispatcherTest.class);
 
   @Test
   public void testRegistersOrderingChange() {
@@ -117,7 +116,7 @@ public class DefaultStoreEventDispatcherTest {
   }
 
   @Test
-  public void testOrderedEventDelivery() throws Exception {
+  public void testOrderedEventDelivery(@Randomness.Random long seed) throws Exception {
     final DefaultStoreEventDispatcher<Long, Boolean> dispatcher = new DefaultStoreEventDispatcher<>(4);
     dispatcher.setEventOrdering(true);
     final ConcurrentHashMap<Long, Long> map = new ConcurrentHashMap<>();
@@ -134,9 +133,6 @@ public class DefaultStoreEventDispatcherTest {
         resultMap.compute(event.getKey(), (key, value) -> 7L - value);
       }
     });
-
-    final long seed = new Random().nextLong();
-    LOGGER.info("Starting test with seed {}", seed);
 
     int workers = Runtime.getRuntime().availableProcessors() + 2;
     final CountDownLatch latch = new CountDownLatch(workers);
@@ -167,8 +163,6 @@ public class DefaultStoreEventDispatcherTest {
     }
 
     latch.await();
-
-    LOGGER.info("\n\tResult map {} \n\tWork map {}", resultMap, map);
 
     assertThat(resultMap, is(map));
   }

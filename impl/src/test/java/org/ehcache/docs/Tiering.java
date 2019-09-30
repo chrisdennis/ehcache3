@@ -17,7 +17,6 @@
 package org.ehcache.docs;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -34,20 +33,16 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tiering
  */
 public class Tiering {
-
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
 
   @Test
   public void tierSizing() {
@@ -72,10 +67,10 @@ public class Tiering {
   }
 
   @Test
-  public void threeTiersCacheManager() throws Exception {
+  public void threeTiersCacheManager(@TempDir File persistenceDir) throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData")))
+      .with(CacheManagerBuilder.persistence(persistenceDir))
       .withCache("threeTieredCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -90,10 +85,10 @@ public class Tiering {
   }
 
   @Test
-  public void persistentCacheManager() throws Exception {
+  public void persistentCacheManager(@TempDir File persistenceDir) throws Exception {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder() // <1>
-      .with(CacheManagerBuilder.persistence(new File(getStoragePath(), "myData"))) // <2>
+      .with(CacheManagerBuilder.persistence(persistenceDir)) // <2>
       .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)) // <3>
       )
@@ -104,11 +99,10 @@ public class Tiering {
   }
 
   @Test
-  public void diskSegments() throws Exception {
+  public void diskSegments(@TempDir File persistenceDir) throws Exception {
     // tag::diskSegments[]
-    String storagePath = getStoragePath();
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(new File(storagePath, "myData")))
+      .with(CacheManagerBuilder.persistence(persistenceDir))
       .withCache("less-segments",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB))
@@ -159,10 +153,10 @@ public class Tiering {
   }
 
   @Test
-  public void testPersistentDiskTier() throws Exception {
+  public void testPersistentDiskTier(@TempDir File persistenceDir) throws Exception {
     // tag::diskPersistent[]
     CacheManagerBuilder.newCacheManagerBuilder()
-      .with(CacheManagerBuilder.persistence(getStoragePath())) // <1>
+      .with(CacheManagerBuilder.persistence(persistenceDir)) // <1>
       .withCache("myCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(1, MemoryUnit.GB, true))); // <2>
@@ -204,9 +198,5 @@ public class Tiering {
       .withCache("usesDefaultSizeOfEngine", usesDefaultSizeOfEngineConfig)
       .build(true);
     // end::byteSizedTieredCache[]
-  }
-
-  private String getStoragePath() throws IOException {
-    return folder.newFolder().getAbsolutePath();
   }
 }

@@ -18,14 +18,14 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.util.ClassLoading;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.stream.Collectors;
 
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.core.IsIterableContaining.hasItem;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author Clifford W. Johnson

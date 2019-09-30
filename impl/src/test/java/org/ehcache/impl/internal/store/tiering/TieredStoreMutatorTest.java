@@ -33,8 +33,8 @@ import org.ehcache.impl.internal.store.basic.NopStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.BasicOffHeapValueHolder;
 import org.ehcache.spi.test.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -45,7 +45,7 @@ import java.util.function.Consumer;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for {@link TieredStore}. These tests are mainly to validate that
@@ -165,7 +165,7 @@ public class TieredStoreMutatorTest {
   private final CountDownLatch thread1Latch = new CountDownLatch(1);
   private final CountDownLatch thread3Latch = new CountDownLatch(1);
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     // Not relevant to the test, just used to instantiate the OnHeapStore
     ResourcePools resourcePools = ResourcePoolsBuilder.newResourcePoolsBuilder()

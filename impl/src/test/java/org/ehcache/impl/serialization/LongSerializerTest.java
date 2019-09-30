@@ -16,43 +16,37 @@
 
 package org.ehcache.impl.serialization;
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Random;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * LongSerializerTest
  */
+@ExtendWith(Randomness.class)
 public class LongSerializerTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LongSerializerTest.class);
+  @RepeatedTest(100)
+  public void testCanSerializeAndDeserialize(@Randomness.Random long value) throws ClassNotFoundException {
+    LongSerializer serializer = new LongSerializer();
+    Long read = serializer.read(serializer.serialize(value));
+    assertThat(read, is(value));
+  }
 
   @Test
-  public void testCanSerializeAndDeserialize() throws ClassNotFoundException {
-    LongSerializer serializer = new LongSerializer();
-    long now = System.currentTimeMillis();
-    LOGGER.info("LongSerializer test with seed {}", now);
-    Random random = new Random(now);
-
-    for (int i = 0; i < 100; i++) {
-      long l = random.nextLong();
-      Long read = serializer.read(serializer.serialize(l));
-      assertThat(read, is(l));
-    }
+  public void testReadThrowsOnNullInput() {
+    assertThrows(NullPointerException.class, () -> new LongSerializer().read(null));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testReadThrowsOnNullInput() throws ClassNotFoundException {
-    new LongSerializer().read(null);
-  }
-
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testSerializeThrowsOnNullInput() {
-    new LongSerializer().serialize(null);
+    assertThrows(NullPointerException.class, () -> new LongSerializer().serialize(null));
   }
 }

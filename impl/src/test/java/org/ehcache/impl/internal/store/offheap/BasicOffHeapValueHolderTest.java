@@ -16,11 +16,12 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * BasicOffHeapValueHolderTest
@@ -30,7 +31,7 @@ public class BasicOffHeapValueHolderTest {
   private String value;
   private BasicOffHeapValueHolder<String> valueHolder;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     value = "aValue";
     valueHolder = new BasicOffHeapValueHolder<>(-1, value, 0, 0);
@@ -41,23 +42,23 @@ public class BasicOffHeapValueHolderTest {
     assertThat(valueHolder.get(), is(value));
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testDoesNotSupportDelayedDeserialization() {
-    valueHolder.detach();
+    assertThrows(UnsupportedOperationException.class, valueHolder::detach);
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testDoesNotSupportForceDeserialization() {
-    valueHolder.forceDeserialization();
+    assertThrows(UnsupportedOperationException.class, valueHolder::forceDeserialization);
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testDoesNotSupportWriteBack() {
-    valueHolder.writeBack();
+    assertThrows(UnsupportedOperationException.class, valueHolder::writeBack);
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testDoesNotSupportUpdateMetadata() {
-    valueHolder.updateMetadata(valueHolder);
+    assertThrows(UnsupportedOperationException.class, () -> valueHolder.updateMetadata(valueHolder));
   }
 }

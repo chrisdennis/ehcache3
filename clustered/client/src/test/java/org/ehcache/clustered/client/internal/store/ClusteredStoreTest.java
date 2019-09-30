@@ -24,6 +24,9 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
@@ -49,10 +52,12 @@ import org.ehcache.spi.serialization.Serializer;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.connection.Connection;
+import org.terracotta.connection.ConnectionFactory;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -72,8 +77,9 @@ import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
 import static org.ehcache.core.spi.store.Store.ValueHolder.NO_EXPIRE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.CombinableMatcher.either;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -83,10 +89,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "defaultResource", size = 8)
 public class ClusteredStoreTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private ClusteredStore<Long, String> store;
 
@@ -143,14 +150,9 @@ public class ClusteredStoreTest {
     }
   };
 
-  @Before
-  public void setup() throws Exception {
-    UnitTestConnectionService.add(
-        CLUSTER_URI,
-        new UnitTestConnectionService.PassthroughServerBuilder().resource("defaultResource", 8, MemoryUnit.MB).build()
-    );
-
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
+  @BeforeEach
+  public void setup(@Cluster URI clusterUri) throws Exception {
+    Connection connection = ConnectionFactory.connect(clusterUri, new Properties());
     ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
 
     ServerSideConfiguration serverConfig =
@@ -169,11 +171,6 @@ public class ClusteredStoreTest {
     OperationsCodec<Long, String> codec = new OperationsCodec<>(new LongSerializer(), new StringSerializer());
     EternalChainResolver<Long, String> resolver = new EternalChainResolver<>(codec);
     store = new ClusteredStore<>(config, codec, resolver, serverStoreProxy, testTimeSource, new DefaultStoreEventDispatcher<>(8), new DefaultStatisticsService());
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
   private void assertTimeoutOccurred(ThrowableAssert.ThrowingCallable throwingCallable) {
@@ -212,7 +209,7 @@ public class ClusteredStoreTest {
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS, StoreOperationOutcomes.GetOutcome.HIT));
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testGetThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
@@ -222,7 +219,7 @@ public class ClusteredStoreTest {
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource, null, new DefaultStatisticsService());
-    store.get(1L);
+    assertThrows(StoreAccessException.class, () -> store.get(1L));
   }
 
   @Test
@@ -245,7 +242,7 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.GetOutcome.MISS, 0);
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testContainsKeyThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
@@ -255,7 +252,7 @@ public class ClusteredStoreTest {
     when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource, null, new DefaultStatisticsService());
-    store.containsKey(1L);
+    assertThrows(StoreAccessException.class, () -> store.containsKey(1L));
   }
 
   @Test
@@ -315,7 +312,7 @@ public class ClusteredStoreTest {
     assertThat(store.containsKey(3L), is(false));
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testClearThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
@@ -325,7 +322,7 @@ public class ClusteredStoreTest {
     doThrow(new RuntimeException()).when(serverStoreProxy).clear();
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource, null, new DefaultStatisticsService());
-    store.clear();
+    assertThrows(StoreAccessException.class, () -> store.clear());
   }
 
   @Test
@@ -348,7 +345,7 @@ public class ClusteredStoreTest {
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT, StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testPutIfAbsentThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
@@ -358,7 +355,7 @@ public class ClusteredStoreTest {
     when(serverStoreProxy.getAndAppend(anyLong(), any())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource, null, new DefaultStatisticsService());
-    store.putIfAbsent(1L, "one", b -> {});
+    assertThrows(StoreAccessException.class, () -> store.putIfAbsent(1L, "one", b -> {}));
   }
 
   @Test
@@ -385,7 +382,7 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.MISS, 2);
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testConditionalRemoveThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
@@ -395,7 +392,7 @@ public class ClusteredStoreTest {
     when(serverStoreProxy.getAndAppend(anyLong(), any())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource, null, new DefaultStatisticsService());
-    store.remove(1L, "one");
+    assertThrows(StoreAccessException.class, () -> store.remove(1L, "one"));
   }
 
   @Test
@@ -419,7 +416,7 @@ public class ClusteredStoreTest {
     validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS, StoreOperationOutcomes.ReplaceOutcome.REPLACED));
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testReplaceThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
@@ -429,7 +426,7 @@ public class ClusteredStoreTest {
     when(serverStoreProxy.getAndAppend(anyLong(), any())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource, null, new DefaultStatisticsService());
-    store.replace(1L, "one");
+    assertThrows(StoreAccessException.class, () -> store.replace(1L, "one"));
   }
 
   @Test
@@ -457,7 +454,7 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.MISS, 2);
   }
 
-  @Test(expected = StoreAccessException.class)
+  @Test
   public void testConditionalReplaceThrowsOnlySAE() throws Exception {
     @SuppressWarnings("unchecked")
     OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
@@ -467,7 +464,7 @@ public class ClusteredStoreTest {
     when(serverStoreProxy.getAndAppend(anyLong(), any())).thenThrow(new RuntimeException());
     TestTimeSource testTimeSource = mock(TestTimeSource.class);
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, chainResolver, serverStoreProxy, testTimeSource, null, new DefaultStatisticsService());
-    store.replace(1L, "one", "another one");
+    assertThrows(StoreAccessException.class, () -> store.replace(1L, "one", "another one"));
   }
 
   @Test
@@ -516,12 +513,12 @@ public class ClusteredStoreTest {
     validateStats(store, EnumSet.noneOf(StoreOperationOutcomes.RemoveOutcome.class));
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testBulkComputeThrowsForGenericFunction() throws Exception {
     @SuppressWarnings("unchecked")
     Function<Iterable<? extends Map.Entry<? extends Long, ? extends String>>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> remappingFunction
         = mock(Function.class);
-    store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L)), remappingFunction);
+    assertThrows(UnsupportedOperationException.class, () -> store.bulkCompute(new HashSet<>(Arrays.asList(1L, 2L)), remappingFunction));
   }
 
   @Test
@@ -537,12 +534,12 @@ public class ClusteredStoreTest {
     assertThat(store.get(2L).get(), is("two"));
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testBulkComputeIfAbsentThrowsForGenericFunction() throws Exception {
     @SuppressWarnings("unchecked")
     Function<Iterable<? extends Long>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> mappingFunction
         = mock(Function.class);
-    store.bulkComputeIfAbsent(new HashSet<>(Arrays.asList(1L, 2L)), mappingFunction);
+    assertThrows(UnsupportedOperationException.class, () -> store.bulkComputeIfAbsent(new HashSet<>(Arrays.asList(1L, 2L)), mappingFunction));
   }
 
   @Test

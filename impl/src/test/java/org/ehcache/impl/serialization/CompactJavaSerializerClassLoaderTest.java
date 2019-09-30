@@ -20,10 +20,10 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author teck
@@ -44,7 +44,7 @@ public class CompactJavaSerializerClassLoaderTest {
 
     pushTccl(loader);
     try {
-      Assert.assertSame(loader, serializer.read(encoded).getClass().getClassLoader());
+      assertSame(loader, serializer.read(encoded).getClass().getClassLoader());
     } finally {
       popTccl();
     }
@@ -61,7 +61,7 @@ public class CompactJavaSerializerClassLoaderTest {
     // setting TCCL doesn't matter here, but set it to make sure it doesn't get used
     pushTccl(newLoader());
     try {
-      Assert.assertSame(loader, serializer.read(encoded).getClass().getClassLoader());
+      assertSame(loader, serializer.read(encoded).getClass().getClassLoader());
     } finally {
       popTccl();
     }

@@ -28,9 +28,9 @@ import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.core.statistics.DefaultTierStatistics;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
@@ -46,7 +46,7 @@ public class DefaultTierStatisticsTest {
   private Cache<Long, String> cache;
   private TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
 
-  @Before
+  @BeforeEach
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -65,7 +65,7 @@ public class DefaultTierStatisticsTest {
     onHeap = new DefaultTierStatistics(cache, "OnHeap");
   }
 
-  @After
+  @AfterEach
   public void after() {
     if(cacheManager != null) {
       cacheManager.close();

@@ -24,18 +24,25 @@ import java.util.HashMap;
 import java.util.Random;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.testing.extensions.Randomness;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNot;
 import org.hamcrest.core.IsSame;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 /**
  *
  * @author cdennis
  */
+@ExtendWith(Randomness.class)
 public class BasicSerializationTest {
 
   @Test
@@ -45,9 +52,9 @@ public class BasicSerializationTest {
 
     String input = "";
     String result = (String) test.read(test.serialize(input));
-    Assert.assertNotNull(result);
-    Assert.assertNotSame(input, result);
-    Assert.assertEquals(input, result);
+    assertNotNull(result);
+    assertNotSame(input, result);
+    assertEquals(input, result);
   }
 
   @Test
@@ -61,9 +68,9 @@ public class BasicSerializationTest {
     input.put(3, "three");
 
     HashMap<?, ?> result = (HashMap<?, ?>) test.read(test.serialize(input));
-    Assert.assertNotNull(result);
-    Assert.assertNotSame(input, result);
-    Assert.assertEquals(input, result);
+    assertNotNull(result);
+    assertNotSame(input, result);
+    assertEquals(input, result);
 
   }
 
@@ -79,13 +86,12 @@ public class BasicSerializationTest {
 
     Class<?>[] out = (Class<?>[]) s.read(s.serialize(PRIMITIVE_CLASSES));
 
-    Assert.assertThat(out, IsNot.not(IsSame.sameInstance(PRIMITIVE_CLASSES)));
-    Assert.assertThat(out, IsEqual.equalTo(PRIMITIVE_CLASSES));
+   assertThat(out, IsNot.not(IsSame.sameInstance(PRIMITIVE_CLASSES)));
+   assertThat(out, IsEqual.equalTo(PRIMITIVE_CLASSES));
   }
 
   @Test
-  public void testProxyInstance() throws ClassNotFoundException {
-    Random rand = new Random();
+  public void testProxyInstance(Random rand) throws ClassNotFoundException {
     int foo = rand.nextInt();
     float bar = rand.nextFloat();
 
@@ -94,8 +100,8 @@ public class BasicSerializationTest {
 
     Object proxy = s.read(s.serialize((Serializable) Proxy.newProxyInstance(BasicSerializationTest.class.getClassLoader(), new Class<?>[]{Foo.class, Bar.class}, new Handler(foo, bar))));
 
-    Assert.assertThat(((Foo) proxy).foo(), Is.is(foo));
-    Assert.assertThat(((Bar) proxy).bar(), Is.is(bar));
+   assertThat(((Foo) proxy).foo(), Is.is(foo));
+   assertThat(((Bar) proxy).bar(), Is.is(bar));
   }
 
   interface Foo {

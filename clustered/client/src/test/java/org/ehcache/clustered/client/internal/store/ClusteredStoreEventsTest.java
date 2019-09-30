@@ -22,6 +22,9 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
@@ -54,11 +57,13 @@ import org.ehcache.spi.serialization.Serializer;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.terracotta.connection.Connection;
+import org.terracotta.connection.ConnectionFactory;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -76,10 +81,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "defaultResource", size = 8)
 public class ClusteredStoreEventsTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost");
 
   private final Store.Configuration<Long, String> config = new Store.Configuration<Long, String>() {
 
@@ -139,14 +145,9 @@ public class ClusteredStoreEventsTest {
   private TestTimeSource testTimeSource;
 
   @SuppressWarnings("unchecked")
-  @Before
-  public void setup() throws Exception {
-    UnitTestConnectionService.add(
-        CLUSTER_URI,
-        new UnitTestConnectionService.PassthroughServerBuilder().resource("defaultResource", 8, MemoryUnit.MB).build()
-    );
-
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
+  @BeforeEach
+  public void setup(@Cluster URI clusterUri) throws Exception {
+    Connection connection = ConnectionFactory.connect(clusterUri, new Properties());
     ClusterTierManagerClientEntityFactory entityFactory = new ClusterTierManagerClientEntityFactory(connection);
 
     ServerSideConfiguration serverConfig =
@@ -171,11 +172,6 @@ public class ClusteredStoreEventsTest {
 
     ClusteredStore<Long, String> store = new ClusteredStore<>(config, codec, resolver, serverStoreProxy, testTimeSource, storeEventDispatcher, new DefaultStatisticsService());
     serverCallback = new ClusteredStore.Provider().getServerCallback(store);
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost/my-application");
   }
 
   private ByteBuffer op(Operation<Long, String> operation) {

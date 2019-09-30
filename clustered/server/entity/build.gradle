@@ -31,4 +31,5 @@ dependencies {
 
   testImplementation project(':clustered:server:service')
   testImplementation project(':clustered:test-utils')
+  testImplementation testFixtures(project(':api'))
 }

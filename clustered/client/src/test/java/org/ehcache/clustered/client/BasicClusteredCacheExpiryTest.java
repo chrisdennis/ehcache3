@@ -17,19 +17,20 @@
 package org.ehcache.clustered.client;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 import java.time.Duration;
@@ -39,45 +40,30 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  *
  */
+@ExtendWith(PassthroughServer.class)
+@PassthroughServer.ServerResource(name = "primary-server-resource", size = 64)
 public class BasicClusteredCacheExpiryTest {
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
-  private static final CacheManagerBuilder<PersistentCacheManager> commonClusteredCacheManagerBuilder =
+  private static final CacheManagerBuilder<CacheManager> BASE_BUILDER =
       newCacheManagerBuilder()
-          .with(cluster(CLUSTER_URI).autoCreate(c -> c))
           .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
               .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofMillis(1L)))
               .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
-  @Before
-  public void definePassthroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-        new UnitTestConnectionService.PassthroughServerBuilder()
-            .resource("primary-server-resource", 64, MemoryUnit.MB)
-            .resource("secondary-server-resource", 64, MemoryUnit.MB)
-            .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
-
   @Test
-  public void testGetExpiredSingleClient() {
-
+  public void testGetExpiredSingleClient(@Cluster URI clusterURI) {
     TestTimeSource timeSource = new TestTimeSource();
     TimeSourceConfiguration timeSourceConfiguration = new TimeSourceConfiguration(timeSource);
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        commonClusteredCacheManagerBuilder.using(timeSourceConfiguration);
+        BASE_BUILDER.with(cluster(clusterURI).autoCreate(c -> c)).using(timeSourceConfiguration);
 
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
@@ -95,13 +81,13 @@ public class BasicClusteredCacheExpiryTest {
   }
 
   @Test
-  public void testGetExpiredTwoClients() {
+  public void testGetExpiredTwoClients(@Cluster URI clusterURI) {
 
     TestTimeSource timeSource = new TestTimeSource();
     TimeSourceConfiguration timeSourceConfiguration = new TimeSourceConfiguration(timeSource);
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        commonClusteredCacheManagerBuilder.using(timeSourceConfiguration);
+        BASE_BUILDER.with(cluster(clusterURI).autoCreate(c -> c)).using(timeSourceConfiguration);
 
     final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
     final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
@@ -122,13 +108,13 @@ public class BasicClusteredCacheExpiryTest {
   }
 
   @Test
-  public void testContainsKeyExpiredTwoClients() {
+  public void testContainsKeyExpiredTwoClients(@Cluster URI clusterURI) {
 
     TestTimeSource timeSource = new TestTimeSource();
     TimeSourceConfiguration timeSourceConfiguration = new TimeSourceConfiguration(timeSource);
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        commonClusteredCacheManagerBuilder.using(timeSourceConfiguration);
+        BASE_BUILDER.with(cluster(clusterURI).autoCreate(c -> c)).using(timeSourceConfiguration);
 
     final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
     final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);

@@ -16,9 +16,8 @@
 
 package org.ehcache.impl.internal.util;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,26 +25,20 @@ import java.io.IOException;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
 import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author Henri Tremblay
  */
 public class FileExistenceMatchersTest {
 
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
-
   @Test
-  public void directoryIsLocked() throws Exception {
-    File dir = folder.newFolder();
-
+  public void directoryIsLocked(@TempDir File dir) {
     assertThat(dir, not(isLocked()));
   }
 
   @Test
-  public void directoryIsNotLocked() throws Exception {
-    File dir = folder.newFolder();
+  public void directoryIsNotLocked(@TempDir File dir) throws IOException {
     File lock = new File(dir, ".lock");
     lock.createNewFile();
 
@@ -53,15 +46,12 @@ public class FileExistenceMatchersTest {
   }
 
   @Test
-  public void containsCacheDirectory_noFileDir() throws IOException {
-    File dir = folder.newFolder();
-
+  public void containsCacheDirectory_noFileDir(@TempDir File dir) {
     assertThat(dir, not(containsCacheDirectory("test123")));
   }
 
   @Test
-  public void containsCacheDirectory_noCacheDir() throws IOException {
-    File dir = folder.newFolder();
+  public void containsCacheDirectory_noCacheDir(@TempDir File dir) {
     File file = new File(dir, "file");
     file.mkdir();
 
@@ -69,8 +59,7 @@ public class FileExistenceMatchersTest {
   }
 
   @Test
-  public void containsCacheDirectory_moreThanOneCacheDir() throws IOException {
-    File dir = folder.newFolder();
+  public void containsCacheDirectory_moreThanOneCacheDir(@TempDir File dir) {
     File file = new File(dir, "file");
     file.mkdir();
     new File(file, "test123_aaa").mkdir();
@@ -80,16 +69,14 @@ public class FileExistenceMatchersTest {
   }
 
   @Test
-  public void containsCacheDirectory_existing() throws IOException {
-    File dir = folder.newFolder();
+  public void containsCacheDirectory_existing(@TempDir File dir) {
     new File(dir, "file/test123_aaa").mkdirs();
 
     assertThat(dir, containsCacheDirectory("test123"));
   }
 
   @Test
-  public void containsCacheDirectory_withSafeSpaceExisting() throws IOException {
-    File dir = folder.newFolder();
+  public void containsCacheDirectory_withSafeSpaceExisting(@TempDir File dir) {
     new File(dir, "safespace/test123_aaa").mkdirs();
 
     assertThat(dir, containsCacheDirectory("safespace", "test123"));

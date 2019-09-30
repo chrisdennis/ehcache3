@@ -20,8 +20,7 @@ import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.MockConnectionService;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.terracotta.connection.Connection;
 import org.terracotta.exception.ConnectionShutdownException;
@@ -30,6 +29,9 @@ import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ReconnectTest {
 
@@ -40,12 +42,12 @@ public class ReconnectTest {
           .autoCreate(c -> c)
           .build();
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testInitialConnectDoesNotRetryAfterConnectionException() {
     MockConnectionService.mockConnection = null;
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
 
-    connectionState.initClusterConnection();
+    assertThrows(RuntimeException.class, connectionState::initClusterConnection);
   }
 
   @Test
@@ -79,10 +81,10 @@ public class ReconnectTest {
     try {
       future.get();
     } catch (ExecutionException e) {
-      Assert.assertThat(e.getCause().getMessage(), Matchers.is("Stop reconnecting"));
+     assertThat(e.getCause().getMessage(), Matchers.is("Stop reconnecting"));
     }
 
-    Assert.assertThat(connectionState.getReconnectCount(), Matchers.is(1));
+   assertThat(connectionState.getReconnectCount(), Matchers.is(1));
 
   }
 

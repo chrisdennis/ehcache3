@@ -28,15 +28,15 @@ import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
@@ -45,39 +45,39 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
  * OnHeapStoreKeyCopierTest
  */
-@RunWith(Parameterized.class)
 public class OnHeapStoreKeyCopierTest {
 
-  private static final Key KEY = new Key("WHat?");
-  public static final String VALUE = "TheAnswer";
-  public static final Supplier<Boolean> NOT_REPLACE_EQUAL = () -> false;
-  public static final Supplier<Boolean> REPLACE_EQUAL = () -> true;
+  @ParameterizedTest(name = "copyForRead: {0} - copyForWrite: {1}")
+  @ArgumentsSource(Params.class)
+  @interface TestAllCopierSettings {}
 
-  @Parameterized.Parameters(name = "copyForRead: {0} - copyForWrite: {1}")
-  public static Collection<Object[]> config() {
-    return Arrays.asList(new Object[][] {
-        {false, false}, {false, true}, {true, false}, {true, true}
-    });
+  static class Params implements ArgumentsProvider {
+
+    @Override
+    public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+      return Stream.of(
+        arguments(false, false),
+        arguments(false, true),
+        arguments(true, false),
+        arguments(true, true)
+      );
+    }
   }
-
-  @Parameterized.Parameter(value = 0)
-  public boolean copyForRead;
-
-  @Parameterized.Parameter(value = 1)
-  public boolean copyForWrite;
-
-  private OnHeapStore<Key, String> store;
+  private static final Key KEY = new Key("WHat?");
+  private static final String VALUE = "TheAnswer";
+  private static final Supplier<Boolean> NOT_REPLACE_EQUAL = () -> false;
+  private static final Supplier<Boolean> REPLACE_EQUAL = () -> true;
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  @Before
-  public void setUp() {
+  public Store<Key, String> createStore(boolean copyForRead, boolean copyForWrite) {
     Store.Configuration<Key, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build());
     when(configuration.getKeyType()).thenReturn(Key.class);
@@ -102,12 +102,13 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, keyCopier, IdentityCopier.identityCopier(),
+    return new OnHeapStore<>(configuration, SystemTimeSource.INSTANCE, keyCopier, IdentityCopier.identityCopier(),
       new NoopSizeOfEngine(), NullStoreEventDispatcher.nullStoreEventDispatcher(), new DefaultStatisticsService());
   }
 
-  @Test
-  public void testPutAndGet() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testPutAndGet(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     Key copyKey = new Key(KEY);
     store.put(copyKey, VALUE);
 
@@ -124,8 +125,9 @@ public class OnHeapStoreKeyCopierTest {
     }
   }
 
-  @Test
-  public void testCompute() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testCompute(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     final Key copyKey = new Key(KEY);
     store.getAndCompute(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
@@ -150,8 +152,9 @@ public class OnHeapStoreKeyCopierTest {
     }
   }
 
-  @Test
-  public void testComputeWithoutReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testComputeWithoutReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     final Key copyKey = new Key(KEY);
     store.computeAndGet(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
@@ -176,8 +179,9 @@ public class OnHeapStoreKeyCopierTest {
     }
   }
 
-  @Test
-  public void testComputeWithReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testComputeWithReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     final Key copyKey = new Key(KEY);
     store.computeAndGet(copyKey, (key, value) -> {
       assertThat(key, is(copyKey));
@@ -202,8 +206,9 @@ public class OnHeapStoreKeyCopierTest {
     }
   }
 
-  @Test
-  public void testIteration() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testIteration(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     store.put(KEY, VALUE);
     Store.Iterator<Cache.Entry<Key, Store.ValueHolder<String>>> iterator = store.iterator();
     assertThat(iterator.hasNext(), is(true));
@@ -217,8 +222,9 @@ public class OnHeapStoreKeyCopierTest {
     }
   }
 
-  @Test
-  public void testComputeIfAbsent() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testComputeIfAbsent(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     store.computeIfAbsent(KEY, key -> {
       if (copyForRead || copyForWrite) {
         assertThat(key, not(sameInstance(KEY)));
@@ -229,8 +235,9 @@ public class OnHeapStoreKeyCopierTest {
     });
   }
 
-  @Test
-  public void testBulkCompute() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkCompute(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     final AtomicReference<Key> keyRef = new AtomicReference<>();
     store.bulkCompute(singleton(KEY), entries -> {
       Key key = entries.iterator().next().getKey();
@@ -251,8 +258,9 @@ public class OnHeapStoreKeyCopierTest {
     });
   }
 
-  @Test
-  public void testBulkComputeWithoutReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkComputeWithoutReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     store.bulkCompute(singleton(KEY), entries -> {
       if (copyForRead || copyForWrite) {
         assertThat(entries.iterator().next().getKey(), not(sameInstance(KEY)));
@@ -263,8 +271,9 @@ public class OnHeapStoreKeyCopierTest {
     }, NOT_REPLACE_EQUAL);
   }
 
-  @Test
-  public void testBulkComputeWithReplaceEqual() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkComputeWithReplaceEqual(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     store.bulkCompute(singleton(KEY), entries -> {
       if (copyForRead || copyForWrite) {
         assertThat(entries.iterator().next().getKey(), not(sameInstance(KEY)));
@@ -275,8 +284,9 @@ public class OnHeapStoreKeyCopierTest {
     }, REPLACE_EQUAL);
   }
 
-  @Test
-  public void testBulkComputeIfAbsent() throws StoreAccessException {
+  @TestAllCopierSettings
+  public void testBulkComputeIfAbsent(boolean copyForRead, boolean copyForWrite) throws StoreAccessException {
+    Store<Key, String> store = createStore(copyForRead, copyForWrite);
     store.bulkComputeIfAbsent(singleton(KEY), keys -> {
       if (copyForWrite || copyForRead) {
         assertThat(keys.iterator().next(), not(sameInstance(KEY)));

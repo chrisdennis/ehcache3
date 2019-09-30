@@ -27,7 +27,7 @@ import org.terracotta.testing.rules.Cluster;
 import java.net.URL;
 import java.util.Properties;
 
-import static org.ehcache.clustered.CacheManagerLifecycleEhcacheIntegrationTest.substitute;
+import static org.ehcache.testing.Utilities.substitute;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 /**

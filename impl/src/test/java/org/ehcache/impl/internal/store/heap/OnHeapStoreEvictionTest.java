@@ -36,7 +36,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.util.concurrent.ExecutorService;

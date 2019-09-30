@@ -27,14 +27,14 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.util.ClassLoading;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.stream.Collectors;
 
 import static java.util.Spliterators.spliterator;
 import static java.util.stream.StreamSupport.stream;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.core.IsIterableContaining.hasItems;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Ensures that a non-clustered {@code CacheManager} can be created when clustered classes are

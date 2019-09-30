@@ -20,40 +20,36 @@ import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 
-public class ClusteredResourcePoolUpdationTest {
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
+@ExtendWith(PassthroughServer.class)
+@PassthroughServer.ServerResource(name = "primary-server-resource", size = 8)
+@PassthroughServer.ServerResource(name = "secondary-server-resource", size = 8)
+public class ClusteredResourcePoolUpdationTest {
 
   private static PersistentCacheManager cacheManager;
   private static Cache<Long, String> dedicatedCache;
   private static Cache<Long, String> sharedCache;
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
-  @BeforeClass
-  public static void setUp() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-      new UnitTestConnectionService.PassthroughServerBuilder()
-        .resource("primary-server-resource", 8, MemoryUnit.MB)
-        .resource("secondary-server-resource", 8, MemoryUnit.MB)
-        .build());
-
+  @BeforeAll
+  public static void setUp(@Cluster URI clusterUri) {
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI).autoCreate(server -> server
+      .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager")).autoCreate(server -> server
         .defaultServerResource("primary-server-resource")
         .resourcePool("resource-pool-a", 2, MemoryUnit.MB, "secondary-server-resource")
         .resourcePool("resource-pool-b", 4, MemoryUnit.MB)))
@@ -70,31 +66,28 @@ public class ClusteredResourcePoolUpdationTest {
     sharedCache = cacheManager.getCache("shared-cache", Long.class, String.class);
   }
 
-  @AfterClass
-  public static void tearDown() throws Exception {
+  @AfterAll
+  public static void tearDown() {
     cacheManager.close();
-    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   @Test
-  public void testClusteredDedicatedResourcePoolUpdation() throws Exception {
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("Updating CLUSTERED resource is not supported");
-    dedicatedCache.getRuntimeConfiguration().updateResourcePools(
+  public void testClusteredDedicatedResourcePoolUpdation() {
+    UnsupportedOperationException failure = assertThrows(UnsupportedOperationException.class, () -> dedicatedCache.getRuntimeConfiguration().updateResourcePools(
       ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))
         .build()
-    );
+    ));
+    assertThat(failure.getMessage(), is("Updating CLUSTERED resource is not supported"));
   }
 
   @Test
-  public void testClusteredSharedResourcePoolUpdation() throws Exception {
-    expectedException.expect(UnsupportedOperationException.class);
-    expectedException.expectMessage("Updating CLUSTERED resource is not supported");
-    sharedCache.getRuntimeConfiguration().updateResourcePools(
+  public void testClusteredSharedResourcePoolUpdation() {
+    UnsupportedOperationException failure = assertThrows(UnsupportedOperationException.class, () -> sharedCache.getRuntimeConfiguration().updateResourcePools(
       ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a"))
         .build()
-    );
+    ));
+    assertThat(failure.getMessage(), is("Updating CLUSTERED resource is not supported"));
   }
 }

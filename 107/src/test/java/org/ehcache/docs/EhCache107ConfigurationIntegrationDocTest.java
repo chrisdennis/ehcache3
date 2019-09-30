@@ -25,13 +25,12 @@ import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.ehcache.jsr107.EhcacheCachingProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.pany.domain.Client;
 import com.pany.domain.Product;
@@ -51,35 +50,32 @@ import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.spi.CachingProvider;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * This class uses unit test assertions but serves mostly as the live code repository for Asciidoctor documentation.
  */
+@ExtendWith(Randomness.class)
 public class EhCache107ConfigurationIntegrationDocTest {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(EhCache107ConfigurationIntegrationDocTest.class);
 
   private CacheManager cacheManager;
   private CachingProvider cachingProvider;
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     cachingProvider = Caching.getCachingProvider();
     cacheManager = cachingProvider.getCacheManager();
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if(cacheManager != null) {
       cacheManager.close();
@@ -108,7 +104,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void testGettingToEhcacheConfiguration() {
+  public void testGettingToEhcacheConfiguration(Random random) {
     // tag::mutableConfigurationExample[]
     MutableConfiguration<Long, String> configuration = new MutableConfiguration<>();
     configuration.setTypes(Long.class, String.class);
@@ -124,9 +120,6 @@ public class EhCache107ConfigurationIntegrationDocTest {
     assertThat(runtimeConfiguration, notNullValue());
 
     // Check uses default JSR-107 expiry
-    long nanoTime = System.nanoTime();
-    LOGGER.info("Seeding random with {}", nanoTime);
-    Random random = new Random(nanoTime);
     assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
                 equalTo(org.ehcache.expiry.ExpiryPolicy.INFINITE));
     assertThat(runtimeConfiguration.getExpiryPolicy().getExpiryForAccess(random.nextLong(),
@@ -279,21 +272,17 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
-  public void testCacheManagerLevelConfiguration() throws Exception {
+  public void testCacheManagerLevelConfiguration(@TempDir File persistenceDir) {
     // tag::ehcacheCacheManagerConfigurationExample[]
     CachingProvider cachingProvider = Caching.getCachingProvider();
     EhcacheCachingProvider ehcacheProvider = (EhcacheCachingProvider) cachingProvider; // <1>
 
     DefaultConfiguration configuration = new DefaultConfiguration(ehcacheProvider.getDefaultClassLoader(),
-      new DefaultPersistenceConfiguration(getPersistenceDirectory())); // <2>
+      new DefaultPersistenceConfiguration(persistenceDir)); // <2>
 
     CacheManager cacheManager = ehcacheProvider.getCacheManager(ehcacheProvider.getDefaultURI(), configuration); // <3>
     // end::ehcacheCacheManagerConfigurationExample[]
 
     assertThat(cacheManager, notNullValue());
-  }
-
-  private File getPersistenceDirectory() {
-    return tempFolder.getRoot();
   }
 }

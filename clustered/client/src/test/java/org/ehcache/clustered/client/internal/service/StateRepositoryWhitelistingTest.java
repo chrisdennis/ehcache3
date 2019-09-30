@@ -32,9 +32,9 @@ import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.ehcache.impl.config.BaseCacheConfiguration;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -52,8 +52,8 @@ import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class StateRepositoryWhitelistingTest {
@@ -64,7 +64,7 @@ public class StateRepositoryWhitelistingTest {
   private ClusteringService service;
   ClusterStateRepository stateRepository;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     this.clusterControl = PassthroughTestHelpers.createActiveOnly(STRIPENAME,
       server -> {
@@ -116,7 +116,7 @@ public class StateRepositoryWhitelistingTest {
     }, "test", clientEntity);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     service.stop();
     UnitTestConnectionService.removeStripe(STRIPENAME);

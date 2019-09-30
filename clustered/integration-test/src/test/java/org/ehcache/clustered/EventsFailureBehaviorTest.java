@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered;
 
+import org.awaitility.Durations;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
@@ -60,7 +61,7 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
 public class EventsFailureBehaviorTest extends ClusteredTests {
 
   private static final int KEYS = 500;
-  private static final org.awaitility.Duration TIMEOUT = org.awaitility.Duration.FIVE_SECONDS;
+  private static final Duration TIMEOUT = Durations.FIVE_SECONDS;
 
   private static final String RESOURCE_CONFIG =
     "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"

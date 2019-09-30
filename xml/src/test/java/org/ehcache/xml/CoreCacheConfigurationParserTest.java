@@ -27,10 +27,10 @@ import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.TimeType;
 import org.ehcache.xml.model.TimeUnit;
 import org.hamcrest.CoreMatchers;
-import org.junit.Test;
 
 import com.pany.ehcache.MyExpiry;
 import com.pany.ehcache.integration.TestEvictionAdvisor;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.time.Duration;
@@ -39,8 +39,9 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CoreCacheConfigurationParserTest {
 
@@ -83,10 +84,10 @@ public class CoreCacheConfigurationParserTest {
     assertThat(cacheType.getExpiry().getNone(), notNullValue());
   }
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void unparseConfigurationCustomExpiry() {
     CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(new MyExpiry());
-    parser.unparseConfiguration(cacheConfiguration, new CacheType());
+    assertThrows(XmlConfigurationException.class, () -> parser.unparseConfiguration(cacheConfiguration, new CacheType()));
   }
 
   @Test
@@ -109,10 +110,10 @@ public class CoreCacheConfigurationParserTest {
     assertThat(ttl.getUnit(), is(TimeUnit.HOURS));
   }
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void unparseConfigurationEvictionAdvisor() {
     CacheConfiguration<Object, Object> cacheConfiguration = buildCacheConfigWith(new TestEvictionAdvisor<>());
-    parser.unparseConfiguration(cacheConfiguration, new CacheType());
+    assertThrows(XmlConfigurationException.class, () -> parser.unparseConfiguration(cacheConfiguration, new CacheType()));
   }
 
   private CacheConfiguration<Object, Object> buildCacheConfigWith(ExpiryPolicy<Object, Object> expiryPolicy) {

@@ -31,12 +31,12 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.EnumSet;
@@ -67,19 +67,16 @@ public class ExpiryEventsTest {
 
   private CacheManager cacheManager;
 
-  @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
-
-  @Before
-  public void setup() throws IOException {
+  @BeforeEach
+  public void setup(@TempDir File persistenceDir) throws IOException {
     cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(folder.newFolder("tempData")))
+        .with(new CacheManagerPersistenceConfiguration(persistenceDir))
         .using(new TimeSourceConfiguration(testTimeSource))
         .build(true);
     testTimeSource.setTimeMillis(0);
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     if (cacheManager != null) {
       cacheManager.close();

@@ -20,22 +20,21 @@ import org.ehcache.config.builders.ConfigurationBuilder;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.XmlConfigurationTest;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.xmlunit.builder.Input;
 import org.xmlunit.diff.DefaultNodeMatcher;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.xmlunit.diff.ElementSelectors.and;
 import static org.xmlunit.diff.ElementSelectors.byNameAndAllAttributes;
 import static org.xmlunit.diff.ElementSelectors.byNameAndText;
@@ -51,7 +50,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.configuration("foo", "prod"), nullValue());
 
     assertThat(xmlMultiConfiguration.identities(), empty());
-    assertThrows(() -> xmlMultiConfiguration.variants("foo"), IllegalArgumentException.class);
+    assertThrows(IllegalArgumentException.class, () -> xmlMultiConfiguration.variants("foo"));
 
     assertThat(xmlMultiConfiguration.toString(),
       isSimilarTo("<configurations xmlns='http://www.ehcache.org/v3/multi'/>").ignoreWhitespace().ignoreComments());
@@ -83,7 +82,7 @@ public class XmlMultiConfigurationTest {
     XmlMultiConfiguration xmlMultiConfiguration = XmlMultiConfiguration.fromNothing()
       .withManager("foo").variant("bar", barVariant).variant("baz", bazVariant).build();
 
-    assertThrows(() -> xmlMultiConfiguration.configuration("foo"), IllegalStateException.class);
+    assertThrows(IllegalStateException.class, () -> xmlMultiConfiguration.configuration("foo"));
 
     assertThat(xmlMultiConfiguration.configuration("foo", "bar"), sameInstance(barVariant));
     assertThat(xmlMultiConfiguration.configuration("foo", "baz"), sameInstance(bazVariant));
@@ -110,7 +109,7 @@ public class XmlMultiConfigurationTest {
       .withManager("fum").variant("bar", barVariant)
       .withManager("fii", fiiConfig).build();
 
-    assertThrows(() -> xmlMultiConfiguration.configuration("foo"), IllegalStateException.class);
+    assertThrows(IllegalStateException.class, () -> xmlMultiConfiguration.configuration("foo"));
 
     assertThat(xmlMultiConfiguration.configuration("foo", "bar"), sameInstance(barVariant));
     assertThat(xmlMultiConfiguration.configuration("foo", "baz"), sameInstance(bazVariant));
@@ -149,7 +148,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.configuration("foo", "prod"), nullValue());
 
     assertThat(xmlMultiConfiguration.identities(), empty());
-    assertThrows(() -> xmlMultiConfiguration.variants("foo"), IllegalArgumentException.class);
+    assertThrows(IllegalArgumentException.class, () -> xmlMultiConfiguration.variants("foo"));
 
     assertThat(xmlMultiConfiguration.toString(), isSimilarTo(Input.fromURI(resource.toURI())).ignoreWhitespace().ignoreComments());
   }
@@ -178,7 +177,7 @@ public class XmlMultiConfigurationTest {
 
     XmlMultiConfiguration xmlMultiConfiguration = XmlMultiConfiguration.from(resource).build();
 
-    assertThrows(() -> xmlMultiConfiguration.configuration("foo"), IllegalStateException.class);
+    assertThrows(IllegalStateException.class, () -> xmlMultiConfiguration.configuration("foo"));
 
     assertThat(xmlMultiConfiguration.configuration("foo", "development").getCacheConfigurations(), hasKey("foo-dev"));
     assertThat(xmlMultiConfiguration.configuration("foo", "production").getCacheConfigurations(), hasKey("foo-prod"));
@@ -290,7 +289,7 @@ public class XmlMultiConfigurationTest {
     assertThat(xmlMultiConfiguration.configuration("foo", "prod"), nullValue());
 
     assertThat(xmlMultiConfiguration.identities(), empty());
-    assertThrows(() -> xmlMultiConfiguration.variants("foo"), IllegalArgumentException.class);
+    assertThrows(IllegalArgumentException.class, () -> xmlMultiConfiguration.variants("foo"));
 
     assertThat(xmlMultiConfiguration.toString(),
       isSimilarTo("<configurations xmlns='http://www.ehcache.org/v3/multi'></configurations>").ignoreWhitespace().ignoreComments());
@@ -395,23 +394,12 @@ public class XmlMultiConfigurationTest {
         "</configurations>").ignoreWhitespace().ignoreComments());
   }
 
-  @Test(expected = XmlConfigurationException.class)
+  @Test
   public void testParseOrdinaryConfiguration() {
-    XmlMultiConfiguration.from(getClass().getResource("/configs/one-cache.xml")).build();
+    assertThrows(XmlConfigurationException.class, () -> XmlMultiConfiguration.from(getClass().getResource("/configs/one-cache.xml")).build());
   }
 
   private static Configuration emptyConfiguration() {
     return ConfigurationBuilder.newConfigurationBuilder().build();
-  }
-
-  private static void assertThrows(Runnable task, Class<? extends Throwable> exception) {
-    try {
-      task.run();
-      fail("Expected " + exception.getSimpleName());
-    } catch (AssertionError e) {
-      throw e;
-    } catch (Throwable t) {
-      assertThat(t, instanceOf(exception));
-    }
   }
 }

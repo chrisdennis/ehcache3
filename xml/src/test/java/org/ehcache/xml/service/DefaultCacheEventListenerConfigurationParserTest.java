@@ -25,7 +25,7 @@ import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.EventFiringType;
 import org.ehcache.xml.model.EventOrderingType;
 import org.ehcache.xml.model.ListenersType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.pany.ehcache.integration.TestCacheEventListener;
 

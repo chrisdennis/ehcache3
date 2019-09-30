@@ -16,12 +16,15 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.Matchers;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,15 +37,15 @@ import static org.ehcache.clustered.ChainUtils.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
 
   @Test
-  public void testServerSideEvictionFiresInvalidations() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.EVENTUAL, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testServerSideEvictionFiresInvalidations", Consistency.EVENTUAL, false);
+  public void testServerSideEvictionFiresInvalidations(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testServerSideEvictionFiresInvalidations", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testServerSideEvictionFiresInvalidations", Consistency.EVENTUAL, false);
 
     final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<>();
     final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<>();
@@ -118,9 +121,9 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testHashInvalidationListenerWithAppend() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithAppend", Consistency.EVENTUAL, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithAppend", Consistency.EVENTUAL, false);
+  public void testHashInvalidationListenerWithAppend(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testHashInvalidationListenerWithAppend", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri,"testHashInvalidationListenerWithAppend", Consistency.EVENTUAL, false);
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
@@ -158,9 +161,9 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", Consistency.EVENTUAL, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testHashInvalidationListenerWithGetAndAppend", Consistency.EVENTUAL, false);
+  public void testHashInvalidationListenerWithGetAndAppend(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testHashInvalidationListenerWithGetAndAppend", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testHashInvalidationListenerWithGetAndAppend", Consistency.EVENTUAL, false);
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<>();
@@ -198,9 +201,9 @@ public class EventualServerStoreProxyTest extends AbstractServerStoreProxyTest {
   }
 
   @Test
-  public void testAllInvalidationListener() throws Exception {
-    SimpleClusterTierClientEntity clientEntity1 = createClientEntity("testAllInvalidationListener", Consistency.EVENTUAL, true);
-    SimpleClusterTierClientEntity clientEntity2 = createClientEntity("testAllInvalidationListener", Consistency.EVENTUAL, false);
+  public void testAllInvalidationListener(@Cluster URI clusterUri) throws Exception {
+    SimpleClusterTierClientEntity clientEntity1 = createClientEntity(clusterUri, "testAllInvalidationListener", Consistency.EVENTUAL, true);
+    SimpleClusterTierClientEntity clientEntity2 = createClientEntity(clusterUri, "testAllInvalidationListener", Consistency.EVENTUAL, false);
 
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicBoolean invalidatedAll = new AtomicBoolean();

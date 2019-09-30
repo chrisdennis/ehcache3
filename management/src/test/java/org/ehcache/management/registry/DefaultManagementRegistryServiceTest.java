@@ -16,7 +16,6 @@
 package org.ehcache.management.registry;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -34,12 +33,10 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreStatisticsConfiguration;
 import org.ehcache.management.ManagementRegistryService;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
@@ -54,8 +51,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SuppressWarnings("try")
+@Timeout(10)
 public class DefaultManagementRegistryServiceTest {
 
   private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
@@ -63,15 +62,6 @@ public class DefaultManagementRegistryServiceTest {
   private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
   private static final Collection<Descriptor> DISK_DESCRIPTORS = new ArrayList<>();
   private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<>();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
-
-  @Rule
-  public final TemporaryFolder diskPath = new TemporaryFolder();
-
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
 
   @Test
   public void testCanGetContext() {
@@ -189,11 +179,11 @@ public class DefaultManagementRegistryServiceTest {
   }
 
   @Test
-  public void descriptorDiskStoreTest() throws Exception {
+  public void descriptorDiskStoreTest(@TempDir File persistenceDir) throws Exception {
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
     try(PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData"))
+          .with(CacheManagerBuilder.persistence(persistenceDir))
           .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .heap(10, EntryUnit.ENTRIES)
@@ -220,10 +210,6 @@ public class DefaultManagementRegistryServiceTest {
 
       assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
-  }
-
-  private String getStoragePath() throws IOException {
-    return diskPath.newFolder().getAbsolutePath();
   }
 
   @Test
@@ -406,12 +392,11 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(results.size()).isEqualTo(1);
       assertThat(results.getSingleResult().hasExecuted()).isFalse();
 
-      expectedException.expect(NoSuchElementException.class);
-      results.getSingleResult().getValue();
+      assertThrows(NoSuchElementException.class, () -> results.getSingleResult().getValue());
     }
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void loadStatsUtil() {
     ONHEAP_NO_STATS_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"));
     ONHEAP_NO_STATS_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:ExpirationCount" , "COUNTER"));

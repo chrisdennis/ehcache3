@@ -20,7 +20,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -29,11 +29,12 @@ import java.util.concurrent.Exchanger;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * @author vfunshteyn
@@ -75,9 +76,9 @@ public class SerializedOnHeapValueHolderTest {
     assertThat(newValueHolder(101), not(equalTo(vh)));
   }
 
-  @Test(expected=NullPointerException.class)
+  @Test
   public void testNullValue() {
-    newValueHolder(null);
+    assertThrows(NullPointerException.class, () -> newValueHolder(null));
   }
 
   @Test

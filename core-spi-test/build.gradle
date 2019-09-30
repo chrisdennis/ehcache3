@@ -18,8 +18,8 @@ dependencies {
   api project(':spi-tester')
   implementation project(':core')
   implementation project(':impl')
-  implementation "junit:junit:$junitVersion"
-  implementation "org.mockito:mockito-core:$mockitoVersion"
-  implementation "org.hamcrest:hamcrest-library:$hamcrestVersion"
+  implementation 'org.junit.jupiter:junit-jupiter-api:5.5.2'
+  implementation 'org.mockito:mockito-core:3.0.0'
+  implementation 'org.hamcrest:hamcrest-library:2.1'
 }
 

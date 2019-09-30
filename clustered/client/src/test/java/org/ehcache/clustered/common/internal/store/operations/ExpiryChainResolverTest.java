@@ -25,7 +25,7 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.ExpiryPolicy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import java.util.Map;
@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -57,7 +57,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     return new ExpiryChainResolver<>(codec, expiryPolicy);
   }
 
-  @Test @Override
+  @Test
+  @Override
   public void testCompactDecodesOperationValueOnlyOnDemand() {
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 1),
@@ -76,7 +77,8 @@ public class ExpiryChainResolverTest extends AbstractChainResolverTest {
     assertThat(keySerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
   }
 
-  @Test @Override
+  @Test
+  @Override
   public void testResolveDecodesOperationValueOnlyOnDemand() {
     ServerStoreProxy.ChainEntry chain = getEntryFromOperations(
       new PutOperation<>(1L, "Albin", 1),

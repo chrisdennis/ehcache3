@@ -38,7 +38,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
     return cachingTierFactory;
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 

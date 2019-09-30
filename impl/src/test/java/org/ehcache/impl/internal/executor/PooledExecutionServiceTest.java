@@ -17,10 +17,8 @@ package org.ehcache.impl.internal.executor;
 
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.internal.util.ThreadFactoryUtil;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -33,100 +31,105 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Ludovic Orban
  */
 public class PooledExecutionServiceTest {
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
-  PooledExecutionService pooledExecutionService;
-
-  @After
-  public void after() {
-    if(pooledExecutionService != null) {
-      pooledExecutionService.stop();
-    }
-  }
-
   @Test
   public void testEmptyConfigThrowsAtStart() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
-    pooledExecutionService = new PooledExecutionService(configuration);
+    PooledExecutionService pooledExecutionService = new PooledExecutionService(configuration);
 
-    expectedException.expectMessage("Pool configuration is empty");
-    pooledExecutionService.start(null);
+    IllegalStateException failure = assertThrows(IllegalStateException.class, () -> pooledExecutionService.start(null));
+    MatcherAssert.assertThat(failure.getMessage(), is("Pool configuration is empty"));
   }
 
   @Test
   public void testGetOrderedExecutorFailsOnNonExistentPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
     configuration.addPool("getOrderedExecutorFailsOnNonExistentPool", 0, 1);
-    pooledExecutionService = new PooledExecutionService(configuration);
+    PooledExecutionService pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
-
-    expectedException.expectMessage("Pool 'abc' is not in the set of available pools [getOrderedExecutorFailsOnNonExistentPool]");
-    pooledExecutionService.getOrderedExecutor("abc", new LinkedBlockingDeque<>());
+    try {
+      IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> pooledExecutionService.getOrderedExecutor("abc", new LinkedBlockingDeque<>()));
+      MatcherAssert.assertThat(failure.getMessage(), is("Pool 'abc' is not in the set of available pools [getOrderedExecutorFailsOnNonExistentPool]"));
+    } finally {
+      pooledExecutionService.stop();
+    }
   }
 
   @Test
   public void testGetOrderedExecutorFailsOnNonExistentDefaultPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
     configuration.addPool("getOrderedExecutorFailsOnNonExistentDefaultPool", 0, 1);
-    pooledExecutionService = new PooledExecutionService(configuration);
+    PooledExecutionService pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
-
-    expectedException.expectMessage("Null pool alias provided and no default pool configured");
-    pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>());
+    try {
+      IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>()));
+      MatcherAssert.assertThat(failure.getMessage(), is("Null pool alias provided and no default pool configured"));
+    } finally {
+      pooledExecutionService.stop();
+    }
   }
 
   @Test
   public void testGetOrderedExecutorSucceedsOnExistingPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
     configuration.addPool("getOrderedExecutorSucceedsOnExistingPool", 0, 1);
-    pooledExecutionService = new PooledExecutionService(configuration);
+    PooledExecutionService pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
-
-    ExecutorService aaa = pooledExecutionService.getOrderedExecutor("getOrderedExecutorSucceedsOnExistingPool", new LinkedBlockingDeque<>());
-    aaa.shutdown();
+    try {
+      ExecutorService aaa = pooledExecutionService.getOrderedExecutor("getOrderedExecutorSucceedsOnExistingPool", new LinkedBlockingDeque<>());
+      aaa.shutdown();
+    } finally {
+      pooledExecutionService.stop();
+    }
   }
 
   @Test
   public void testGetOrderedExecutorSucceedsOnExistingDefaultPool() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
     configuration.addDefaultPool("getOrderedExecutorSucceedsOnExistingDefaultPool", 0, 1);
-    pooledExecutionService = new PooledExecutionService(configuration);
+    PooledExecutionService pooledExecutionService = new PooledExecutionService(configuration);
 
     pooledExecutionService.start(null);
-
-    ExecutorService dflt = pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>());
-    dflt.shutdown();
+    try {
+      ExecutorService dflt = pooledExecutionService.getOrderedExecutor(null, new LinkedBlockingDeque<>());
+      dflt.shutdown();
+    } finally {
+      pooledExecutionService.stop();
+    }
   }
 
   @Test
   public void testAllThreadsAreStopped() throws Exception {
     PooledExecutionServiceConfiguration configuration = new PooledExecutionServiceConfiguration();
     configuration.addDefaultPool("allThreadsAreStopped", 0, 1);
-    pooledExecutionService = new PooledExecutionService(configuration);
+    PooledExecutionService pooledExecutionService = new PooledExecutionService(configuration);
     pooledExecutionService.start(null);
+    try {
+      final CountDownLatch latch = new CountDownLatch(1);
 
-    final CountDownLatch latch = new CountDownLatch(1);
+      pooledExecutionService.getScheduledExecutor("allThreadsAreStopped")
+        .execute(latch::countDown);
 
-    pooledExecutionService.getScheduledExecutor("allThreadsAreStopped")
-      .execute(latch::countDown);
+      assertThat(latch.await(30, TimeUnit.SECONDS)).isTrue();
 
-    assertThat(latch.await(30, TimeUnit.SECONDS)).isTrue();
+      pooledExecutionService.stop();
 
-    pooledExecutionService.stop();
+      assertThat(Thread.currentThread().isInterrupted()).isFalse();
 
-    assertThat(Thread.currentThread().isInterrupted()).isFalse();
-
-    assertThat(pooledExecutionService.isStopped()).isTrue();
+      assertThat(pooledExecutionService.isStopped()).isTrue();
+    } finally {
+      pooledExecutionService.stop();
+    }
   }
 
   /**

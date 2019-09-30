@@ -18,11 +18,12 @@ package org.ehcache.impl.config.event;
 
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
 import static java.util.Collections.emptySet;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -30,17 +31,17 @@ import static org.mockito.Mockito.mock;
  */
 public class DefaultCacheEventListenerConfigurationTest {
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testFailsToConstructWithEmptyEventSetAndInstance() {
     Set<EventType> fireOn = emptySet();
-    new DefaultCacheEventListenerConfiguration(fireOn, mock(CacheEventListener.class));
+    assertThrows(IllegalArgumentException.class, () -> new DefaultCacheEventListenerConfiguration(fireOn, mock(CacheEventListener.class)));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testFailsToConstructWithEmptyEventSetAndClass() {
     Set<EventType> fireOn = emptySet();
     Class<TestCacheEventListener> eventListenerClass = TestCacheEventListener.class;
-    new DefaultCacheEventListenerConfiguration(fireOn, eventListenerClass);
+    assertThrows(IllegalArgumentException.class, () -> new DefaultCacheEventListenerConfiguration(fireOn, eventListenerClass));
   }
 
   abstract static class TestCacheEventListener implements CacheEventListener<String, String> {

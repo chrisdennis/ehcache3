@@ -15,7 +15,7 @@
  */
 package org.ehcache.jsr107;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.cache.Caching;
 import javax.cache.configuration.Configuration;
@@ -26,7 +26,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
 
 public class Eh107CacheTypeTest {
 

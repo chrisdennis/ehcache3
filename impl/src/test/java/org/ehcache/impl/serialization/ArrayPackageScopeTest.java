@@ -17,8 +17,7 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.lang.reflect.Array;
@@ -28,6 +27,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.createClass
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  *
@@ -48,7 +48,7 @@ public class ArrayPackageScopeTest {
     pushTccl(createClassNameRewritingLoader(Foo_B.class));
     try {
       Serializable b = serializer.read(encodedA);
-      Assert.assertTrue(b.getClass().isArray());
+      assertTrue(b.getClass().isArray());
     } finally {
       popTccl();
     }

@@ -20,38 +20,26 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.URI;
 import java.time.Duration;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 128)
 public class Resilience {
 
-  @Before
-  public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.add("terracotta://localhost/my-application",
-      new UnitTestConnectionService.PassthroughServerBuilder()
-        .resource("primary-server-resource", 128, MemoryUnit.MB)
-        .resource("secondary-server-resource", 96, MemoryUnit.MB)
-        .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove("terracotta://localhost/my-application");
-  }
-
   @Test
-  public void clusteredCacheManagerExample() throws Exception {
+  public void clusteredCacheManagerExample(@Cluster URI clusterUri) throws Exception {
     // tag::timeoutsExample[]
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost/my-application"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
           .timeouts(TimeoutsBuilder.timeouts() // <1>
             .read(Duration.ofSeconds(10)) // <2>
             .write(Timeouts.DEFAULT_OPERATION_TIMEOUT) // <3>

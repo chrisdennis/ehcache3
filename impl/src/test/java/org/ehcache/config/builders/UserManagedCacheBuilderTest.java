@@ -24,7 +24,7 @@ import org.ehcache.event.EventType;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.Iterator;
@@ -35,8 +35,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class UserManagedCacheBuilderTest {
 

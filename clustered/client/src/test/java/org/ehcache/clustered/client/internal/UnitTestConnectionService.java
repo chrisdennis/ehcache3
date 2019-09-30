@@ -35,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
@@ -42,8 +43,8 @@ import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService
 import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 
 import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionPropertyNames;
@@ -58,7 +59,6 @@ import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
-import org.terracotta.exception.PermanentEntityException;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
@@ -68,6 +68,7 @@ import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
 
+import static java.util.stream.Collectors.toList;
 import static org.mockito.Mockito.mock;
 
 
@@ -92,7 +93,7 @@ import static org.mockito.Mockito.mock;
  * referring to this class must be available in the class path.
  *
  * <p>
- *   For use, a unit test should define {@link org.junit.Before @Before} and {@link org.junit.After @After}
+ *   For use, a unit test should define {@link BeforeEach @Before} and {@link AfterEach @After}
  *   methods as in the following examples:
  *   <pre><code>
  * &#64;Before
@@ -125,8 +126,6 @@ import static org.mockito.Mockito.mock;
  */
 public class UnitTestConnectionService implements ConnectionService {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
-
   private static final Map<String, StripeDescriptor> STRIPES = new HashMap<>();
   private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<>();
 
@@ -151,7 +150,6 @@ public class UnitTestConnectionService implements ConnectionService {
     server.registerAsynchronousServerCrasher(mock(IAsynchronousServerCrasher.class));
     server.start(true, false);
     server.addPermanentEntities();
-    LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
   public static void addServerToStripe(String stripeName, PassthroughServer server) {
@@ -169,7 +167,6 @@ public class UnitTestConnectionService implements ConnectionService {
 
     for (Connection connection : stripeDescriptor.getConnections()) {
       try {
-        LOGGER.warn("Force close {}", formatConnectionId(connection));
         connection.close();
       } catch (IllegalStateException | IOException e) {
         // Ignored in case connection is already closed
@@ -220,7 +217,6 @@ public class UnitTestConnectionService implements ConnectionService {
     if (serverDescriptor != null) {
       for (Connection connection : serverDescriptor.getConnections().keySet()) {
         try {
-          LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
         } catch (AssertionError | IOException e) {
           // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
@@ -242,17 +238,14 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           EntityRef<? extends Entity, ?, ?> entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
-        } catch (EntityNotProvidedException ex) {
-          LOGGER.error("Entity destroy failed (not provided???): ", ex);
         } catch (EntityNotFoundException ex) {
-          LOGGER.error("Entity destroy failed: ", ex);
-        } catch (PermanentEntityException ex) {
-          LOGGER.error("Entity destroy failed (permanent???): ", ex);
+          //ignore
+        } catch (EntityNotProvidedException e) {
+          throw new AssertionError(e);
         }
       }
 
       serverDescriptor.server.stop();
-      LOGGER.info("Stopped PassthroughServer at {}", keyURI);
       return serverDescriptor.server;
     } else {
       return null;
@@ -389,7 +382,7 @@ public class UnitTestConnectionService implements ConnectionService {
 
   public static Collection<Connection> getConnections(URI uri) {
     ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
-    return serverDescriptor.getConnections().keySet();
+    return serverDescriptor.getConnections().keySet().stream().map(c -> wrapConnection(serverDescriptor, c)).collect(toList());
   }
 
   @Override
@@ -442,11 +435,13 @@ public class UnitTestConnectionService implements ConnectionService {
     Connection connection = serverDescriptor.server.connectNewClient(name);
     serverDescriptor.add(connection, properties);
 
-    LOGGER.info("Client opened {} to PassthroughServer at {}", formatConnectionId(connection), uri);
-
     /*
      * Uses a Proxy around Connection so closed connections can be removed from the ServerDescriptor.
      */
+    return wrapConnection(serverDescriptor, connection);
+  }
+
+  private static Connection wrapConnection(ServerDescriptor serverDescriptor, Connection connection) {
     return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
         new Class<?>[] { Connection.class },
         new ConnectionInvocationHandler(serverDescriptor, connection));
@@ -557,7 +552,6 @@ public class UnitTestConnectionService implements ConnectionService {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       if (method.getName().equals("close")) {
         serverDescriptor.remove(connection);
-        LOGGER.info("Client closed {}", formatConnectionId(connection));
       }
 
       if (method.getName().equals("getEntityRef")) {

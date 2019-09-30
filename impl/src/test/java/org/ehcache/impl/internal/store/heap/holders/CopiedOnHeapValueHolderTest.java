@@ -18,10 +18,10 @@ package org.ehcache.impl.internal.store.heap.holders;
 
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.ReadWriteCopier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * Created by alsu on 20/08/15.

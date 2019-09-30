@@ -30,11 +30,10 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.statistics.OperationStatistic;
@@ -54,13 +53,11 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.core.statistics.StatsUtils.findOperationStatisticOnChildren;
 
+@Timeout(10)
 public class StandardEhcacheStatisticsTest {
 
   private static final int HISTOGRAM_WINDOW_MILLIS = 400;
   private static final int NEXT_WINDOW_SLEEP_MILLIS = 500;
-
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
 
   private CacheManager cacheManager;
   private Cache<Long, String> cache;
@@ -70,7 +67,7 @@ public class StandardEhcacheStatisticsTest {
   private long latency;
   private final Map<Long, String> systemOfRecords = new HashMap<>();
 
-  @Before
+  @BeforeEach
   public void before() {
 
     // We need a loaderWriter to easily test latencies, to simulate a latency when loading from a SOR.
@@ -120,7 +117,7 @@ public class StandardEhcacheStatisticsTest {
     context = StatsUtil.createContext(managementRegistry);
   }
 
-  @After
+  @AfterEach
   public void after() {
     if(cacheManager != null) {
       cacheManager.close();

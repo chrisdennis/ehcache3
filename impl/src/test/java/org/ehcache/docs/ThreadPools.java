@@ -30,12 +30,10 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.builders.PooledExecutionServiceConfigurationBuilder;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -46,11 +44,8 @@ import static java.util.Collections.singletonMap;
 @SuppressWarnings("unused")
 public class ThreadPools {
 
-  @Rule
-  public final TemporaryFolder diskPath = new TemporaryFolder();
-
   @Test
-  public void diskStore() throws Exception {
+  public void diskStore(@TempDir File persistenceDir) throws Exception {
     // tag::diskStore[]
     CacheManager cacheManager
         = CacheManagerBuilder.newCacheManagerBuilder()
@@ -59,7 +54,7 @@ public class ThreadPools {
             .pool("defaultDiskPool", 1, 3)
             .pool("cache2Pool", 2, 2)
             .build())
-        .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData")))
+        .with(new CacheManagerPersistenceConfiguration(persistenceDir))
         .withDefaultDiskStoreThreadPool("defaultDiskPool") // <2>
         .withCache("cache1",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -153,9 +148,4 @@ public class ThreadPools {
     cacheManager.close();
     // end::events[]
   }
-
-  private String getStoragePath() throws IOException {
-    return diskPath.newFolder().getAbsolutePath();
-  }
-
 }

@@ -29,8 +29,8 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.internal.creation.MockSettingsImpl;
 
@@ -56,8 +56,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -74,7 +74,7 @@ public class ConfigurationMergerTest {
   private Jsr107Service jsr107Service;
   private Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     xmlConfiguration = mock(XmlConfiguration.class);
     jsr107Service = mock(Jsr107Service.class);

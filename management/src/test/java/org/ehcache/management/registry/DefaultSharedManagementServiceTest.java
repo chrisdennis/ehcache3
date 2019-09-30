@@ -22,13 +22,10 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.context.Context;
@@ -51,13 +48,13 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
-@RunWith(JUnit4.class)
+@Timeout(10)
 public class DefaultSharedManagementServiceTest {
 
   CacheManager cacheManager1;
@@ -67,10 +64,7 @@ public class DefaultSharedManagementServiceTest {
   ManagementRegistryServiceConfiguration config1;
   ManagementRegistryServiceConfiguration config2;
 
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
-
-  @Before
+  @BeforeEach
   public void init() {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
@@ -97,7 +91,7 @@ public class DefaultSharedManagementServiceTest {
     cacheManager2.init();
   }
 
-  @After()
+  @AfterEach()
   public void close() {
     cacheManager2.close();
     cacheManager1.close();
@@ -127,8 +121,8 @@ public class DefaultSharedManagementServiceTest {
     assertThat(contextContainer2.getSubContexts().iterator().next().getName(), equalTo("cacheName"));
     assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getName(), equalTo("cacheName"));
 
-    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(0).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
-    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
+    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(0).getValue(), is(in(Arrays.asList("aCache2", "aCache3"))));
+    assertThat(new ArrayList<>(contextContainer2.getSubContexts()).get(1).getValue(), is(in(Arrays.asList("aCache2", "aCache3"))));
   }
 
   @Test

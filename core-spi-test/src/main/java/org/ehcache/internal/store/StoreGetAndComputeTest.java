@@ -19,7 +19,6 @@ import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.spi.resilience.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.ExpiryPolicy;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Ignore;
@@ -31,7 +30,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import org.junit.Assert;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.function.BiFunction;
@@ -58,7 +57,7 @@ public class StoreGetAndComputeTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore();
 
     if (factory.getValueType() == Object.class) {
-      Assert.fail("Warning, store uses Object as value type, cannot verify in this configuration");
+      fail("Warning, store uses Object as value type, cannot verify in this configuration");
     }
 
     final Object value;

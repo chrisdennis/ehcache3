@@ -16,22 +16,22 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 
 public class ReconnectMessageCodecTest {
 
   private ReconnectMessageCodec reconnectMessageCodec;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     reconnectMessageCodec = new ReconnectMessageCodec();
   }

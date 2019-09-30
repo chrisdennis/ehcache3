@@ -20,14 +20,13 @@ import org.ehcache.config.builders.UserManagedCacheBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +46,6 @@ public class UserManagedCacheLoaderWriterTest {
     verify(cacheLoaderWriter, times(1)).write(eq(1L), eq(1L));
 
     when(cacheLoaderWriter.load(anyLong())).thenReturn(2L);
-    Assert.assertThat(userManagedCache.get(2L), Matchers.is(2L));
+    assertThat(userManagedCache.get(2L), Matchers.is(2L));
   }
 }

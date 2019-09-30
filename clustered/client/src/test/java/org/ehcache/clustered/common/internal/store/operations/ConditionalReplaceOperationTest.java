@@ -20,15 +20,16 @@ import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.common.internal.store.operations.Operation.BYTE_SIZE_BYTES;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.INT_SIZE_BYTES;
 import static org.ehcache.clustered.common.internal.store.operations.Operation.LONG_SIZE_BYTES;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ConditionalReplaceOperationTest {
 
@@ -100,10 +101,10 @@ public class ConditionalReplaceOperationTest {
     assertEquals(newValue, decodedOperation.getValue());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testDecodeThrowsOnInvalidType() throws Exception {
     ByteBuffer buffer = ByteBuffer.wrap(new byte[] {10});
-    new ConditionalReplaceOperation<>(buffer, keySerializer, valueSerializer);
+    assertThrows(IllegalArgumentException.class, () -> new ConditionalReplaceOperation<>(buffer, keySerializer, valueSerializer));
   }
 
   @Test

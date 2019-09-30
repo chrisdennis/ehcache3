@@ -19,6 +19,7 @@ configurations {
 }
 
 dependencies {
+  testImplementation testFixtures(project(':api'))
   testImplementation project(':clustered:client')
   testImplementation project(':clustered:common')
   testImplementation project(':impl')
@@ -27,10 +28,10 @@ dependencies {
   testImplementation "org.terracotta.internal:client-runtime:$terracottaCoreVersion"
   testImplementation "org.terracotta:runnel:$terracottaPlatformVersion"
   testImplementation "org.terracotta:lease-api:$terracottaPlatformVersion"
-  testImplementation("javax.cache:cache-tests:$jcacheTckVersion") {
+  testImplementation('javax.cache:cache-tests:1.1.0') {
     exclude group:'junit', module:'junit'
   }
-  testImplementation("javax.cache:cache-tests:$jcacheTckVersion:tests") {
+  testImplementation('javax.cache:cache-tests:1.1.0:tests') {
     exclude group:'junit', module:'junit'
   }
 
@@ -38,7 +39,7 @@ dependencies {
   testImplementation "org.terracotta.management.dist:mnm-nms:$terracottaPlatformVersion"
   testImplementation "org.terracotta.management.dist:mnm-nms-agent:$terracottaPlatformVersion"
   testImplementation "com.fasterxml.jackson.core:jackson-databind:2.8.0"
-  testImplementation "org.awaitility:awaitility:3.1.6"
+  testImplementation "org.awaitility:awaitility:4.0.1"
 
   testRuntimeOnly "org.glassfish.jaxb:jaxb-runtime:$parent.jaxbVersion"
   testRuntimeOnly project(':clustered:clustered-dist')
@@ -48,6 +49,13 @@ dependencies {
 
   serverLibs ("org.terracotta.management.dist:mnm-server:$terracottaPlatformVersion") {
     exclude group:'org.terracotta.management.dist', module:'mnm-common'
+  }
+
+  testImplementation('junit:junit:4.12') {
+    exclude group:'org.hamcrest'
+  }
+  testRuntimeOnly('org.junit.vintage:junit-vintage-engine:5.5.2') {
+    exclude group:'org.hamcrest'
   }
 }
 

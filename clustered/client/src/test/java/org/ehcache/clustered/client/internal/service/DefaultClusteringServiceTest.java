@@ -20,14 +20,16 @@ import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.ClientMode;
-import org.ehcache.clustered.client.config.Timeouts;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.ClientEntityService;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerEntityService;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
@@ -38,8 +40,6 @@ import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
@@ -58,11 +58,8 @@ import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.exception.EntityNotFoundException;
 
@@ -94,51 +91,34 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(PassthroughServer.class)
+@ServerEntityService(VoltronReadWriteLockServerEntityService.class)
+@ClientEntityService(ClusterTierManagerClientEntityService.class)
+@ClientEntityService(ClusterTierClientEntityService.class)
+@ClientEntityService(VoltronReadWriteLockEntityClientService.class)
+@ServerResource(name = "defaultResource", size = 128)
+@ServerResource(name = "serverResource1", size = 32)
+@ServerResource(name = "serverResource2", size = 32)
 public class DefaultClusteringServiceTest {
 
-  private static final String CLUSTER_URI_BASE = "terracotta://example.com:9540/";
-  private ObservableEhcacheServerEntityService observableEhcacheServerEntityService;
-  private ObservableClusterTierServerEntityService observableClusterTierServerEntityService;
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
-  @Before
-  public void definePassthroughServer() throws Exception {
-    observableEhcacheServerEntityService = new ObservableEhcacheServerEntityService();
-    observableClusterTierServerEntityService = new ObservableClusterTierServerEntityService();
-    UnitTestConnectionService.add(CLUSTER_URI_BASE,
-        new PassthroughServerBuilder()
-            .serverEntityService(observableEhcacheServerEntityService)
-            .clientEntityService(new ClusterTierManagerClientEntityService())
-            .serverEntityService(observableClusterTierServerEntityService)
-            .clientEntityService(new ClusterTierClientEntityService())
-            .serverEntityService(new VoltronReadWriteLockServerEntityService())
-            .clientEntityService(new VoltronReadWriteLockEntityClientService())
-            .resource("defaultResource", 128, MemoryUnit.MB)
-            .resource("serverResource1", 32, MemoryUnit.MB)
-            .resource("serverResource2", 32, MemoryUnit.MB)
-            .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI_BASE);
-    observableEhcacheServerEntityService = null;
-  }
+  @ServerEntityService
+  public ObservableEhcacheServerEntityService observableEhcacheServerEntityService = new ObservableEhcacheServerEntityService();
+  @ServerEntityService
+  public ObservableClusterTierServerEntityService observableClusterTierServerEntityService = new ObservableClusterTierServerEntityService();
 
   @Test
-  public void testHandlesResourceType() throws Exception {
+  public void testHandlesResourceType(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -172,9 +152,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetPersistenceSpaceIdentifier() throws Exception {
+  public void testGetPersistenceSpaceIdentifier(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -186,13 +166,13 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testCreate() throws Exception {
+  public void testCreate(@Cluster URI clusterUri) throws Exception {
     CacheConfigurationBuilder<Long, String> configBuilder =
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .with(ClusteredResourcePoolBuilder.clusteredShared("primary")));
     ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -204,16 +184,16 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testConnectionName() throws Exception {
+  public void testConnectionName(@Cluster URI clusterUri) throws Exception {
     String entityIdentifier = "my-application";
     ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + entityIdentifier))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/" + entityIdentifier))
             .autoCreate(s -> s)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
-    Collection<Properties> propsCollection = UnitTestConnectionService.getConnectionProperties(URI.create(CLUSTER_URI_BASE));
+    Collection<Properties> propsCollection = UnitTestConnectionService.getConnectionProperties(clusterUri);
     assertThat(propsCollection.size(), is(1));
     Properties props = propsCollection.iterator().next();
     assertEquals(
@@ -223,10 +203,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartStopAutoCreate() throws Exception {
-    URI clusterUri = URI.create(CLUSTER_URI_BASE + "my-application");
+  public void testStartStopAutoCreate(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(clusterUri)
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -250,10 +229,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartStopNoAutoCreate() throws Exception {
-    URI clusterUri = URI.create(CLUSTER_URI_BASE + "my-application");
+  public void testStartStopNoAutoCreate(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(clusterUri)
+        cluster(clusterUri.resolve("/cache-manager"))
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     try {
@@ -276,9 +254,9 @@ public class DefaultClusteringServiceTest {
    * creator is still connected.
    */
   @Test
-  public void testStartStopAutoCreateTwiceA() throws Exception {
+  public void testStartStopAutoCreateTwiceA(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService firstService = new DefaultClusteringService(configuration);
@@ -307,9 +285,9 @@ public class DefaultClusteringServiceTest {
    * creator is not connected.
    */
   @Test
-  public void testStartStopAutoCreateTwiceB() throws Exception {
+  public void testStartStopAutoCreateTwiceB(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService firstService = new DefaultClusteringService(configuration);
@@ -335,10 +313,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartForMaintenanceAutoStart() throws Exception {
-    URI clusterUri = URI.create(CLUSTER_URI_BASE + "my-application");
+  public void testStartForMaintenanceAutoStart(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(clusterUri)
+        cluster(clusterUri.resolve("/cache-manager"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -358,9 +335,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartForMaintenanceOtherAutoCreate() throws Exception {
+  public void testStartForMaintenanceOtherAutoCreate(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService createService = new DefaultClusteringService(configuration);
@@ -390,9 +367,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartForMaintenanceOtherCreated() throws Exception {
+  public void testStartForMaintenanceOtherCreated(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService createService = new DefaultClusteringService(configuration);
@@ -423,9 +400,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testMultipleAutoCreateClientsRunConcurrently() throws InterruptedException, ExecutionException {
+  public void testMultipleAutoCreateClientsRunConcurrently(@Cluster URI clusterUri) throws InterruptedException, ExecutionException {
     final ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
 
@@ -450,9 +427,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartForMaintenanceInterlock() throws Exception {
+  public void testStartForMaintenanceInterlock(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService maintenanceService1 = new DefaultClusteringService(configuration);
@@ -473,9 +450,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartForMaintenanceSequence() throws Exception {
+  public void testStartForMaintenanceSequence(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
             .autoCreate(c -> c)
             .build();
     DefaultClusteringService maintenanceService1 = new DefaultClusteringService(configuration);
@@ -494,9 +471,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testBasicConfiguration() throws Exception {
+  public void testBasicConfiguration(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -528,11 +505,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxySharedAutoCreate() throws Exception {
+  public void testGetServerStoreProxySharedAutoCreate(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -577,11 +554,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxySharedNoAutoCreateNonExistent() throws Exception {
+  public void testGetServerStoreProxySharedNoAutoCreateNonExistent(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration creationConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -593,7 +570,7 @@ public class DefaultClusteringServiceTest {
     creationService.stop();
 
     ClusteringServiceConfiguration accessConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .expecting(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -635,11 +612,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxySharedNoAutoCreateExists() throws Exception {
+  public void testGetServerStoreProxySharedNoAutoCreateExists(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration creationConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -676,7 +653,7 @@ public class DefaultClusteringServiceTest {
 
 
     ClusteringServiceConfiguration accessConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .expecting(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -716,11 +693,11 @@ public class DefaultClusteringServiceTest {
    * Ensures that two clients using auto-create can gain access to the same {@code ServerStore}.
    */
   @Test
-  public void testGetServerStoreProxySharedAutoCreateTwice() throws Exception {
+  public void testGetServerStoreProxySharedAutoCreateTwice(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -778,11 +755,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testReleaseServerStoreProxyShared() throws Exception {
+  public void testReleaseServerStoreProxyShared(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -829,11 +806,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyDedicatedAutoCreate() throws Exception {
+  public void testGetServerStoreProxyDedicatedAutoCreate(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -880,11 +857,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyDedicatedNoAutoCreateNonExistent() throws Exception {
+  public void testGetServerStoreProxyDedicatedNoAutoCreateNonExistent(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration creationConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -896,7 +873,7 @@ public class DefaultClusteringServiceTest {
     creationService.stop();
 
     ClusteringServiceConfiguration accessConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .expecting(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -940,11 +917,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyDedicatedNoAutoCreateExists() throws Exception {
+  public void testGetServerStoreProxyDedicatedNoAutoCreateExists(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration creationConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -981,7 +958,7 @@ public class DefaultClusteringServiceTest {
     assertThat(clusterTierActiveEntity.getConnectedClients(), empty());
 
     ClusteringServiceConfiguration accessConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .expecting(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1023,11 +1000,11 @@ public class DefaultClusteringServiceTest {
    * Ensures that two clients using auto-create can gain access to the same {@code ServerStore}.
    */
   @Test
-  public void testGetServerStoreProxyDedicatedAutoCreateTwice() throws Exception {
+  public void testGetServerStoreProxyDedicatedAutoCreateTwice(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1090,11 +1067,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testReleaseServerStoreProxyDedicated() throws Exception {
+  public void testReleaseServerStoreProxyDedicated(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1142,11 +1119,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxySharedDestroy() throws Exception {
+  public void testGetServerStoreProxySharedDestroy(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 2, MemoryUnit.MB, "serverResource1")
@@ -1195,11 +1172,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyDedicatedDestroy() throws Exception {
+  public void testGetServerStoreProxyDedicatedDestroy(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1250,26 +1227,24 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testDestroyCantBeCalledIfStopped() throws Exception {
+  public void testDestroyCantBeCalledIfStopped(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
-      cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+      cluster(clusterUri.resolve("/my-application"))
         .autoCreate(server -> server
           .defaultServerResource("defaultResource"))
         .build();
     DefaultClusteringService creationService = new DefaultClusteringService(configuration);
 
-    expectedException.expect(IllegalStateException.class);
-    expectedException.expectMessage(endsWith(" should be started to call destroy"));
-
-    creationService.destroy(cacheAlias);
+    IllegalStateException failure = assertThrows(IllegalStateException.class, () -> creationService.destroy(cacheAlias));
+    assertThat(failure.getMessage(), endsWith(" should be started to call destroy"));
   }
 
   @Test
-  public void testDestroyAllNoStores() throws Exception {
+  public void testDestroyAllNoStores(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1311,9 +1286,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testDestroyAllWithStores() throws Exception {
+  public void testDestroyAllWithStores(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1373,9 +1348,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStartNoAutoCreateThenAutoCreate() throws Exception {
+  public void testStartNoAutoCreateThenAutoCreate(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration creationConfigBad =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .expecting(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1395,7 +1370,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntitiesBad.size(), is(0));
 
     ClusteringServiceConfiguration creationConfigGood =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .autoCreate(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1408,10 +1383,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStoreValidation_autoCreateConfigGood_autoCreateConfigBad() throws Exception {
+  public void testStoreValidation_autoCreateConfigGood_autoCreateConfigBad(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration config =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .autoCreate(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1470,10 +1445,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStoreValidation_autoCreateConfigGood_autoCreateConfigGood() throws Exception {
+  public void testStoreValidation_autoCreateConfigGood_autoCreateConfigGood(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration config =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .autoCreate(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1522,10 +1497,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStoreValidation_autoCreateConfigBad() throws Exception {
+  public void testStoreValidation_autoCreateConfigBad(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration config =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .autoCreate(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1569,10 +1544,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStoreValidation_autoCreateConfigGood_noAutoCreateConfigBad() throws Exception {
+  public void testStoreValidation_autoCreateConfigGood_noAutoCreateConfigBad(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration autoConfig =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .autoCreate(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1591,7 +1566,7 @@ public class DefaultClusteringServiceTest {
     creationService.getServerStoreProxy(getClusteredCacheIdentifier(creationService, cacheAlias), creationStoreConfig, Consistency.EVENTUAL, mock(ServerCallback.class));
 
     ClusteringServiceConfiguration noAutoConfig =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .expecting(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1638,10 +1613,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStoreValidation_autoCreateConfigGood_noAutoCreateConfigGood() throws Exception {
+  public void testStoreValidation_autoCreateConfigGood_noAutoCreateConfigGood(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration autoConfig =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .autoCreate(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1661,7 +1636,7 @@ public class DefaultClusteringServiceTest {
 
 
     ClusteringServiceConfiguration noAutoConfig =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .expecting(server -> server.defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 2, MemoryUnit.MB, "serverResource2")
@@ -1699,10 +1674,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStoreValidation_MismatchedPoolTypes_ConfiguredDedicatedValidateShared() throws Exception {
+  public void testStoreValidation_MismatchedPoolTypes_ConfiguredDedicatedValidateShared(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration creationConfig =
-    cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+    cluster(clusterUri.resolve("/my-application"))
       .autoCreate(server -> server
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1723,7 +1698,7 @@ public class DefaultClusteringServiceTest {
     creationService.stop();
 
     ClusteringServiceConfiguration accessConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1767,10 +1742,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testStoreValidation_MismatchedPoolTypes_ConfiguredSharedValidateDedicated() throws Exception {
+  public void testStoreValidation_MismatchedPoolTypes_ConfiguredSharedValidateDedicated(@Cluster URI clusterUri) throws Exception {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration creationConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1791,7 +1766,7 @@ public class DefaultClusteringServiceTest {
     creationService.stop();
 
     ClusteringServiceConfiguration accessConfig =
-        cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        cluster(clusterUri.resolve("/my-application"))
           .autoCreate(server -> server
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
@@ -1872,10 +1847,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyReturnsEventualStore() throws Exception {
+  public void testGetServerStoreProxyReturnsEventualStore(@Cluster URI clusterUri) throws Exception {
     String entityIdentifier = "my-application";
     ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + entityIdentifier))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/" + entityIdentifier))
             .autoCreate(s -> s)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -1896,10 +1871,10 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyReturnsStrongStore() throws Exception {
+  public void testGetServerStoreProxyReturnsStrongStore(@Cluster URI clusterUri) throws Exception {
     String entityIdentifier = "my-application";
     ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + entityIdentifier))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/" + entityIdentifier))
             .autoCreate(s -> s)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -1920,11 +1895,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyFailureClearsEntityListeners() throws Exception {
+  public void testGetServerStoreProxyFailureClearsEntityListeners(@Cluster URI clusterUri) throws Exception {
     // Initial setup begin
     String entityIdentifier = "my-application";
     ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + entityIdentifier))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/" + entityIdentifier))
             .autoCreate(s -> s)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -1956,11 +1931,11 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetServerStoreProxyFailureDoesNotClearOtherStoreEntityListeners() throws Exception {
+  public void testGetServerStoreProxyFailureDoesNotClearOtherStoreEntityListeners(@Cluster URI clusterUri) throws Exception {
     // Initial setup begin
     String entityIdentifier = "my-application";
     ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + entityIdentifier))
+        ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/" + entityIdentifier))
             .autoCreate(s -> s)
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -1995,9 +1970,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetStateRepositoryWithinTwiceWithSameName() throws Exception {
+  public void testGetStateRepositoryWithinTwiceWithSameName(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-      ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
+      ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
         .autoCreate(s -> s)
         .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -2008,9 +1983,9 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetStateRepositoryWithinTwiceWithSameNameDifferentPersistenceSpaceIdentifier() throws Exception {
+  public void testGetStateRepositoryWithinTwiceWithSameNameDifferentPersistenceSpaceIdentifier(@Cluster URI clusterUri) throws Exception {
     ClusteringServiceConfiguration configuration =
-      ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
+      ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
         .autoCreate(s -> s)
         .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -2022,55 +1997,48 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testGetStateRepositoryWithinWithNonExistentPersistenceSpaceIdentifier() throws Exception {
-    expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Clustered space not found for identifier");
+  public void testGetStateRepositoryWithinWithNonExistentPersistenceSpaceIdentifier(@Cluster URI clusterUri) {
     ClusteringServiceConfiguration configuration =
-      ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
+      ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
         .autoCreate(s -> s)
         .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     ClusteredCacheIdentifier cacheIdentifier = mock(ClusteredCacheIdentifier.class);
     doReturn("foo").when(cacheIdentifier).getId();
-    service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
+    CachePersistenceException failure = assertThrows(CachePersistenceException.class, () -> service.getStateRepositoryWithin(cacheIdentifier, "myRepo"));
+    assertThat(failure.getMessage(), containsString("Clustered space not found for identifier"));
   }
 
   @Test
-  public void testReleaseNonExistentPersistenceSpaceIdentifierTwice() throws Exception {
-    expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Unknown identifier");
+  public void testReleaseNonExistentPersistenceSpaceIdentifierTwice(@Cluster URI clusterUri) {
     ClusteringServiceConfiguration configuration =
-      ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
+      ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
         .autoCreate(s -> s)
         .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     ClusteredCacheIdentifier cacheIdentifier = mock(ClusteredCacheIdentifier.class);
     doReturn("foo").when(cacheIdentifier).getId();
-    service.releasePersistenceSpaceIdentifier(cacheIdentifier);
+    CachePersistenceException failure = assertThrows(CachePersistenceException.class, () -> service.releasePersistenceSpaceIdentifier(cacheIdentifier));
+    assertThat(failure.getMessage(), containsString("Unknown identifier"));
   }
 
   @Test
-  public void testReleasePersistenceSpaceIdentifierTwice() throws Exception {
-    expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Unknown identifier");
+  public void testReleasePersistenceSpaceIdentifierTwice(@Cluster URI clusterUri) throws CachePersistenceException {
     ClusteringServiceConfiguration configuration =
-      ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
+      ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
         .autoCreate(s -> s)
         .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     PersistableResourceService.PersistenceSpaceIdentifier<?> cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
-    try {
-      service.releasePersistenceSpaceIdentifier(cacheIdentifier);
-    } catch (CachePersistenceException e) {
-      fail("First invocation of releasePersistenceSpaceIdentifier should not have failed");
-    }
     service.releasePersistenceSpaceIdentifier(cacheIdentifier);
+    CachePersistenceException failure = assertThrows(CachePersistenceException.class, () -> service.releasePersistenceSpaceIdentifier(cacheIdentifier));
+    assertThat(failure.getMessage(), containsString("Unknown identifier"));
   }
 
   @Test
-  public void releaseMaintenanceHoldsWhenConnectionClosedDuringDestruction() {
+  public void releaseMaintenanceHoldsWhenConnectionClosedDuringDestruction(@Cluster URI clusterUri) {
     ClusteringServiceConfiguration configuration =
-      ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE))
+      ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/my-application"))
         .autoCreate(s -> s)
         .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);

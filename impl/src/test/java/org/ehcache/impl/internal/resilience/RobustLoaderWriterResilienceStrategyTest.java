@@ -23,23 +23,20 @@ import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.resilience.RecoveryStore;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collector;
 
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
@@ -53,10 +50,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class RobustLoaderWriterResilienceStrategyTest {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   @Mock
   private RecoveryStore<Integer> store;
@@ -77,7 +72,7 @@ public class RobustLoaderWriterResilienceStrategyTest {
   private final BulkCacheWritingException bulkWritingException = new BulkCacheWritingException(
     singletonMap(1, exception), Collections.singleton(2));
 
-  @After
+  @AfterEach
   public void noMoreInteractions() {
     verifyNoMoreInteractions(store, loaderWriter);
   }

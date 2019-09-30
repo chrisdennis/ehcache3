@@ -17,13 +17,12 @@
 package org.ehcache.clustered.client.config;
 
 import org.ehcache.clustered.common.Consistency;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ClusteredStoreConfigurationTest {
 

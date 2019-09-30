@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.ehcache.clustered.ChainUtils.chainOf;
 import static org.ehcache.clustered.ChainUtils.createPayload;

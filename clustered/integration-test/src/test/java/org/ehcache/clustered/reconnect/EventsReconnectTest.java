@@ -16,6 +16,7 @@
 package org.ehcache.clustered.reconnect;
 
 import com.tc.net.proxy.TCPProxy;
+import org.awaitility.Durations;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
@@ -38,6 +39,7 @@ import org.junit.Test;
 import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -58,7 +60,7 @@ import static org.junit.Assert.fail;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
 public class EventsReconnectTest extends ClusteredTests {
-  private static final org.awaitility.Duration TIMEOUT = org.awaitility.Duration.FIVE_SECONDS;
+  private static final Duration TIMEOUT = Durations.FIVE_SECONDS;
   public static final String RESOURCE_CONFIG =
           "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
                   + "<ohr:offheap-resources>"

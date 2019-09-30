@@ -16,25 +16,22 @@
 
 package org.ehcache.jsr107;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
-import javax.cache.configuration.Factory;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.expiry.CreatedExpiryPolicy;
 import javax.cache.expiry.Duration;
-import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CompletionListenerFuture;
@@ -42,7 +39,7 @@ import javax.cache.spi.CachingProvider;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * SimpleEh107ConfigTest
@@ -51,13 +48,13 @@ public class SimpleEh107ConfigTest {
 
   private CacheManager cacheManager;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     cacheManager.close();
   }

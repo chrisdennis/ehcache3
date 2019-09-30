@@ -21,9 +21,9 @@ import java.lang.management.ManagementFactory;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -37,7 +37,7 @@ import javax.management.ObjectName;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * ConfigStatsManagementActivationTest
@@ -51,12 +51,12 @@ public class ConfigStatsManagementActivationTest {
 
   private CachingProvider provider;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     provider = Caching.getCachingProvider();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     provider.close();
   }

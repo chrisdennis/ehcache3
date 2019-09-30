@@ -20,15 +20,12 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,24 +33,20 @@ import static org.mockito.Mockito.when;
 /**
  * @author Henri Tremblay
  */
-@RunWith(Enclosed.class)
 public class DefaultDiskResourceServiceTest {
 
   public static abstract class AbstractDefaultDiskResourceServiceTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     protected DefaultDiskResourceService service = new DefaultDiskResourceService();
     @SuppressWarnings("unchecked")
     protected ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
 
-    @Before
+    @BeforeEach
     public void setup() {
       service.start(serviceProvider);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
       service.stop();
     }
@@ -64,7 +57,7 @@ public class DefaultDiskResourceServiceTest {
 
     LocalPersistenceService persistenceService = mock(LocalPersistenceService.class);
 
-    @Before
+    @BeforeEach
     public void setup() {
       when(serviceProvider.getService(LocalPersistenceService.class)).thenReturn(persistenceService);
       super.setup();
@@ -108,9 +101,8 @@ public class DefaultDiskResourceServiceTest {
 
     @Test
     public void testCreatePersistenceContextWithin() throws CachePersistenceException {
-      expectedException.expect(CachePersistenceException.class);
-      expectedException.expectMessage("Unknown space: null");
-      service.createPersistenceContextWithin(null, "test");
+      CachePersistenceException failure = assertThrows(CachePersistenceException.class, () -> service.createPersistenceContextWithin(null, "test"));
+      assertThat(failure).hasMessage("Unknown space: null");
     }
 
     @Test
@@ -121,16 +113,14 @@ public class DefaultDiskResourceServiceTest {
 
     @Test
     public void testGetStateRepositoryWithin() throws CachePersistenceException {
-      expectedException.expect(CachePersistenceException.class);
-      expectedException.expectMessage("Unknown space: null");
-      assertThat(service.getStateRepositoryWithin(null, "test")).isNull();
+      CachePersistenceException failure = assertThrows(CachePersistenceException.class, () -> service.getStateRepositoryWithin(null, "test"));
+      assertThat(failure).hasMessage("Unknown space: null");
     }
 
     @Test
     public void testReleasePersistenceSpaceIdentifier() throws CachePersistenceException {
-      expectedException.expect(CachePersistenceException.class);
-      expectedException.expectMessage("Unknown space: null");
-      assertThat(service.getStateRepositoryWithin(null, "test")).isNull();
+      CachePersistenceException failure = assertThrows(CachePersistenceException.class, () -> service.getStateRepositoryWithin(null, "test"));
+      assertThat(failure).hasMessage("Unknown space: null");
     }
 
   }

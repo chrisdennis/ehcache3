@@ -21,8 +21,8 @@ import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ import java.nio.file.Paths;
 
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -43,7 +43,7 @@ public class OffHeapValueHolderPortabilityTest {
   private OffHeapValueHolderPortability<String> valueHolderPortability;
   private OffHeapValueHolder<String> originalValue;
 
-  @Before
+  @BeforeEach
   public void setup() throws UnsupportedTypeException {
     SerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());

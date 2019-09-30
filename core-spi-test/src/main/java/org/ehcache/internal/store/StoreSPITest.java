@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Ludovic Orban

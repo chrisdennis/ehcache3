@@ -16,40 +16,32 @@
 
 package org.ehcache.impl.serialization;
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ehcache.testing.extensions.Randomness;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.Random;
-
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@ExtendWith(Randomness.class)
 public class IntegerSerializerTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(IntegerSerializerTest.class);
+  @RepeatedTest(100)
+  public void testCanSerializeAndDeserialize(@Randomness.Random int value) {
+    IntegerSerializer serializer = new IntegerSerializer();
+    int read = serializer.read(serializer.serialize(value));
+    assertThat(read, is(value));
+  }
 
   @Test
-  public void testCanSerializeAndDeserialize() throws ClassNotFoundException {
-    IntegerSerializer serializer = new IntegerSerializer();
-    long now = System.currentTimeMillis();
-    LOGGER.info("LongSerializer test with seed {}", now);
-    Random random = new Random(now);
-
-    for (int i = 0; i < 100; i++) {
-      int l = random.nextInt();
-      int read = serializer.read(serializer.serialize(l));
-      assertThat(read, is(l));
-    }
+  public void testReadThrowsOnNullInput() {
+    assertThrows(NullPointerException.class, () -> new IntegerSerializer().read(null));
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testReadThrowsOnNullInput() throws ClassNotFoundException {
-    new IntegerSerializer().read(null);
-  }
-
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testSerializeThrowsOnNullInput() {
-    new IntegerSerializer().serialize(null);
+    assertThrows(NullPointerException.class, () -> new IntegerSerializer().serialize(null));
   }
 }

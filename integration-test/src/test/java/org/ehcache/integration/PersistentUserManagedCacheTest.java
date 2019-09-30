@@ -25,27 +25,22 @@ import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.Serializable;
 
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * PersistentUserManagedCacheTest
  */
 public class PersistentUserManagedCacheTest {
 
-  @Rule
-  public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
   @Test
-  public void recoversWithSerializableType() throws Exception {
-    File folder = temporaryFolder.newFolder("cache-persistence-store");
+  public void recoversWithSerializableType(@TempDir File folder) throws Exception {
     {
       LocalPersistenceService persistenceService = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(folder));
       PersistentUserManagedCache<Long, Foo> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, Foo.class)

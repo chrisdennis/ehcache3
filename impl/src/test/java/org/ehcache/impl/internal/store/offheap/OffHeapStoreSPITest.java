@@ -37,7 +37,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.Arrays;
 
@@ -51,7 +51,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
   private AuthoritativeTierFactory<String, String> authoritativeTierFactory;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
       @Override

@@ -17,10 +17,10 @@
 package org.ehcache.impl.internal.store.heap.holders;
 
 import org.ehcache.impl.copy.ReadWriteCopier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Created by alsu on 20/08/15.

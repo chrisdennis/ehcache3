@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.tier;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Aurelien Broszniowski

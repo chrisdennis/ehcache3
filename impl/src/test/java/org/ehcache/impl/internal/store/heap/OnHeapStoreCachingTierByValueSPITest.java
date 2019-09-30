@@ -36,7 +36,7 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -56,7 +56,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
     return cachingTierFactory;
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 

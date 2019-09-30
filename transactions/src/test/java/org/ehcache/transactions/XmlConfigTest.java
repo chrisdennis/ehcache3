@@ -24,12 +24,12 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.core.spi.service.ServiceUtils;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.URL;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * @author Ludovic Orban

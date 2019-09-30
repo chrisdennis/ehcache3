@@ -33,9 +33,9 @@ import org.ehcache.clustered.server.store.ClusterTierServerEntityService;
 import org.ehcache.impl.config.BaseCacheConfiguration;
 import org.ehcache.core.store.StoreConfigurationImpl;
 import org.ehcache.spi.persistence.StateHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -52,7 +52,7 @@ import static org.ehcache.config.builders.ExpiryPolicyBuilder.noExpiration;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 public class ClusterStateRepositoryReplicationTest {
@@ -61,7 +61,7 @@ public class ClusterStateRepositoryReplicationTest {
   private static String STRIPENAME = "stripe";
   private static String STRIPE_URI = "passthrough://" + STRIPENAME;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     this.clusterControl = PassthroughTestHelpers.createActivePassive(STRIPENAME,
       server -> {
@@ -81,7 +81,7 @@ public class ClusterStateRepositoryReplicationTest {
     clusterControl.waitForRunningPassivesInStandby();
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     UnitTestConnectionService.removeStripe(STRIPENAME);
     clusterControl.tearDown();

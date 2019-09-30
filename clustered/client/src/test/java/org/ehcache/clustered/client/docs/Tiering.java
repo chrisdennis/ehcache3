@@ -20,38 +20,25 @@ import java.net.URI;
 
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 
 /**
  * Tiering
  */
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "primary-server-resource", size = 64)
 public class Tiering {
-
-  private static final URI CLUSTER_URI = URI.create("terracotta://example.com/my-application");
-
-  @Before
-  public void definePassthroughServer() throws Exception {
-    UnitTestConnectionService.add(CLUSTER_URI,
-      new UnitTestConnectionService.PassthroughServerBuilder()
-        .resource("primary-server-resource", 64, MemoryUnit.MB)
-        .resource("secondary-server-resource", 64, MemoryUnit.MB)
-        .build());
-  }
-
-  @After
-  public void removePassthroughServer() throws Exception {
-    UnitTestConnectionService.remove(CLUSTER_URI);
-  }
 
   @Test
   public void testSingleTier() {
@@ -63,10 +50,10 @@ public class Tiering {
   }
 
   @Test
-  public void threeTiersCacheManager() throws Exception {
+  public void threeTiersCacheManager(@Cluster URI clusterUri) throws Exception {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(cluster(CLUSTER_URI).autoCreate(c -> c)) // <1>
+      .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)) // <1>
       .withCache("threeTierCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()

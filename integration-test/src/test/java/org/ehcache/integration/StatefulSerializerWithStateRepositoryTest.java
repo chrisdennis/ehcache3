@@ -22,26 +22,23 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.integration.domain.Person;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class StatefulSerializerWithStateRepositoryTest {
 
-  @Rule
-  public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
   @Test
-  public void testStatefulSerializerWithDiskStateRepository() throws Exception {
-    CacheManagerBuilder<PersistentCacheManager> cmBuilder = newCacheManagerBuilder().with(persistence(temporaryFolder.newFolder()
-        .getAbsolutePath()))
+  public void testStatefulSerializerWithDiskStateRepository(@TempDir File persistenceDir) throws Exception {
+    CacheManagerBuilder<PersistentCacheManager> cmBuilder = newCacheManagerBuilder().with(persistence(persistenceDir))
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10).disk(50, MemoryUnit.MB, true))
             .withValueSerializer(CompactJavaSerializer.asTypedSerializer()));
     PersistentCacheManager cacheManager = cmBuilder.build(true);
@@ -61,9 +58,8 @@ public class StatefulSerializerWithStateRepositoryTest {
   }
 
   @Test
-  public void testStatefulSerializerWithDiskStateRepositoryDifferentPersistenceServices() throws Exception {
-    CacheManagerBuilder<PersistentCacheManager> cmBuilder = newCacheManagerBuilder().with(persistence(temporaryFolder.newFolder()
-        .getAbsolutePath()))
+  public void testStatefulSerializerWithDiskStateRepositoryDifferentPersistenceServices(@TempDir File persistenceDir) throws Exception {
+    CacheManagerBuilder<PersistentCacheManager> cmBuilder = newCacheManagerBuilder().with(persistence(persistenceDir))
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10).disk(50, MemoryUnit.MB, true))
             .withValueSerializer(CompactJavaSerializer.asTypedSerializer()));
     PersistentCacheManager cacheManager = cmBuilder.build(true);
