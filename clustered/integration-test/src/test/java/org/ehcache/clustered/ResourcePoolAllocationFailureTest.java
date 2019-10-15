@@ -16,81 +16,59 @@
 
 package org.ehcache.clustered;
 
+import org.ehcache.CacheManager;
 import org.ehcache.clustered.client.internal.PerpetualCachePersistenceException;
-import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
+import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.Test;
 
+import java.net.URI;
+
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
+import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
 
+@WithSimpleTerracottaCluster
 public class ResourcePoolAllocationFailureTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
   @Test
-  public void testTooLowResourceException() throws InterruptedException {
+  public void testTooLowResourceException(@Cluster URI clusterUri, @Cluster String serverResource) {
 
-    DedicatedClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(10, MemoryUnit.KB);
-    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = getPersistentCacheManagerCacheManagerBuilder(resourcePool);
+    Configuration illegal = newConfigurationBuilder()
+      .withService(cluster(clusterUri.resolve("/crud-cm")).autoCreate(server -> server.defaultServerResource(serverResource)))
+      .withCache("test-cache", newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder().with(clusteredDedicated(10, MemoryUnit.KB)))
+      .withService(new ClusteredStoreConfiguration(Consistency.EVENTUAL)))
+      .build();
 
     try {
-      cacheManagerBuilder.build(true);
+      newCacheManager(illegal).init();
       fail("InvalidServerStoreConfigurationException expected");
     } catch (Exception e) {
       Throwable cause = getCause(e, PerpetualCachePersistenceException.class);
       assertThat(cause, notNullValue());
       assertThat(cause.getMessage(), startsWith("Unable to create"));
     }
-    resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(100, MemoryUnit.KB);
-    cacheManagerBuilder = getPersistentCacheManagerCacheManagerBuilder(resourcePool);
-    PersistentCacheManager persistentCacheManager = cacheManagerBuilder.build(true);
 
-    assertThat(persistentCacheManager, notNullValue());
-    persistentCacheManager.close();
+    Configuration legal = illegal.derive().updateCache("test-cache",
+      builder -> builder.updateResourcePools(
+        old -> newResourcePoolsBuilder().with(clusteredDedicated(100, MemoryUnit.KB)).build())).build();
 
-  }
-
-  private CacheManagerBuilder<PersistentCacheManager> getPersistentCacheManagerCacheManagerBuilder(DedicatedClusteredResourcePool resourcePool) {
-
-    ClusteringServiceConfigurationBuilder clusteringServiceConfigurationBuilder = ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"));
-    ClusteringServiceConfiguration clusteringConfiguration = clusteringServiceConfigurationBuilder.autoCreate(server -> server.defaultServerResource("primary-server-resource")).build();
-
-    return CacheManagerBuilder.newCacheManagerBuilder()
-      .with(clusteringConfiguration)
-      .withCache("test-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .with(resourcePool)
-      ).withService(new ClusteredStoreConfiguration(Consistency.EVENTUAL)));
+    try (CacheManager cacheManager = newCacheManager(legal)) {
+      cacheManager.init();
+      assertThat(cacheManager, notNullValue());
+    }
   }
 
   private static Throwable getCause(Throwable e, Class<? extends Throwable> causeClass) {
@@ -103,14 +81,4 @@ public class ResourcePoolAllocationFailureTest extends ClusteredTests {
     }
     return null;
   }
-
-  private static Throwable getRootCause(Throwable e) {
-    Throwable current = e;
-    while (current.getCause() != null) {
-      current = current.getCause();
-    }
-    return current;
-  }
-
-
 }

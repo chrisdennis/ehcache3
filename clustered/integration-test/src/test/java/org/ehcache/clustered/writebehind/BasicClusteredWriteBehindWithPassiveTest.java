@@ -18,41 +18,40 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.util.ParallelTestCluster;
-import org.ehcache.clustered.util.runners.Parallel;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.terracotta.passthrough.IClusterControl;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import java.lang.reflect.Method;
+import java.net.URI;
 
-@RunWith(Parallel.class)
+@WithSimpleTerracottaCluster @Topology(2)
+@Execution(ExecutionMode.CONCURRENT)
 public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBase {
-
-  @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(
-      newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build()
-  );
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cache;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  public void setUp(@TerracottaCluster.Cluster URI clusterUri, @TerracottaCluster.Cluster IClusterControl clusterControl, @TerracottaCluster.Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new);
     super.setUp();
 
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+    clusterControl.startAllServers();
+    clusterControl.waitForRunningPassivesInStandby();
 
-    cacheManager = createCacheManager(CLUSTER.getConnectionURI());
-    cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
+    cacheManager = createCacheManager(clusterUri, serverResource, cacheName);
+    cache = cacheManager.getCache(cacheName, Long.class, String.class);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (cacheManager != null) {
       cacheManager.close();
@@ -60,22 +59,22 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
   }
 
   @Test
-  public void testBasicClusteredWriteBehind() throws Exception {
+  public void testBasicClusteredWriteBehind(@TerracottaCluster.Cluster IClusterControl clusterControl) throws Exception {
     for (int i = 0; i < 10; i++) {
       cache.put(KEY, String.valueOf(i));
     }
 
     assertValue(cache, "9");
 
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
 
     assertValue(cache, "9");
     checkValueFromLoaderWriter(cache, String.valueOf(9));
   }
 
   @Test
-  public void testClusteredWriteBehindCAS() throws Exception {
+  public void testClusteredWriteBehindCAS(@TerracottaCluster.Cluster IClusterControl clusterControl) throws Exception {
     cache.putIfAbsent(KEY, "First value");
     assertValue(cache,"First value");
     cache.putIfAbsent(KEY, "Second value");
@@ -95,8 +94,8 @@ public class BasicClusteredWriteBehindWithPassiveTest extends WriteBehindTestBas
     cache.put(KEY, "new value");
     assertValue(cache, "new value");
 
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
 
     assertValue(cache, "new value");
     checkValueFromLoaderWriter(cache,"new value");

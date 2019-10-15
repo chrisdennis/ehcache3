@@ -23,10 +23,24 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
+import static java.util.Collections.singletonMap;
 
 public class Utilities {
 
   public static URL substitute(URL input, String variable, String substitution) throws IOException {
+    return substitute(input, singletonMap(variable, substitution));
+  }
+
+  public static URL substitute(URL input, Map<String, String> variables) throws IOException {
+    Function<String, String> substitution = variables.entrySet().stream()
+      .map(e -> (Function<String, String>) line -> line.replace("${" + e.getKey() + "}", e.getValue()))
+      .reduce(Function.identity(), Function::andThen);
+
     File output = File.createTempFile(input.getFile(), ".substituted", new File("build"));
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(output));
          BufferedReader reader = new BufferedReader(new InputStreamReader(input.openStream(), StandardCharsets.UTF_8))) {
@@ -35,7 +49,7 @@ public class Utilities {
         if (line == null) {
           break;
         } else {
-          writer.write(line.replace("${" + variable + "}", substitution));
+          writer.write(substitution.apply(line));
           writer.newLine();
         }
       }

@@ -16,54 +16,49 @@
 package org.ehcache.clustered;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.ClusterTierManagerCreationException;
 import org.ehcache.clustered.client.internal.ClusterTierManagerValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.terracotta.connection.Connection;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.testing.rules.Cluster;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.terracotta.connection.ConnectionFactory.connect;
 
+@WithSimpleTerracottaCluster
+@Execution(ExecutionMode.CONCURRENT)
 public class ClusterTierManagerClientEntityFactoryIntegrationTest extends ClusteredTests {
 
   private static final Map<String, Pool> EMPTY_RESOURCE_MAP = Collections.emptyMap();
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-          + "<ohr:offheap-resources>"
-          + "<ohr:resource name=\"primary\" unit=\"MB\">64</ohr:resource>"
-          + "</ohr:offheap-resources>" +
-          "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection CONNECTION;
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CONNECTION = CLUSTER.newConnection();
+  @BeforeAll
+  public static void waitForActive(@Cluster URI clusterUri) throws Exception {
+    CONNECTION = connect(clusterUri, new Properties());
   }
 
-  @AfterClass
+  @AfterAll
   public static void closeConnection() throws IOException {
     CONNECTION.close();
   }
@@ -106,22 +101,22 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
   }
 
   @Test
-  public void testRetrieveWithGoodConfig() throws Exception {
+  public void testRetrieveWithGoodConfig(@Cluster String serverResource) throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary"))));
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, serverResource))));
     assertThat(factory.retrieve("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary")))), notNullValue());
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, serverResource)))), notNullValue());
   }
 
   @Test
-  public void testRetrieveWithBadConfig() throws Exception {
+  public void testRetrieveWithBadConfig(@Cluster String serverResource) throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithBadConfig",
-        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "primary"))));
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, serverResource))));
     try {
       factory.retrieve("testRetrieveWithBadConfig",
-          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, "primary"))));
+          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, serverResource))));
       fail("Expected ClusterTierManagerValidationException");
     } catch (ClusterTierManagerValidationException e) {
       //expected
@@ -165,23 +160,23 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
   }
 
   @Test
-  public void testAcquireLeadershipWhenTaken() throws Exception {
+  public void testAcquireLeadershipWhenTaken(@Cluster URI clusterUri) throws Exception {
     ClusterTierManagerClientEntityFactory factoryA = new ClusterTierManagerClientEntityFactory(CONNECTION);
     assertThat(factoryA.acquireLeadership("testAcquireLeadershipWhenTaken"), is(true));
 
-    try (Connection clientB = CLUSTER.newConnection()) {
+    try (Connection clientB = connect(clusterUri, new Properties())) {
       ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipWhenTaken"), is(false));
     }
   }
 
   @Test
-  public void testAcquireLeadershipAfterAbandoned() throws Exception {
+  public void testAcquireLeadershipAfterAbandoned(@Cluster URI clusterUri) throws Exception {
     ClusterTierManagerClientEntityFactory factoryA = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factoryA.acquireLeadership("testAcquireLeadershipAfterAbandoned");
     assertTrue(factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned", true));
 
-    try (Connection clientB = CLUSTER.newConnection()) {
+    try (Connection clientB = connect(clusterUri, new Properties())) {
       ClusterTierManagerClientEntityFactory factoryB = new ClusterTierManagerClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipAfterAbandoned"), is(true));
     }

@@ -22,84 +22,79 @@ import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.terracotta.passthrough.IClusterControl;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.net.InetSocketAddress.createUnresolved;
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@WithSimpleTerracottaCluster @Topology(2)
 public class BasicClusteredCacheOpsReplicationWithServersApiTest extends ClusteredTests {
-  private static final String CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
 
   private static PersistentCacheManager CACHE_MANAGER;
   private static Cache<Long, String> CACHE1;
   private static Cache<Long, String> CACHE2;
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster(2).in(clusterPath()).withServiceFragment(CONFIG).build();
-
-  @Before
-  public void setUp() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  @BeforeEach
+  public void setUp(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource) throws Exception {
+    clusterControl.startAllServers();
+    clusterControl.waitForRunningPassivesInStandby();
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(getConfigBuilder()
+      .with(getConfigBuilder(clusterUri)
         .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
           .read(Duration.ofMinutes(1))
           .write(Duration.ofMinutes(1)))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+        .autoCreate(server -> server.defaultServerResource(serverResource)));
     CACHE_MANAGER = clusteredCacheManagerBuilder.build(true);
     CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
       ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
-        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
+        .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB)))
       .build();
 
     CACHE1 = CACHE_MANAGER.createCache("clustered-cache", config);
     CACHE2 = CACHE_MANAGER.createCache("another-cache", config);
   }
 
-  private ClusteringServiceConfigurationBuilder getConfigBuilder() {
+  private ClusteringServiceConfigurationBuilder getConfigBuilder(URI clusterUri) {
     String cacheManagerName = "cm-replication";
     List<InetSocketAddress> addresses = new ArrayList<>();
-    for (String server : CLUSTER.getClusterHostPorts()) {
+    for (String server : clusterUri.getAuthority().split(",")) {
       String[] hostPort = server.split(":");
-      addresses.add(InetSocketAddress.createUnresolved(hostPort[0], Integer.parseInt(hostPort[1])));
+      addresses.add(createUnresolved(hostPort[0], Integer.parseInt(hostPort[1])));
     }
-    return ClusteringServiceConfigurationBuilder.cluster(addresses, cacheManagerName);
+    return cluster(addresses, cacheManagerName);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     CACHE_MANAGER.close();
     CACHE_MANAGER.destroy();
   }
 
   @Test
-  public void testCRUD() throws Exception {
+  public void testCRUD(@Cluster IClusterControl clusterControl) throws Exception {
     List<Cache<Long, String>> caches = new ArrayList<>();
     caches.add(CACHE1);
     caches.add(CACHE2);
@@ -115,7 +110,7 @@ public class BasicClusteredCacheOpsReplicationWithServersApiTest extends Cluster
       x.remove(4L);
     });
 
-    CLUSTER.getClusterControl().terminateActive();
+    clusterControl.terminateActive();
 
     caches.forEach(x -> {
       assertThat(x.get(1L), equalTo("Another one"));

@@ -19,6 +19,7 @@ package org.ehcache.clustered.management;
 import org.ehcache.CacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
@@ -28,7 +29,7 @@ import org.ehcache.core.HumanReadable;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.net.URI;
@@ -36,9 +37,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
 
 public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest {
 
@@ -81,8 +82,8 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
   }
 
   @Test
-  public void clusteredToString() throws Exception {
-    URI uri = CLUSTER.getConnectionURI().resolve("/my-server-entity-2");
+  public void clusteredToString(@TerracottaCluster.Cluster URI clusterUri) throws Exception {
+    URI uri = clusterUri.resolve("/my-server-entity-2");
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       // cluster config

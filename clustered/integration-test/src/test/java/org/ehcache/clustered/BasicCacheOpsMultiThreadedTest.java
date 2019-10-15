@@ -23,15 +23,17 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.tc.util.Assert;
 
@@ -45,37 +47,21 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Simulate multiple clients starting up the same cache manager simultaneously and ensure that puts and gets works just
  * fine and nothing get lost or hung, just because multiple cache manager instances of the same cache manager are coming up
  * simultaneously.
  */
+@WithSimpleTerracottaCluster
+@Execution(ExecutionMode.CONCURRENT)
 public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
-
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
 
   private static final String CLUSTERED_CACHE_NAME    = "clustered-cache";
   private static final String SYN_CACHE_NAME = "syn-cache";
-  private static final String PRIMARY_SERVER_RESOURCE_NAME = "primary-server-resource";
   private static final String CACHE_MANAGER_NAME = "/crud-cm";
   private static final int PRIMARY_SERVER_RESOURCE_SIZE = 4; //MB
   private static final int NUM_THREADS = 8;
@@ -85,12 +71,12 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   private final AtomicLong idGenerator = new AtomicLong(2L);
 
   @Test
-  public void testMulipleClients() throws Throwable {
+  public void testMulipleClients(@Cluster URI clusterUri, @Cluster String serverResource) throws Throwable {
     CountDownLatch latch = new CountDownLatch(NUM_THREADS + 1);
 
     List<Thread> threads = new ArrayList<>(NUM_THREADS);
     for (int i = 0; i < NUM_THREADS; i++) {
-      Thread t1 = new Thread(content(latch));
+      Thread t1 = new Thread(content(clusterUri, serverResource, latch));
       t1.start();
       threads.add(t1);
     }
@@ -108,9 +94,9 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
     }
   }
 
-  private Runnable content(CountDownLatch latch) {
+  private Runnable content(URI clusterUri, String serverResource, CountDownLatch latch) {
     return () -> {
-      try (PersistentCacheManager cacheManager = createCacheManager(CLUSTER.getConnectionURI())) {
+      try (PersistentCacheManager cacheManager = createCacheManager(clusterUri, serverResource)) {
         latch.countDown();
         try {
           assertTrue(latch.await(MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS));
@@ -152,13 +138,13 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
     }
   }
 
-  private static PersistentCacheManager createCacheManager(URI clusterURI) {
+  private static PersistentCacheManager createCacheManager(URI clusterURI, String serverResource) {
     ClusteringServiceConfigurationBuilder clusteringConfig = cluster(clusterURI.resolve(CACHE_MANAGER_NAME))
       .timeouts(TimeoutsBuilder.timeouts().read(Duration.ofSeconds(20)).write(Duration.ofSeconds(30)))
-      .autoCreate(server -> server.defaultServerResource(PRIMARY_SERVER_RESOURCE_NAME));
+      .autoCreate(server -> server.defaultServerResource(serverResource));
 
     ResourcePool resourcePool = ClusteredResourcePoolBuilder
-      .clusteredDedicated(PRIMARY_SERVER_RESOURCE_NAME, PRIMARY_SERVER_RESOURCE_SIZE, MemoryUnit.MB);
+      .clusteredDedicated(PRIMARY_SERVER_RESOURCE_SIZE, MemoryUnit.MB);
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder
       .newCacheManagerBuilder()

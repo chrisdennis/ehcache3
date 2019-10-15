@@ -20,47 +20,43 @@ import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.OffHeapResource;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import java.net.URI;
 import java.util.Arrays;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@WithSimpleTerracottaCluster
+@Execution(ExecutionMode.CONCURRENT)
 public class OversizedCacheOpsTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">2</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
   @Test
-  public void overSizedCacheOps() throws Exception {
+  public void overSizedCacheOps(@Cluster URI clusterUri, @Cluster String serverResource) throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
-          .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+        .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/crud-cm"))
+          .autoCreate(server -> server.defaultServerResource(serverResource)));
 
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
+              .with(ClusteredResourcePoolBuilder.clusteredDedicated(1, MemoryUnit.MB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
       cache.put(1L, "The one");

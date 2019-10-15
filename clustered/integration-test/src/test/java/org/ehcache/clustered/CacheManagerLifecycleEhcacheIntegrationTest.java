@@ -16,15 +16,12 @@
 
 package org.ehcache.clustered;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,13 +32,16 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
 import org.ehcache.xml.XmlConfiguration;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.entity.Entity;
@@ -49,40 +49,31 @@ import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
-import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
 import static org.ehcache.testing.Utilities.substitute;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.terracotta.connection.ConnectionFactory.connect;
 
+@WithSimpleTerracottaCluster
+@Execution(ExecutionMode.CONCURRENT)
 public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private static Connection ASSERTION_CONNECTION;
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    ASSERTION_CONNECTION = CLUSTER.newConnection();
+  @BeforeAll
+  public static void waitForActive(@Cluster URI clusterUri) throws Exception {
+    ASSERTION_CONNECTION = connect(clusterUri, new Properties());
   }
 
   @Test
-  public void testAutoCreatedCacheManager() throws Exception {
+  public void testAutoCreatedCacheManager(@Cluster URI clusterUri) throws Exception {
     assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate(c -> c).build())
+            .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/testAutoCreatedCacheManager")).autoCreate(c -> c).build())
             .build();
     assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManager");
     manager.init();
@@ -95,9 +86,9 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
   }
 
   @Test
-  public void testAutoCreatedCacheManagerUsingXml() throws Exception {
+  public void testAutoCreatedCacheManagerUsingXml(@Cluster URI clusterUri) throws Exception {
     URL xml = CacheManagerLifecycleEhcacheIntegrationTest.class.getResource("/configs/clustered.xml");
-    URL substitutedXml = substitute(xml, "cluster-uri", CLUSTER.getConnectionURI().toString());
+    URL substitutedXml = substitute(xml, "cluster-uri", clusterUri.toString());
     PersistentCacheManager manager = (PersistentCacheManager) newCacheManager(new XmlConfiguration(substitutedXml));
     assertEntityNotExists(ClusterTierManagerClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     manager.init();
@@ -109,11 +100,11 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
   }
 
   @Test
-  public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
+  public void testMultipleClientsAutoCreatingCacheManager(@Cluster URI clusterUri) throws Exception {
     assertEntityNotExists(ClusterTierManagerClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
 
     final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate(c -> c).build());
+            .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate(c -> c).build());
 
     Callable<PersistentCacheManager> task = () -> {
       PersistentCacheManager manager = managerBuilder.build();
@@ -139,10 +130,10 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
   }
 
   @Test
-  public void testCacheManagerNotExistingFailsOnInit() throws Exception {
+  public void testCacheManagerNotExistingFailsOnInit(@Cluster URI clusterUri) throws Exception {
     try {
       newCacheManagerBuilder()
-              .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testCacheManagerNotExistingFailsOnInit")).build())
+              .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/testCacheManagerNotExistingFailsOnInit")).build())
               .build(true);
       fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
@@ -190,7 +181,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
     };
   }
 
-  @AfterClass
+  @AfterAll
   public static void closeAssertionConnection() throws IOException {
     ASSERTION_CONNECTION.close();
   }

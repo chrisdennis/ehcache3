@@ -31,13 +31,16 @@ import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.lang.reflect.Array;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static org.junit.platform.commons.support.AnnotationSupport.findAnnotatedFieldValues;
+import static org.junit.platform.commons.support.AnnotationSupport.findRepeatableAnnotations;
+import static org.junit.platform.commons.support.ReflectionSupport.newInstance;
 
 public class PassthroughServer implements ParameterResolver {
 
@@ -49,37 +52,44 @@ public class PassthroughServer implements ParameterResolver {
     return parameterContext.isAnnotated(Cluster.class) && URI.class.equals(parameterContext.getParameter().getType());
   }
 
-  @Override @SuppressWarnings("unchecked")
+  @Override @SuppressWarnings({"unchecked", "rawtypes"})
   public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
     return extensionContext.getStore(NAMESPACE).getOrComputeIfAbsent("cluster", key -> {
 
       UnitTestConnectionService.PassthroughServerBuilder builder = new UnitTestConnectionService.PassthroughServerBuilder();
-      for (ServerResource resource : getClosestAnnotation(extensionContext, ServerResource.class)) {
+
+
+      for (ServerResource resource : searchForRepeatableAnnotations(extensionContext, ServerResource.class)) {
         builder = builder.resource(resource.name(), resource.size(), resource.unit());
       }
 
-      for (ClientEntityService service : getClosestAnnotation(extensionContext, ClientEntityService.class)) {
-        try {
-          builder = builder.clientEntityService(service.value().newInstance());
-        } catch (ReflectiveOperationException e) {
-          throw new ParameterResolutionException("Could not instantiate service: " + service.value(), e);
-        }
+      for (ServerEntityService service : searchForRepeatableAnnotations(extensionContext, ServerEntityService.class)) {
+        builder = builder.serverEntityService(newInstance(service.value()));
       }
 
-      for (ServerEntityService service : getClosestAnnotation(extensionContext, ServerEntityService.class)) {
-        try {
-          builder = builder.serverEntityService(service.value().newInstance());
-        } catch (ReflectiveOperationException e) {
-          throw new ParameterResolutionException("Could not instantiate service: " + service.value(), e);
-        }
+      for (ClientEntityService service : searchForRepeatableAnnotations(extensionContext, ClientEntityService.class)) {
+        builder = builder.clientEntityService(newInstance(service.value()));
       }
 
-      for (Object service : fieldsAnnotatedWith(extensionContext, ClientEntityService.class)) {
-        builder = builder.clientEntityService((EntityClientService<?, ?, ?, ?, ?>) service);
+      for (EntityServerService service : extensionContext.getTestClass()
+        .map(testClass -> findAnnotatedFieldValues(testClass, ServerEntityService.class, EntityServerService.class))
+        .orElse(emptyList())) {
+        builder = builder.serverEntityService(service);
       }
-
-      for (Object service : fieldsAnnotatedWith(extensionContext, ServerEntityService.class)) {
-        builder = builder.serverEntityService((EntityServerService<?, ?>) service);
+      for (EntityServerService service : extensionContext.getTestInstance()
+        .map(testInstance -> findAnnotatedFieldValues(testInstance, ServerEntityService.class, EntityServerService.class))
+        .orElse(emptyList())) {
+        builder = builder.serverEntityService(service);
+      }
+      for (EntityClientService service : extensionContext.getTestClass()
+        .map(testClass -> findAnnotatedFieldValues(testClass, ClientEntityService.class, EntityClientService.class))
+        .orElse(emptyList())) {
+        builder = builder.clientEntityService(service);
+      }
+      for (EntityClientService service : extensionContext.getTestInstance()
+        .map(testInstance -> findAnnotatedFieldValues(testInstance, ClientEntityService.class, EntityClientService.class))
+        .orElse(emptyList())) {
+        builder = builder.clientEntityService(service);
       }
 
       for (int i = 1; i < 1024; i++) {
@@ -102,21 +112,18 @@ public class PassthroughServer implements ParameterResolver {
     }, Holder.class).get();
   }
 
-  private Iterable<Object> fieldsAnnotatedWith(ExtensionContext extensionContext, Class<? extends Annotation> annotation) {
-    Stream.Builder<Class<?>> builder = Stream.builder();
-    for (Class<?> clazz = extensionContext.getTestClass().orElse(null); clazz != null; clazz = clazz.getSuperclass()) {
-      builder.add(clazz);
-    }
+  private static <A extends Annotation> List<A> searchForRepeatableAnnotations(ExtensionContext context, Class<A> annoType) {
+    Stream.Builder<ExtensionContext> builder = Stream.<ExtensionContext>builder().add(context);
 
-    return builder.build().flatMap(k -> Stream.of(k.getDeclaredFields()))
-      .filter(field -> field.isAnnotationPresent(annotation))
-      .map(field -> {
-        try {
-          return field.get(extensionContext.getRequiredTestInstance());
-        } catch (IllegalAccessException e) {
-          throw new ParameterResolutionException("Could not retrieve client service: " + field, e);
-        }
-      }).collect(toList());
+    while (true) {
+      Optional<ExtensionContext> parent = context.getParent();
+      if (parent.isPresent()) {
+        context = parent.get();
+        builder.accept(context);
+      } else {
+        return builder.build().flatMap(c -> findRepeatableAnnotations(c.getElement(), annoType).stream()).collect(toList());
+      }
+    }
   }
 
   abstract static class Holder<T> implements ExtensionContext.Store.CloseableResource {
@@ -130,23 +137,6 @@ public class PassthroughServer implements ParameterResolver {
     T get() {
       return t;
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T extends Annotation> T[] getClosestAnnotation(ExtensionContext context, Class<T> annotation) {
-    while (true) {
-      Optional<T[]> serverResources = context.getElement().map(e -> e.getAnnotationsByType(annotation));
-      if (serverResources.filter(s -> s.length != 0).isPresent()) {
-        return serverResources.get();
-      }
-      Optional<ExtensionContext> parent = context.getParent();
-      if (parent.isPresent()) {
-        context = parent.get();
-      } else {
-        break;
-      }
-    }
-    return (T[]) Array.newInstance(annotation, 0);
   }
 
   @Retention(RetentionPolicy.RUNTIME)

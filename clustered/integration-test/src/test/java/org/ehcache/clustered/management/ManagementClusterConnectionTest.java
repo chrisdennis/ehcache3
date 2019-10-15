@@ -22,18 +22,19 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.ClientLeaseLength;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.OffHeapResource;
 import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.hamcrest.Matchers;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
-import org.terracotta.testing.rules.Cluster;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -53,46 +54,29 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@ExtendWith(TerracottaCluster.class)
+@OffHeapResource(name = "primary-server-resource", size = 64)
+@OffHeapResource(name = "secondary-server-resource", size = 64)
+@ClientLeaseLength(5)
 public class ManagementClusterConnectionTest extends ClusteredTests {
-
-  private static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-                  + "<ohr:offheap-resources>"
-                  + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-                  + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-                  + "</ohr:offheap-resources>"
-                  + "</config>\n"
-                  + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-                  + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-                  + "</lease:connection-leasing>"
-                  + "</service>";
 
   protected static CacheManager cacheManager;
   protected static ObjectMapper mapper = new ObjectMapper();
 
   private static final List<TCPProxy> proxies = new ArrayList<>();
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster()
-          .in(clusterPath())
-          .withServiceFragment(RESOURCE_CONFIG).build();
-
-
-  @BeforeClass
-  public static void beforeClass() throws Exception {
+  @BeforeAll
+  public static void beforeClass(@TerracottaCluster.Cluster URI clusterUri) throws Exception {
 
     mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
-    CLUSTER.getClusterControl().waitForActive();
-
     // simulate a TMS client
-    createNmsService(CLUSTER);
+    createNmsService(clusterUri);
 
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+    URI connectionURI = TCPProxyUtil.getProxyURI(clusterUri, proxies);
 
     cacheManager = newCacheManagerBuilder()
             // cluster config
@@ -147,7 +131,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
                     .containsAll(Arrays.asList("webapp-1", "server-node-1")))
             .count();
 
-    Assert.assertThat(count, Matchers.equalTo(1L));
+    assertThat(count, Matchers.equalTo(1L));
 
     String instanceId = getInstanceId();
 
@@ -193,7 +177,7 @@ public class ManagementClusterConnectionTest extends ClusteredTests {
       .findFirst().get();
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() throws Exception {
     tearDownCacheManagerAndStatsCollector();
   }

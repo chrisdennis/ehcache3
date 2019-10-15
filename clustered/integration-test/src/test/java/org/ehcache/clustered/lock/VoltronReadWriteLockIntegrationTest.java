@@ -15,8 +15,11 @@
  */
 package org.ehcache.clustered.lock;
 
+import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,40 +31,36 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.terracotta.connection.Connection;
-import org.terracotta.testing.rules.Cluster;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.terracotta.connection.ConnectionFactory.connect;
 
+@WithSimpleTerracottaCluster
+@Execution(ExecutionMode.CONCURRENT)
 public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-  }
-
   @Test
-  public void testSingleThreadSingleClientInteraction() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
-      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
+  public void testSingleThreadSingleClientInteraction(@Cluster URI clusterUri, TestInfo testInfo) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
+      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new));
 
       lock.writeLock().unlock();
     }
   }
 
   @Test
-  public void testMultipleThreadsSingleConnection() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
-      final VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "test");
+  public void testMultipleThreadsSingleConnection(@Cluster URI clusterUri, TestInfo testInfo) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
+      final VoltronReadWriteLock lock = new VoltronReadWriteLock(client, testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new));
 
       Hold hold = lock.writeLock();
 
@@ -83,15 +82,17 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
   }
 
   @Test
-  public void testMultipleClients() throws Throwable {
-    try (Connection clientA = CLUSTER.newConnection();
-         Connection clientB = CLUSTER.newConnection()) {
-      VoltronReadWriteLock lockA = new VoltronReadWriteLock(clientA, "test");
+  public void testMultipleClients(@Cluster URI clusterUri, TestInfo testInfo) throws Throwable {
+    String entity = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new);
+
+    try (Connection clientA = connect(clusterUri, new Properties());
+         Connection clientB = connect(clusterUri, new Properties())) {
+      VoltronReadWriteLock lockA = new VoltronReadWriteLock(clientA, entity);
 
       Hold hold = lockA.writeLock();
 
       Future<Void> waiter = async(() -> {
-        new VoltronReadWriteLock(clientB, "test").writeLock().unlock();
+        new VoltronReadWriteLock(clientB, entity).writeLock().unlock();
         return null;
       });
 
@@ -108,11 +109,11 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
   }
 
   @Test
-  public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
+  public void testMultipleClientsAutoCreatingCacheManager(@Cluster URI clusterUri, TestInfo testInfo) throws Exception {
     final AtomicBoolean condition = new AtomicBoolean(true);
     Callable<Void> task = () -> {
-      Connection client = CLUSTER.newConnection();
-      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "testMultipleClientsAutoCreatingCacheManager");
+      Connection client = connect(clusterUri, new Properties());
+      VoltronReadWriteLock lock = new VoltronReadWriteLock(client, testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new));
 
       while (condition.get()) {
         Hold hold = lock.tryWriteLock();

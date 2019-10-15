@@ -19,10 +19,10 @@ import org.assertj.core.api.Assertions;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.FixMethodOrder;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
@@ -45,7 +45,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteredResourcePool
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.Alphanumeric.class)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
 
   private static final Collection<StatisticDescriptor> ONHEAP_DESCRIPTORS = Arrays.asList(
@@ -132,7 +132,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   );
 
   @Test
-  @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
+  @Disabled("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
   public void test_A_topology() throws Exception {
     Cluster cluster = nmsService.readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());

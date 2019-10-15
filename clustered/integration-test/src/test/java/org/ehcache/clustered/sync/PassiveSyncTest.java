@@ -21,59 +21,49 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.terracotta.passthrough.IClusterControl;
 
+import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@WithSimpleTerracottaCluster @Topology(2)
 public class PassiveSyncTest extends ClusteredTests {
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
 
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @Before
-  public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  @BeforeEach
+  public void startServers(@Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.terminateOnePassive();
   }
 
-  @Test(timeout = 150000)
-  public void testSync() throws Exception {
-    CLUSTER.getClusterControl().terminateOnePassive();
-
+  @Test @Timeout(150)
+  public void testSync(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource) throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/op-sync"))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+      .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/op-sync"))
+        .autoCreate(server -> server.defaultServerResource(serverResource)));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
     try {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated(1, MemoryUnit.MB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
 
@@ -81,10 +71,10 @@ public class PassiveSyncTest extends ClusteredTests {
         cache.put(i, "value" + i);
       }
 
-      CLUSTER.getClusterControl().startOneServer();
-      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-      CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().waitForActive();
+      clusterControl.startOneServer();
+      clusterControl.waitForRunningPassivesInStandby();
+      clusterControl.terminateActive();
+      clusterControl.waitForActive();
 
       for (long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(130); cache.get(0L) == null && System.nanoTime() < end; ) {
         Thread.sleep(100);
@@ -98,20 +88,18 @@ public class PassiveSyncTest extends ClusteredTests {
     }
   }
 
-  @Ignore
+  @Disabled
   @Test
-  public void testLifeCycleOperationsOnSync() throws Exception {
-    CLUSTER.getClusterControl().terminateOnePassive();
-
+  public void testLifeCycleOperationsOnSync(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource) throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+      .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/lifecycle-sync"))
+        .autoCreate(server -> server.defaultServerResource(serverResource)));
 
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated(1, MemoryUnit.MB))).build();
 
       final Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
 
@@ -133,10 +121,10 @@ public class PassiveSyncTest extends ClusteredTests {
         }
       });
       lifeCycleThread.start();
-      CLUSTER.getClusterControl().startOneServer();
+      clusterControl.startOneServer();
       latch.countDown();
-      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-      CLUSTER.getClusterControl().terminateActive();
+      clusterControl.waitForRunningPassivesInStandby();
+      clusterControl.terminateActive();
       complete.set(true);
 
       for (long i = 0; i < 100; i++) {

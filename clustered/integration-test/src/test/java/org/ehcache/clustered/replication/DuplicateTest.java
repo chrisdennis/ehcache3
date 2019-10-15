@@ -23,19 +23,22 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.resilience.ResilienceStrategy;
 import org.ehcache.spi.resilience.StoreAccessException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.terracotta.passthrough.IClusterControl;
 
 import java.lang.reflect.Proxy;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -46,31 +49,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@WithSimpleTerracottaCluster @Topology(2)
 public class DuplicateTest extends ClusteredTests {
-
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">512</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
 
   private PersistentCacheManager cacheManager;
 
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @Before
-  public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  @BeforeEach
+  public void waitForPassive(@Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.startAllServers();
+    clusterControl.waitForRunningPassivesInStandby();
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if(cacheManager != null) {
       cacheManager.close();
@@ -79,14 +70,14 @@ public class DuplicateTest extends ClusteredTests {
   }
 
   @Test
-  public void duplicateAfterFailoverAreReturningTheCorrectResponse() throws Exception {
+  public void duplicateAfterFailoverAreReturningTheCorrectResponse(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource) throws Exception {
     CacheManagerBuilder<PersistentCacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
+      .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri)
         .timeouts(TimeoutsBuilder.timeouts().write(Duration.ofSeconds(30)))
-        .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
+        .autoCreate(server -> server.defaultServerResource(serverResource)))
       .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Integer.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)))
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated(10, MemoryUnit.MB)))
         .withResilienceStrategy(failingResilienceStrategy())
         .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
@@ -113,7 +104,7 @@ public class DuplicateTest extends ClusteredTests {
       while (currentEntry.get() < 100); // wait to make sure some entries are added before shutdown
 
       // Failover to mirror when put & replication are in progress
-      CLUSTER.getClusterControl().terminateActive();
+      clusterControl.terminateActive();
 
       puts.get(30, TimeUnit.SECONDS);
 

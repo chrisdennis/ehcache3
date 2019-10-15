@@ -18,19 +18,21 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.terracotta.passthrough.IClusterControl;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import java.lang.reflect.Method;
+import java.net.URI;
 
+@WithSimpleTerracottaCluster @Topology(2)
 public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBehindTestBase {
-
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   private PersistentCacheManager cacheManager1;
   private PersistentCacheManager cacheManager2;
@@ -38,22 +40,22 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
   private Cache<Long, String> client1;
   private Cache<Long, String> client2;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  public void setUp(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new);
     super.setUp();
 
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+    clusterControl.startAllServers();
+    clusterControl.waitForRunningPassivesInStandby();
 
-    cacheManager1 = createCacheManager(CLUSTER.getConnectionURI());
-    cacheManager2 = createCacheManager(CLUSTER.getConnectionURI());
+    cacheManager1 = createCacheManager(clusterUri, serverResource, cacheName);
+    cacheManager2 = createCacheManager(clusterUri, serverResource, cacheName);
 
-    client1 = cacheManager1.getCache(testName.getMethodName(), Long.class, String.class);
-    client2 = cacheManager2.getCache(testName.getMethodName(), Long.class, String.class);
+    client1 = cacheManager1.getCache(cacheName, Long.class, String.class);
+    client2 = cacheManager2.getCache(cacheName, Long.class, String.class);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (cacheManager1 != null) {
       cacheManager1.close();
@@ -66,7 +68,7 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
   }
 
   @Test
-  public void testWriteBehindMultipleClients() throws Exception {
+  public void testWriteBehindMultipleClients(@Cluster IClusterControl clusterControl) throws Exception {
     client1.put(KEY, "The one from client1");
     client2.put(KEY, "The one from client2");
     assertValue(client1, "The one from client2");
@@ -85,8 +87,8 @@ public class BasicClusteredWriteBehindWithPassiveMultiClientTest extends WriteBe
     client2.put(KEY, "The one one from client2");
     assertValue(client1, "The one one from client2");
 
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
 
     assertValue(client1, "The one one from client2");
     assertValue(client2, "The one one from client2");

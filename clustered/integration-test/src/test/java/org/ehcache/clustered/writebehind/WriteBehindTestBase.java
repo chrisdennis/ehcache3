@@ -31,8 +31,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.resilience.ThrowingResilienceStrategy;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.Rule;
-import org.junit.rules.TestName;
 
 import java.net.URI;
 import java.time.Duration;
@@ -46,19 +44,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class WriteBehindTestBase extends ClusteredTests {
 
-  static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-    + "<ohr:offheap-resources>"
-    + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-    + "</ohr:offheap-resources>" +
-    "</config>\n";
-
   static final long KEY = 1L;
 
   private static final String FLUSH_QUEUE_MARKER = "FLUSH_QUEUE";
-
-  @Rule
-  public final TestName testName = new TestName();
 
   private RecordingLoaderWriter<Long, String> loaderWriter;
 
@@ -99,12 +87,12 @@ public class WriteBehindTestBase extends ClusteredTests {
     assertThat(cache.get(KEY), is(value));
   }
 
-  PersistentCacheManager createCacheManager(URI clusterUri) {
+  PersistentCacheManager createCacheManager(URI clusterUri, String serverResource, String cacheName) {
     CacheConfiguration<Long, String> cacheConfiguration =
       newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
                                                                                  .heap(10, EntryUnit.ENTRIES)
                                                                                  .offheap(1, MemoryUnit.MB)
-                                                                                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
+                                                                                 .with(ClusteredResourcePoolBuilder.clusteredDedicated(serverResource, 2, MemoryUnit.MB)))
         .withLoaderWriter(loaderWriter)
         .withService(WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration())
         .withResilienceStrategy(new ThrowingResilienceStrategy<>())
@@ -114,7 +102,7 @@ public class WriteBehindTestBase extends ClusteredTests {
     return CacheManagerBuilder
       .newCacheManagerBuilder()
       .with(cluster(clusterUri.resolve("/cm-wb")).timeouts(TimeoutsBuilder.timeouts().read(Duration.ofMinutes(1)).write(Duration.ofMinutes(1))).autoCreate(c -> c))
-      .withCache(testName.getMethodName(), cacheConfiguration)
+      .withCache(cacheName, cacheConfiguration)
       .build(true);
   }
 }

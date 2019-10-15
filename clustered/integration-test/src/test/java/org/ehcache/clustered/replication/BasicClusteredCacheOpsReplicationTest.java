@@ -17,6 +17,7 @@
 package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -24,24 +25,26 @@ import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationB
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.util.runners.ParallelParameterized;
-import org.ehcache.clustered.util.ParallelTestCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.terracotta.passthrough.IClusterControl;
+
+import java.lang.reflect.Method;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,182 +52,167 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
-@RunWith(ParallelParameterized.class)
+@WithSimpleTerracottaCluster @Topology(2)
+@Execution(ExecutionMode.CONCURRENT)
 public class BasicClusteredCacheOpsReplicationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">32</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  private PersistentCacheManager cacheManager;
-  private Cache<Long, String> cacheOne;
-  private Cache<Long, String> cacheTwo;
-
-  @Parameters(name = "consistency={0}")
-  public static Consistency[] data() {
-    return Consistency.values();
+  @BeforeEach
+  public void startServers(@Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.startAllServers();
+    clusterControl.waitForRunningPassivesInStandby();
   }
 
-  @Parameter
-  public Consistency cacheConsistency;
+  private static CacheManager createCacheManager(@Cluster URI clusterUri, @Cluster String serverResource, String cacheName, Consistency cacheConsistency) {
+    CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+      ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
+        .with(ClusteredResourcePoolBuilder.clusteredDedicated(1, MemoryUnit.MB)))
+      .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
+      .build();
 
-  @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
-
-  @Rule
-  public final TestName testName = new TestName();
-
-  @Before
-  public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/cm-replication"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cm-replication"))
             .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
                 .read(Duration.ofMinutes(1))
                 .write(Duration.ofMinutes(1)))
-            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    cacheManager = clusteredCacheManagerBuilder.build(true);
-    CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
-        .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
-        .build();
+            .autoCreate(server -> server.defaultServerResource(serverResource)))
+      .withCache(cacheName + "-1", config)
+      .withCache(cacheName + "-2", config);
 
-    cacheOne = cacheManager.createCache(testName.getMethodName() + "-1", config);
-    cacheTwo = cacheManager.createCache(testName.getMethodName() + "-2", config);
+    return clusteredCacheManagerBuilder.build(true);
   }
 
-  @After
-  public void tearDown() {
-    cacheManager.close();
+  @ParameterizedTest @EnumSource(Consistency.class)
+  public void testCRUD(Consistency consistency, @Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new) + "-" + consistency;
+
+    try (CacheManager cacheManager = createCacheManager(clusterUri, serverResource, cacheName, consistency)) {
+      List<Cache<Long, String>> caches = new ArrayList<>();
+      caches.add(cacheManager.getCache(cacheName + "-1", Long.class, String.class));
+      caches.add(cacheManager.getCache(cacheName + "-2", Long.class, String.class));
+      caches.forEach(x -> {
+        x.put(1L, "The one");
+        x.put(2L, "The two");
+        x.put(1L, "Another one");
+        x.put(3L, "The three");
+        x.put(4L, "The four");
+        assertThat(x.get(1L), equalTo("Another one"));
+        assertThat(x.get(2L), equalTo("The two"));
+        assertThat(x.get(3L), equalTo("The three"));
+        x.remove(4L);
+      });
+
+      clusterControl.terminateActive();
+
+      caches.forEach(x -> {
+        assertThat(x.get(1L), equalTo("Another one"));
+        assertThat(x.get(2L), equalTo("The two"));
+        assertThat(x.get(3L), equalTo("The three"));
+        assertThat(x.get(4L), nullValue());
+      });
+    }
   }
 
-  @Test
-  public void testCRUD() throws Exception {
-    List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(cacheOne);
-    caches.add(cacheTwo);
-    caches.forEach(x -> {
-      x.put(1L, "The one");
-      x.put(2L, "The two");
-      x.put(1L, "Another one");
-      x.put(3L, "The three");
-      x.put(4L, "The four");
-      assertThat(x.get(1L), equalTo("Another one"));
-      assertThat(x.get(2L), equalTo("The two"));
-      assertThat(x.get(3L), equalTo("The three"));
-      x.remove(4L);
-    });
+  @ParameterizedTest @EnumSource(Consistency.class)
+  public void testBulkOps(Consistency consistency, @Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new) + "-" + consistency;
 
-    CLUSTER.getClusterControl().terminateActive();
+    try (CacheManager cacheManager = createCacheManager(clusterUri, serverResource, cacheName, consistency)) {
+      List<Cache<Long, String>> caches = new ArrayList<>();
+      caches.add(cacheManager.getCache(cacheName + "-1", Long.class, String.class));
+      caches.add(cacheManager.getCache(cacheName + "-2", Long.class, String.class));
 
-    caches.forEach(x -> {
-      assertThat(x.get(1L), equalTo("Another one"));
-      assertThat(x.get(2L), equalTo("The two"));
-      assertThat(x.get(3L), equalTo("The three"));
-      assertThat(x.get(4L), nullValue());
-    });
+      Map<Long, String> entriesMap = new HashMap<>();
+      entriesMap.put(1L, "one");
+      entriesMap.put(2L, "two");
+      entriesMap.put(3L, "three");
+      entriesMap.put(4L, "four");
+      entriesMap.put(5L, "five");
+      entriesMap.put(6L, "six");
+      caches.forEach(cache -> cache.putAll(entriesMap));
+
+      clusterControl.terminateActive();
+
+      Set<Long> keySet = entriesMap.keySet();
+      caches.forEach(cache -> {
+        Map<Long, String> all = cache.getAll(keySet);
+        assertThat(all.get(1L), is("one"));
+        assertThat(all.get(2L), is("two"));
+        assertThat(all.get(3L), is("three"));
+        assertThat(all.get(4L), is("four"));
+        assertThat(all.get(5L), is("five"));
+        assertThat(all.get(6L), is("six"));
+      });
+    }
   }
 
-  @Test
-  public void testBulkOps() throws Exception {
-    List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(cacheOne);
-    caches.add(cacheTwo);
+  @ParameterizedTest @EnumSource(Consistency.class)
+  public void testCAS(Consistency consistency, @Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new) + "-" + consistency;
 
-    Map<Long, String> entriesMap = new HashMap<>();
-    entriesMap.put(1L, "one");
-    entriesMap.put(2L, "two");
-    entriesMap.put(3L, "three");
-    entriesMap.put(4L, "four");
-    entriesMap.put(5L, "five");
-    entriesMap.put(6L, "six");
-    caches.forEach(cache -> cache.putAll(entriesMap));
+    try (CacheManager cacheManager = createCacheManager(clusterUri, serverResource, cacheName, consistency)) {
+      List<Cache<Long, String>> caches = new ArrayList<>();
+      caches.add(cacheManager.getCache(cacheName + "-1", Long.class, String.class));
+      caches.add(cacheManager.getCache(cacheName + "-2", Long.class, String.class));
+      caches.forEach(cache -> {
+        assertThat(cache.putIfAbsent(1L, "one"), nullValue());
+        assertThat(cache.putIfAbsent(2L, "two"), nullValue());
+        assertThat(cache.putIfAbsent(3L, "three"), nullValue());
+        assertThat(cache.replace(3L, "another one", "yet another one"), is(false));
+      });
 
-    CLUSTER.getClusterControl().terminateActive();
+      clusterControl.terminateActive();
 
-    Set<Long> keySet = entriesMap.keySet();
-    caches.forEach(cache -> {
-      Map<Long, String> all = cache.getAll(keySet);
-      assertThat(all.get(1L), is("one"));
-      assertThat(all.get(2L), is("two"));
-      assertThat(all.get(3L), is("three"));
-      assertThat(all.get(4L), is("four"));
-      assertThat(all.get(5L), is("five"));
-      assertThat(all.get(6L), is("six"));
-    });
-
+      caches.forEach(cache -> {
+        assertThat(cache.putIfAbsent(1L, "another one"), is("one"));
+        assertThat(cache.remove(2L, "not two"), is(false));
+        assertThat(cache.replace(3L, "three", "another three"), is(true));
+        assertThat(cache.replace(2L, "new two"), is("two"));
+      });
+    }
   }
 
-  @Test
-  public void testCAS() throws Exception {
-    List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(cacheOne);
-    caches.add(cacheTwo);
-    caches.forEach(cache -> {
-      assertThat(cache.putIfAbsent(1L, "one"), nullValue());
-      assertThat(cache.putIfAbsent(2L, "two"), nullValue());
-      assertThat(cache.putIfAbsent(3L, "three"), nullValue());
-      assertThat(cache.replace(3L, "another one", "yet another one"), is(false));
-    });
+  @ParameterizedTest @EnumSource(Consistency.class)
+  public void testClear(Consistency consistency, @Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new) + "-" + consistency;
 
-    CLUSTER.getClusterControl().terminateActive();
+    try (CacheManager cacheManager = createCacheManager(clusterUri, serverResource, cacheName, consistency)) {
+      List<Cache<Long, String>> caches = new ArrayList<>();
+      caches.add(cacheManager.getCache(cacheName + "-1", Long.class, String.class));
+      caches.add(cacheManager.getCache(cacheName + "-2", Long.class, String.class));
 
-    caches.forEach(cache -> {
-      assertThat(cache.putIfAbsent(1L, "another one"), is("one"));
-      assertThat(cache.remove(2L, "not two"), is(false));
-      assertThat(cache.replace(3L, "three", "another three"), is(true));
-      assertThat(cache.replace(2L, "new two"), is("two"));
-    });
+      Map<Long, String> entriesMap = new HashMap<>();
+      entriesMap.put(1L, "one");
+      entriesMap.put(2L, "two");
+      entriesMap.put(3L, "three");
+      entriesMap.put(4L, "four");
+      entriesMap.put(5L, "five");
+      entriesMap.put(6L, "six");
+      caches.forEach(cache -> cache.putAll(entriesMap));
+
+      Set<Long> keySet = entriesMap.keySet();
+      caches.forEach(cache -> {
+        Map<Long, String> all = cache.getAll(keySet);
+        assertThat(all.get(1L), is("one"));
+        assertThat(all.get(2L), is("two"));
+        assertThat(all.get(3L), is("three"));
+        assertThat(all.get(4L), is("four"));
+        assertThat(all.get(5L), is("five"));
+        assertThat(all.get(6L), is("six"));
+      });
+
+      caches.forEach(Cache::clear);
+
+      clusterControl.terminateActive();
+
+      caches.forEach(cache -> {
+        keySet.forEach(x -> assertThat(cache.get(x), nullValue()));
+      });
+    }
   }
-
-  @Test
-  public void testClear() throws Exception {
-
-    List<Cache<Long, String>> caches = new ArrayList<>();
-    caches.add(cacheOne);
-    caches.add(cacheTwo);
-
-    Map<Long, String> entriesMap = new HashMap<>();
-    entriesMap.put(1L, "one");
-    entriesMap.put(2L, "two");
-    entriesMap.put(3L, "three");
-    entriesMap.put(4L, "four");
-    entriesMap.put(5L, "five");
-    entriesMap.put(6L, "six");
-    caches.forEach(cache -> cache.putAll(entriesMap));
-
-    Set<Long> keySet = entriesMap.keySet();
-    caches.forEach(cache -> {
-      Map<Long, String> all = cache.getAll(keySet);
-      assertThat(all.get(1L), is("one"));
-      assertThat(all.get(2L), is("two"));
-      assertThat(all.get(3L), is("three"));
-      assertThat(all.get(4L), is("four"));
-      assertThat(all.get(5L), is("five"));
-      assertThat(all.get(6L), is("six"));
-    });
-
-    cacheOne.clear();
-    cacheTwo.clear();
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    keySet.forEach(x -> assertThat(cacheOne.get(x), nullValue()));
-    keySet.forEach(x -> assertThat(cacheTwo.get(x), nullValue()));
-
-  }
-
 }

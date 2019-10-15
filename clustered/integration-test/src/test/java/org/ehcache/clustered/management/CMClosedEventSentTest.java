@@ -18,14 +18,21 @@ package org.ehcache.clustered.management;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.ClientLeaseLength;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.OffHeapResource;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
-import org.terracotta.testing.rules.Cluster;
+
+import java.net.URI;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -35,33 +42,20 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+@ExtendWith(TerracottaCluster.class)
+@OffHeapResource(name = "primary-server-resource", size = 64)
+@OffHeapResource(name = "secondary-server-resource", size = 64)
+@ClientLeaseLength(5)
 public class CMClosedEventSentTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>"
-      + "</config>\n"
-      + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-      + "<lease:connection-leasing>"
-      + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-      + "</lease:connection-leasing>"
-      + "</service>";
+  @Test @Timeout(60)
+  public void test_CACHE_MANAGER_CLOSED(@Cluster URI clusterUri) throws Exception {
+    createNmsService(clusterUri);
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @Test(timeout = 60_000)
-  public void test_CACHE_MANAGER_CLOSED() throws Exception {
-    createNmsService(CLUSTER);
-
-    try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
+    try (CacheManager cacheManager = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/my-server-entity-1"))
       .autoCreate(server -> server
         .defaultServerResource("primary-server-resource")
         .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>

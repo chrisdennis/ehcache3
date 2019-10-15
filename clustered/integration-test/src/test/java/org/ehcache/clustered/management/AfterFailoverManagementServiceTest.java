@@ -15,23 +15,23 @@
  */
 package org.ehcache.clustered.management;
 
-import org.ehcache.clustered.util.BeforeAll;
-import org.junit.FixMethodOrder;
-import org.junit.runner.RunWith;
-import org.junit.runners.MethodSorters;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.terracotta.passthrough.IClusterControl;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+import java.net.URI;
+
+@TestMethodOrder(MethodOrderer.Alphanumeric.class)
 public class AfterFailoverManagementServiceTest extends ClusteringManagementServiceTest {
 
   @BeforeAll
-  @Override
-  public void beforeAllTests() throws Exception {
-    super.beforeAllTests();
+  public static void triggerFailover(@TerracottaCluster.Cluster URI clusterUri, @TerracottaCluster.Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
 
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
-
-    createNmsService();
+    createNmsService(clusterUri);
 
     initIdentifiers();
 

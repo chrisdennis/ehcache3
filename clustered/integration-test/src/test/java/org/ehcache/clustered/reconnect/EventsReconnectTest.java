@@ -23,6 +23,8 @@ import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.store.ReconnectInProgressException;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
 import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -33,10 +35,9 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.terracotta.passthrough.IClusterControl;
 
 import java.net.URI;
 import java.time.Duration;
@@ -53,25 +54,15 @@ import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.await;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
 
+@TerracottaCluster.WithSimpleTerracottaCluster
+@TerracottaCluster.ClientLeaseLength(5)
 public class EventsReconnectTest extends ClusteredTests {
   private static final Duration TIMEOUT = Durations.FIVE_SECONDS;
-  public static final String RESOURCE_CONFIG =
-          "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-                  + "<ohr:offheap-resources>"
-                  + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-                  + "</ohr:offheap-resources>"
-                  + "</config>\n"
-                  + "<service xmlns:lease='http://www.terracotta.org/service/lease'>"
-                  + "<lease:connection-leasing>"
-                  + "<lease:lease-length unit='seconds'>5</lease:lease-length>"
-                  + "</lease:connection-leasing>"
-                  + "</service>";
 
   private static PersistentCacheManager cacheManager;
 
@@ -100,7 +91,7 @@ public class EventsReconnectTest extends ClusteredTests {
 
   private static CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
     ResourcePoolsBuilder.newResourcePoolsBuilder()
-      .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+      .with(ClusteredResourcePoolBuilder.clusteredDedicated(1, MemoryUnit.MB)))
     .withService(CacheEventListenerConfigurationBuilder
       .newEventListenerConfiguration(cacheEventListener, EnumSet.allOf(EventType.class))
       .unordered().asynchronous())
@@ -109,20 +100,14 @@ public class EventsReconnectTest extends ClusteredTests {
 
   private static final List<TCPProxy> proxies = new ArrayList<>();
 
-  @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+  @BeforeAll
+  public static void waitForActive(@Cluster URI clusterUri, @Cluster String serverResource) throws Exception {
+    URI connectionURI = TCPProxyUtil.getProxyURI(clusterUri, proxies);
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-                    .autoCreate(s -> s.defaultServerResource("primary-server-resource")));
+                    .autoCreate(s -> s.defaultServerResource(serverResource)));
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }

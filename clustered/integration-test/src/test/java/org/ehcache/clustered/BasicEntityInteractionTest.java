@@ -15,7 +15,9 @@
  */
 package org.ehcache.clustered;
 
+import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.Properties;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -24,6 +26,8 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntity;
 import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusterTierManagerConfiguration;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -31,60 +35,49 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.statistics.DefaultStatisticsService;
 import org.ehcache.management.cluster.DefaultClusteringManagementService;
 import org.hamcrest.Matchers;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.testing.rules.Cluster;
 
 import static java.util.Collections.emptyMap;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.terracotta.connection.ConnectionFactory.connect;
 
+@WithSimpleTerracottaCluster
+@Execution(ExecutionMode.CONCURRENT)
 public class BasicEntityInteractionTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">4</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER = newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
   private ClusterTierManagerConfiguration blankConfiguration = new ClusterTierManagerConfiguration("identifier", new ServerSideConfiguration(emptyMap()));
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
+  private TestInfo testInfo;
+
+  @BeforeEach
+  public void getTestName(TestInfo testInfo) {
+    this.testInfo = testInfo;
   }
 
-  @Rule
-  public TestName testName= new TestName();
-
   @Test
-  public void testClusteringServiceConfigurationBuilderThrowsNPE() throws Exception {
+  public void testClusteringServiceConfigurationBuilderThrowsNPE(@Cluster URI tsaUri, @Cluster String serverResource) {
     String cacheName = "myCACHE";
-    String offheap = "primary-server-resource";
-    URI tsaUri = CLUSTER.getConnectionURI();
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
         .heap(100, ENTRIES)
-        .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
+        .with(clusteredDedicated(2, MemoryUnit.MB)))
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
-        .autoCreate(server -> server.defaultServerResource(offheap))
+        .autoCreate(server -> server.defaultServerResource(serverResource))
       ).build(true)) {
       Cache<Long, String> cache = cacheManager.getCache(cacheName, Long.class, String.class);
       cache.put(1L, "one");
@@ -93,7 +86,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
           .heap(100, ENTRIES)
-          .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
+          .with(clusteredDedicated(2, MemoryUnit.MB))
         )
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
       ).using(new DefaultStatisticsService()
@@ -106,17 +99,15 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testServicesStoppedTwice() throws Exception {
+  public void testServicesStoppedTwice(@Cluster URI tsaUri, @Cluster String serverResource) {
     String cacheName = "myCACHE";
-    String offheap = "primary-server-resource";
-    URI tsaUri = CLUSTER.getConnectionURI();
 
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
         .heap(100, ENTRIES)
-        .with(clusteredDedicated(offheap, 2, MemoryUnit.MB)))
+        .with(clusteredDedicated(2, MemoryUnit.MB)))
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
-        .autoCreate(server -> server.defaultServerResource(offheap))
+        .autoCreate(server -> server.defaultServerResource(serverResource))
         // manually adding the following two services should work
       ).using(new DefaultStatisticsService()
       ).using(new DefaultClusteringManagementService()
@@ -128,7 +119,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
     try (CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache(cacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.newResourcePoolsBuilder()
           .heap(100, ENTRIES)
-          .with(clusteredDedicated(offheap, 2, MemoryUnit.MB))
+          .with(clusteredDedicated(2, MemoryUnit.MB))
         )
       ).with(ClusteringServiceConfigurationBuilder.cluster(tsaUri)
       ).build(true)) {
@@ -139,8 +130,8 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testAbsentEntityRetrievalFails() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testAbsentEntityRetrievalFails(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       try {
@@ -153,8 +144,8 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testAbsentEntityCreationSucceeds() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testAbsentEntityCreationSucceeds(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -163,8 +154,8 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testPresentEntityCreationFails() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testPresentEntityCreationFails(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -190,8 +181,8 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testAbsentEntityDestroyFails() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testAbsentEntityDestroyFails(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       try {
@@ -204,8 +195,8 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testPresentEntityDestroySucceeds() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testPresentEntityDestroySucceeds(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -221,10 +212,10 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  @Ignore
+  @Disabled
   @SuppressWarnings("try")
-  public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -236,8 +227,8 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -247,8 +238,8 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   @Test
-  public void testDestroyedEntityAllowsRecreation() throws Throwable {
-    try (Connection client = CLUSTER.newConnection()) {
+  public void testDestroyedEntityAllowsRecreation(@Cluster URI clusterUri) throws Throwable {
+    try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
@@ -260,6 +251,6 @@ public class BasicEntityInteractionTest extends ClusteredTests {
   }
 
   private EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> getEntityRef(Connection client) throws org.terracotta.exception.EntityNotProvidedException {
-    return client.getEntityRef(ClusterTierManagerClientEntity.class, EhcacheEntityVersion.ENTITY_VERSION, testName.getMethodName());
+    return client.getEntityRef(ClusterTierManagerClientEntity.class, EhcacheEntityVersion.ENTITY_VERSION, testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new));
   }
 }

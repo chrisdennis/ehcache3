@@ -232,6 +232,7 @@ subprojects {
   }
   tasks.withType(Test) {
     useJUnitPlatform()
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
     executable = testJava.javaExecutable
     maxParallelForks 64
   }

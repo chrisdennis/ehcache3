@@ -20,17 +20,18 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
-import org.ehcache.clustered.util.BeforeAll;
-import org.ehcache.clustered.util.BeforeAllRule;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.OffHeapResource;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.RuleChain;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -49,11 +50,13 @@ import org.terracotta.management.model.cluster.ServerEntityIdentifier;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.testing.rules.Cluster;
+import org.terracotta.passthrough.IClusterControl;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -66,22 +69,18 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.terracotta.connection.ConnectionFactory.connect;
 
 @SuppressWarnings("rawtypes") // Need to suppress because of a Javac bug giving a rawtype on AbstractManageableNode::isManageable.
+@ExtendWith(TerracottaCluster.class) @Topology(2)
+@OffHeapResource(name = "primary-server-resource", size = 64)
+@OffHeapResource(name = "secondary-server-resource", size = 64)
+@Timeout(90)
 public abstract class AbstractClusteringManagementTest extends ClusteredTests {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractClusteringManagementTest.class);
-
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
 
   protected static CacheManager cacheManager;
   protected static ClientIdentifier ehcacheClientIdentifier;
@@ -96,33 +95,21 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
   }
 
-  @ClassRule
-  public static Cluster CLUSTER = newCluster(2)
-    .in(clusterPath())
-    .withServiceFragment(RESOURCE_CONFIG)
-    .build();
-
-  @Rule
-  public final RuleChain rules = RuleChain.emptyRuleChain()
-    .around(Timeout.seconds(90))
-    .around(new BeforeAllRule(this));
-
   @BeforeAll
-  public void beforeAllTests() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  public static void beforeAllTests(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.waitForRunningPassivesInStandby();
 
     // simulate a TMS client
-    createNmsService();
+    createNmsService(clusterUri);
 
-    initCM();
+    initCM(clusterUri);
 
     initIdentifiers();
 
     sendManagementCallOnEntityToCollectStats();
   }
 
-  @Before
+  @BeforeEach
   public void init() {
     if (nmsService != null) {
       // this call clear the CURRENT arrived messages, but be aware that some other messages can arrive just after the drain
@@ -130,15 +117,15 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() throws Exception {
     tearDownCacheManagerAndStatsCollector();
   }
 
-  protected void initCM() throws InterruptedException {
+  protected static void initCM(URI clusterUri) throws InterruptedException {
     cacheManager = newCacheManagerBuilder()
       // cluster config
-      .with(cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-1"))
+      .with(cluster(clusterUri.resolve("/my-server-entity-1"))
         .autoCreate(server -> server
           .defaultServerResource("primary-server-resource")
           .resourcePool("resource-pool-a", 10, MemoryUnit.MB, "secondary-server-resource") // <2>
@@ -269,12 +256,8 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     }
   }
 
-  public static void createNmsService() throws ConnectionException, EntityConfigurationException {
-    createNmsService(CLUSTER);
-  }
-
-  public static void createNmsService(Cluster cluster) throws ConnectionException, EntityConfigurationException {
-    managementConnection = cluster.newConnection();
+  public static void createNmsService(URI clusterUri) throws ConnectionException, EntityConfigurationException {
+    managementConnection = connect(clusterUri, new Properties());
 
     NmsEntityFactory entityFactory = new NmsEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
     NmsEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new NmsConfig());
@@ -329,7 +312,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     List<ContextualNotification> existingOnes = new ArrayList<>();
 
     // please keep these sout because it is really hard to troubleshoot blocking tests in the beforeClass method in the case we do not receive all notifs.
-//    System.out.println("waitForAllNotifications: " + waitingFor);
+    System.out.println("waitForAllNotifications: " + waitingFor);
 
     Thread t = new Thread(() -> {
       try {
@@ -358,7 +341,7 @@ public abstract class AbstractClusteringManagementTest extends ClusteredTests {
     t.join(30_000); // should be way enough to receive all messages
     t.interrupt(); // we interrupt the thread that is waiting on the message queue
 
-    assertTrue("Still waiting for: " + waitingFor + ", only got: " + existingOnes, waitingFor.isEmpty());
-    assertTrue("Unexpected notification: " + missingOnes + ", only got: " + existingOnes, missingOnes.isEmpty());
+    assertTrue(waitingFor.isEmpty(), "Still waiting for: " + waitingFor + ", only got: " + existingOnes);
+    assertTrue(missingOnes.isEmpty(), "Unexpected notification: " + missingOnes + ", only got: " + existingOnes);
   }
 }

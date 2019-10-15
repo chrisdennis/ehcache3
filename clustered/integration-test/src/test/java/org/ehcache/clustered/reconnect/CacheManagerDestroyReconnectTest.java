@@ -19,21 +19,24 @@ import com.tc.net.proxy.TCPProxy;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.ClientLeaseLength;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.clustered.util.TCPProxyUtil;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.terracotta.passthrough.IClusterControl;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.ehcache.clustered.reconnect.BasicCacheReconnectTest.RESOURCE_CONFIG;
 import static org.ehcache.clustered.util.TCPProxyUtil.setDelay;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@WithSimpleTerracottaCluster
+@ClientLeaseLength(5)
 public class CacheManagerDestroyReconnectTest extends ClusteredTests {
 
 
@@ -41,20 +44,16 @@ public class CacheManagerDestroyReconnectTest extends ClusteredTests {
 
   private static final List<TCPProxy> proxies = new ArrayList<>();
 
-  @ClassRule
-  public static Cluster CLUSTER =
-          newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
+  @BeforeAll
+  public static void waitForActive(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource) throws Exception {
+    clusterControl.waitForActive();
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-
-    URI connectionURI = TCPProxyUtil.getProxyURI(CLUSTER.getConnectionURI(), proxies);
+    URI connectionURI = TCPProxyUtil.getProxyURI(clusterUri, proxies);
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(connectionURI.resolve("/crud-cm"))
-              .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+              .autoCreate(server -> server.defaultServerResource(serverResource)));
     cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
   }

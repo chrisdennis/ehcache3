@@ -18,50 +18,41 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
-import org.terracotta.testing.rules.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
 
+@WithSimpleTerracottaCluster
 public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {
 
-  @Rule
-  public Timeout timeout = new Timeout(1, TimeUnit.MINUTES);
-
   private boolean doThreadDump = true;
-
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
 
   private PersistentCacheManager cacheManager;
   private Cache<Long, String> cache;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  public void setUp(@Cluster URI clusterUri, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new);
     super.setUp();
 
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-
-    cacheManager = createCacheManager(CLUSTER.getConnectionURI());
-    cache = cacheManager.getCache(testName.getMethodName(), Long.class, String.class);
+    cacheManager = createCacheManager(clusterUri, serverResource, cacheName);
+    cache = cacheManager.getCache(cacheName, Long.class, String.class);
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     if (doThreadDump) {
       System.out.println("Performing thread dump");

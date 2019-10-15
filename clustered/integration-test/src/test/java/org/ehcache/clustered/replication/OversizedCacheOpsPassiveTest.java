@@ -21,25 +21,29 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.terracotta.passthrough.IClusterControl;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
-
 /**
  * Test the effect of cache eviction during passive sync.
  */
+@WithSimpleTerracottaCluster @Topology(2)
+@TerracottaCluster.SystemProperty(key = "ehcache.sync.data.gets.threshold", value = "2")
 public class OversizedCacheOpsPassiveTest extends ClusteredTests {
   private static final int MAX_PUTS = 3000;
   private static final int MAX_SWITCH_OVER = 3;
@@ -47,32 +51,17 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
   private static final int CACHE_SIZE_IN_MB = 2;
   private static final String LARGE_VALUE = buildLargeString();
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">2</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER =
-      newCluster(2).in(clusterPath())
-        .withSystemProperty("ehcache.sync.data.gets.threshold", "2")
-        .withServiceFragment(RESOURCE_CONFIG)
-        .build();
-
-  @BeforeClass
-  public static void waitForServers() throws Exception {
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  @BeforeEach
+  public void waitForPassive(@Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.waitForRunningPassivesInStandby();
   }
 
   @Test
-  public void oversizedPuts() throws Exception {
+  public void oversizedPuts(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource) throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
-            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+        .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/crud-cm"))
+            .autoCreate(server -> server.defaultServerResource(serverResource)));
     CountDownLatch syncLatch = new CountDownLatch(2);
 
     CompletableFuture<Void> f1 = CompletableFuture.runAsync(() -> doPuts(clusteredCacheManagerBuilder, syncLatch));
@@ -80,10 +69,10 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
 
     syncLatch.await();
     for (int i = 0; i < MAX_SWITCH_OVER; i++) {
-      CLUSTER.getClusterControl().terminateActive();
-      CLUSTER.getClusterControl().waitForActive();
-      CLUSTER.getClusterControl().startOneServer();
-      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+      clusterControl.terminateActive();
+      clusterControl.waitForActive();
+      clusterControl.startOneServer();
+      clusterControl.waitForRunningPassivesInStandby();
       Thread.sleep(2000);
     }
 
@@ -96,7 +85,7 @@ public class OversizedCacheOpsPassiveTest extends ClusteredTests {
     try (PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true)) {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", CACHE_SIZE_IN_MB, MemoryUnit.MB)))
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated(CACHE_SIZE_IN_MB, MemoryUnit.MB)))
         .build();
 
       syncLatch.countDown();

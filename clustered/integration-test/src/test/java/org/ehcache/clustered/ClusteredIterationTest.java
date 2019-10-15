@@ -17,16 +17,18 @@ package org.ehcache.clustered;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.terracotta.testing.rules.Cluster;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import java.net.URI;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -38,35 +40,22 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.any;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
 
+@WithSimpleTerracottaCluster
+@Execution(ExecutionMode.CONCURRENT)
 public class ClusteredIterationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  @ClassRule
-  public static Cluster CLUSTER =
-    newCluster().in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build();
-
-  @Rule
-  public final TestName testName = new TestName();
-
   @Test
-  public void testIterationTerminatedWithException() {
-    try (CacheManager cacheManager = createTestCacheManager()) {
-      Cache<Long, byte[]> cache = cacheManager.getCache(testName.getMethodName(), Long.class, byte[].class);
+  public void testIterationTerminatedWithException(@Cluster URI clusterUri, @Cluster String serverResource, TestInfo testInfo) {
+    try (CacheManager cacheManager = createTestCacheManager(clusterUri, serverResource, testInfo.getDisplayName())) {
+      Cache<Long, byte[]> cache = cacheManager.getCache(testInfo.getDisplayName(), Long.class, byte[].class);
 
       byte[] data = new byte[101 * 1024];
       cache.put(1L, data);
@@ -87,9 +76,9 @@ public class ClusteredIterationTest extends ClusteredTests {
   }
 
   @Test @SuppressWarnings("unchecked")
-  public void testIterationWithSingleLastBatchIsBroken() {
-    try (CacheManager cacheManager = createTestCacheManager()) {
-      Cache<Long, byte[]> cache = cacheManager.getCache(testName.getMethodName(), Long.class, byte[].class);
+  public void testIterationWithSingleLastBatchIsBroken(@Cluster URI clusterUri, @Cluster String serverResource, TestInfo testInfo) {
+    try (CacheManager cacheManager = createTestCacheManager(clusterUri, serverResource, testInfo.getDisplayName())) {
+      Cache<Long, byte[]> cache = cacheManager.getCache(testInfo.getDisplayName(), Long.class, byte[].class);
 
       byte[] data = new byte[101 * 1024];
       cache.put(1L, data);
@@ -103,9 +92,9 @@ public class ClusteredIterationTest extends ClusteredTests {
   }
 
   @Test
-  public void testIterationWithConcurrentClearedCacheException() {
-    try (CacheManager cacheManager = createTestCacheManager()) {
-      Cache<Long, byte[]> cache = cacheManager.getCache(testName.getMethodName(), Long.class, byte[].class);
+  public void testIterationWithConcurrentClearedCacheException(@Cluster URI clusterUri, @Cluster String serverResource, TestInfo testInfo) {
+    try (CacheManager cacheManager = createTestCacheManager(clusterUri, serverResource, testInfo.getDisplayName())) {
+      Cache<Long, byte[]> cache = cacheManager.getCache(testInfo.getDisplayName(), Long.class, byte[].class);
 
       byte[] data = new byte[10 * 1024];
       Set<Long> initialKeySet = new HashSet<>();
@@ -130,11 +119,11 @@ public class ClusteredIterationTest extends ClusteredTests {
     }
   }
 
-  private CacheManager createTestCacheManager() {
-    return newCacheManagerBuilder().with(cluster(CLUSTER.getConnectionURI().resolve("/iteration-cm"))
-      .autoCreate(server -> server.defaultServerResource("primary-server-resource")))
-      .withCache(testName.getMethodName(), newCacheConfigurationBuilder(Long.class, byte[].class, newResourcePoolsBuilder()
-          .with(clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))).build(true);
+  private CacheManager createTestCacheManager(URI clusterUri, String serverResource, String cacheName) {
+    return newCacheManagerBuilder().with(cluster(clusterUri.resolve("/iteration-cm"))
+      .autoCreate(server -> server.defaultServerResource(serverResource)))
+      .withCache(cacheName, newCacheConfigurationBuilder(Long.class, byte[].class, newResourcePoolsBuilder()
+          .with(clusteredDedicated(1, MemoryUnit.MB)))).build(true);
   }
 
   private static <K, V> Matcher<Cache.Entry<K, V>> isEntry(Matcher<? super K> keyMatcher, Matcher<? super V> valueMatcher) {

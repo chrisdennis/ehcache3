@@ -17,37 +17,38 @@
 package org.ehcache.clustered.replication;
 
 import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.Status;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.util.runners.ParallelParameterized;
-import org.ehcache.clustered.util.ParallelTestCluster;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.terracotta.passthrough.IClusterControl;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,13 +62,14 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static java.util.Arrays.asList;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * This test asserts Active-Passive fail-over with
@@ -75,202 +77,194 @@ import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluste
  * Note that fail-over is happening while client threads are still writing
  * Finally the same key set correctness is asserted.
  */
-@RunWith(ParallelParameterized.class)
+@WithSimpleTerracottaCluster @Topology(2)
+@Execution(ExecutionMode.CONCURRENT)
 public class BasicClusteredCacheOpsReplicationMultiThreadedTest extends ClusteredTests {
 
   private static final int NUM_OF_THREADS = 10;
   private static final int JOB_SIZE = 100;
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  private PersistentCacheManager cacheManager1;
-  private PersistentCacheManager cacheManager2;
-  private Cache<Long, BlobValue> cache1;
-  private Cache<Long, BlobValue> cache2;
-
-  @Parameters(name = "consistency={0}")
-  public static Consistency[] data() {
-    return Consistency.values();
-  }
-
-  @Parameter
-  public Consistency cacheConsistency;
-
-  @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
-  @Rule
-  public final TestName testName = new TestName();
-
-  private List<Cache<Long, BlobValue>> caches;
 
   private final ThreadLocalRandom random = ThreadLocalRandom.current();
 
-  private final ExecutorService executorService = Executors.newWorkStealingPool(NUM_OF_THREADS);
+  @BeforeEach
+  public void startServers(@Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.startAllServers();
+    clusterControl.waitForActive();
+    clusterControl.waitForRunningPassivesInStandby();
+  }
 
-  @Before
-  public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  private static CacheManager createCacheManager(URI clusterUri, String serverResource, String cacheName, Consistency consistency) {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm-replication"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/crud-cm-replication"))
             .timeouts(TimeoutsBuilder.timeouts() // we need to give some time for the failover to occur
                 .read(Duration.ofMinutes(1))
                 .write(Duration.ofMinutes(1)))
-            .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
-    cacheManager1 = clusteredCacheManagerBuilder.build(true);
-    cacheManager2 = clusteredCacheManagerBuilder.build(true);
-    CacheConfiguration<Long, BlobValue> config = CacheConfigurationBuilder
-        .newCacheConfigurationBuilder(Long.class, BlobValue.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder().heap(500, EntryUnit.ENTRIES)
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .withService(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
-        .build();
-
-    cache1 = cacheManager1.createCache(testName.getMethodName(), config);
-    cache2 = cacheManager2.createCache(testName.getMethodName(), config);
-
-    caches = Arrays.asList(cache1, cache2);
+            .autoCreate(server -> server.defaultServerResource(serverResource)))
+      .withCache(cacheName, newCacheConfigurationBuilder(Long.class, BlobValue.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(500, EntryUnit.ENTRIES)
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB)))
+        .withService(ClusteredStoreConfigurationBuilder.withConsistency(consistency)));
+    return clusteredCacheManagerBuilder.build(true);
   }
 
-  @After
-  public void tearDown() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+  @ParameterizedTest @Timeout(180)
+  @EnumSource(Consistency.class)
+  public void testCRUD(Consistency consistency, @Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new) + "-" + consistency;
+    try (CacheManager manager1 = createCacheManager(clusterUri, serverResource, cacheName, consistency);
+         CacheManager manager2 = createCacheManager(clusterUri, serverResource, cacheName, consistency)) {
+      Cache<Long, BlobValue> cache1 = manager1.getCache(cacheName, Long.class, BlobValue.class);
+      Cache<Long, BlobValue> cache2 = manager2.getCache(cacheName, Long.class, BlobValue.class);
+      List<Cache<Long, BlobValue>> caches = asList(cache1, cache2);
 
-    List<Runnable> unprocessed = executorService.shutdownNow();
-    if(cacheManager1 != null && cacheManager1.getStatus() != Status.UNINITIALIZED) {
-      cacheManager1.close();
-    }
-    if(cacheManager2 != null && cacheManager2.getStatus() != Status.UNINITIALIZED) {
-      cacheManager2.close();
-    }
-    assertThat(unprocessed, is(empty()));
-  }
+      ExecutorService executorService = Executors.newWorkStealingPool(NUM_OF_THREADS);
+      try {
+        Set<Long> universalSet = ConcurrentHashMap.newKeySet();
+        List<Future<?>> futures = new ArrayList<>();
 
-  @Test(timeout=180000)
-  public void testCRUD() throws Exception {
-    Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future<?>> futures = new ArrayList<>();
+        caches.forEach(cache -> {
+          for (int i = 0; i < NUM_OF_THREADS; i++) {
+            futures.add(executorService.submit(() -> random.longs().limit(JOB_SIZE).forEach(x -> {
+              cache.put(x, new BlobValue());
+              universalSet.add(x);
+            })));
+          }
+        });
 
-    caches.forEach(cache -> {
-      for (int i = 0; i < NUM_OF_THREADS; i++) {
-        futures.add(executorService.submit(() -> random.longs().limit(JOB_SIZE).forEach(x -> {
-          cache.put(x, new BlobValue());
-          universalSet.add(x);
+        //This step is to add values in local tier randomly to test invalidations happen correctly
+        futures.add(executorService.submit(() -> universalSet.forEach(x -> {
+          cache1.get(x);
+          cache2.get(x);
         })));
+
+        clusterControl.terminateActive();
+
+        drainTasks(futures);
+
+        Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
+        Set<Long> readKeysByCache2AfterFailOver = new HashSet<>();
+        universalSet.forEach(x -> {
+          if (cache1.get(x) != null) {
+            readKeysByCache1AfterFailOver.add(x);
+          }
+          if (cache2.get(x) != null) {
+            readKeysByCache2AfterFailOver.add(x);
+          }
+        });
+
+        assertThat(readKeysByCache2AfterFailOver.size(), equalTo(readKeysByCache1AfterFailOver.size()));
+
+        readKeysByCache2AfterFailOver.stream().forEach(y -> assertThat(readKeysByCache1AfterFailOver.contains(y), is(true)));
+      } finally {
+        assertThat(executorService.shutdownNow(), is(empty()));
       }
-    });
-
-    //This step is to add values in local tier randomly to test invalidations happen correctly
-    futures.add(executorService.submit(() -> universalSet.forEach(x -> {
-      cache1.get(x);
-      cache2.get(x);
-    })));
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    drainTasks(futures);
-
-    Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
-    Set<Long> readKeysByCache2AfterFailOver = new HashSet<>();
-    universalSet.forEach(x -> {
-      if (cache1.get(x) != null) {
-        readKeysByCache1AfterFailOver.add(x);
-      }
-      if (cache2.get(x) != null) {
-        readKeysByCache2AfterFailOver.add(x);
-      }
-    });
-
-    assertThat(readKeysByCache2AfterFailOver.size(), equalTo(readKeysByCache1AfterFailOver.size()));
-
-    readKeysByCache2AfterFailOver.stream().forEach(y -> assertThat(readKeysByCache1AfterFailOver.contains(y), is(true)));
-
+    }
   }
 
-  @Test(timeout=180000)
-  public void testBulkOps() throws Exception {
-    Set<Long> universalSet = ConcurrentHashMap.newKeySet();
-    List<Future<?>> futures = new ArrayList<>();
+  @ParameterizedTest @Timeout(180)
+  @EnumSource(Consistency.class)
+  public void testBulkOps(Consistency consistency, @Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new) + "-" + consistency;
+    try (CacheManager manager1 = createCacheManager(clusterUri, serverResource, cacheName, consistency);
+         CacheManager manager2 = createCacheManager(clusterUri, serverResource, cacheName, consistency)) {
+      Cache<Long, BlobValue> cache1 = manager1.getCache(cacheName, Long.class, BlobValue.class);
+      Cache<Long, BlobValue> cache2 = manager2.getCache(cacheName, Long.class, BlobValue.class);
+      List<Cache<Long, BlobValue>> caches = asList(cache1, cache2);
 
-    caches.forEach(cache -> {
-      for (int i = 0; i < NUM_OF_THREADS; i++) {
-        Map<Long, BlobValue> map = random.longs().limit(JOB_SIZE).collect(HashMap::new, (hashMap, x) -> hashMap.put(x, new BlobValue()), HashMap::putAll);
+      ExecutorService executorService = Executors.newWorkStealingPool(NUM_OF_THREADS);
+      try {
+        Set<Long> universalSet = ConcurrentHashMap.newKeySet();
+        List<Future<?>> futures = new ArrayList<>();
+
+        caches.forEach(cache -> {
+          for (int i = 0; i < NUM_OF_THREADS; i++) {
+            Map<Long, BlobValue> map = random.longs().limit(JOB_SIZE).collect(HashMap::new, (hashMap, x) -> hashMap.put(x, new BlobValue()), HashMap::putAll);
+            futures.add(executorService.submit(() -> {
+              cache.putAll(map);
+              universalSet.addAll(map.keySet());
+            }));
+          }
+        });
+
+        //This step is to add values in local tier randomly to test invalidations happen correctly
         futures.add(executorService.submit(() -> {
-          cache.putAll(map);
-          universalSet.addAll(map.keySet());
+          universalSet.forEach(x -> {
+            cache1.get(x);
+            cache2.get(x);
+          });
         }));
+
+        clusterControl.terminateActive();
+
+        drainTasks(futures);
+
+        Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
+        Set<Long> readKeysByCache2AfterFailOver = new HashSet<>();
+        universalSet.forEach(x -> {
+          if (cache1.get(x) != null) {
+            readKeysByCache1AfterFailOver.add(x);
+          }
+          if (cache2.get(x) != null) {
+            readKeysByCache2AfterFailOver.add(x);
+          }
+        });
+
+        assertThat(readKeysByCache2AfterFailOver.size(), equalTo(readKeysByCache1AfterFailOver.size()));
+
+        readKeysByCache2AfterFailOver.stream().forEach(y -> assertThat(readKeysByCache1AfterFailOver.contains(y), is(true)));
+      } finally {
+        assertThat(executorService.shutdownNow(), is(empty()));
       }
-    });
-
-    //This step is to add values in local tier randomly to test invalidations happen correctly
-    futures.add(executorService.submit(() -> {
-      universalSet.forEach(x -> {
-        cache1.get(x);
-        cache2.get(x);
-      });
-    }));
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    drainTasks(futures);
-
-    Set<Long> readKeysByCache1AfterFailOver = new HashSet<>();
-    Set<Long> readKeysByCache2AfterFailOver = new HashSet<>();
-    universalSet.forEach(x -> {
-      if (cache1.get(x) != null) {
-        readKeysByCache1AfterFailOver.add(x);
-      }
-      if (cache2.get(x) != null) {
-        readKeysByCache2AfterFailOver.add(x);
-      }
-    });
-
-    assertThat(readKeysByCache2AfterFailOver.size(), equalTo(readKeysByCache1AfterFailOver.size()));
-
-    readKeysByCache2AfterFailOver.stream().forEach(y -> assertThat(readKeysByCache1AfterFailOver.contains(y), is(true)));
-
+    }
   }
 
-  @Ignore("This is currently unstable as if the clear does not complete before the failover," +
+  @Disabled("This is currently unstable as if the clear does not complete before the failover," +
           "there is no future operation that will trigger the code in ClusterTierActiveEntity.invokeServerStoreOperation" +
           "dealing with in-flight invalidation reconstructed from reconnect data")
-  @Test(timeout=180000)
-  public void testClear() throws Exception {
-    List<Future<?>> futures = new ArrayList<>();
-    Set<Long> universalSet = ConcurrentHashMap.newKeySet();
+  @ParameterizedTest @Timeout(180)
+  @EnumSource(Consistency.class)
+  public void testClear(Consistency consistency, @Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource, TestInfo testInfo) throws Exception {
+    String cacheName = testInfo.getTestMethod().map(Method::getName).orElseThrow(AssertionError::new) + "-" + consistency;
+    try (CacheManager manager1 = createCacheManager(clusterUri, serverResource, cacheName, consistency);
+         CacheManager manager2 = createCacheManager(clusterUri, serverResource, cacheName, consistency)) {
+      Cache<Long, BlobValue> cache1 = manager1.getCache(cacheName, Long.class, BlobValue.class);
+      Cache<Long, BlobValue> cache2 = manager2.getCache(cacheName, Long.class, BlobValue.class);
+      List<Cache<Long, BlobValue>> caches = asList(cache1, cache2);
 
-    caches.forEach(cache -> {
-      for (int i = 0; i < NUM_OF_THREADS; i++) {
-        Map<Long, BlobValue> map = random.longs().limit(JOB_SIZE).collect(HashMap::new, (hashMap, x) -> hashMap.put(x, new BlobValue()), HashMap::putAll);
-        futures.add(executorService.submit(() -> {
-          cache.putAll(map);
-          universalSet.addAll(map.keySet());
-        }));
+      ExecutorService executorService = Executors.newWorkStealingPool(NUM_OF_THREADS);
+      try {
+        List<Future<?>> futures = new ArrayList<>();
+        Set<Long> universalSet = ConcurrentHashMap.newKeySet();
+
+        caches.forEach(cache -> {
+          for (int i = 0; i < NUM_OF_THREADS; i++) {
+            Map<Long, BlobValue> map = random.longs().limit(JOB_SIZE).collect(HashMap::new, (hashMap, x) -> hashMap.put(x, new BlobValue()), HashMap::putAll);
+            futures.add(executorService.submit(() -> {
+              cache.putAll(map);
+              universalSet.addAll(map.keySet());
+            }));
+          }
+        });
+
+        drainTasks(futures);
+
+        universalSet.forEach(x -> {
+          cache1.get(x);
+          cache2.get(x);
+        });
+
+        Future<?> clearFuture = executorService.submit(() -> cache1.clear());
+
+        clusterControl.terminateActive();
+
+        clearFuture.get();
+
+        universalSet.forEach(x -> assertThat(cache2.get(x), nullValue()));
+      } finally {
+        assertThat(executorService.shutdownNow(), is(empty()));
       }
-    });
-
-    drainTasks(futures);
-
-    universalSet.forEach(x -> {
-      cache1.get(x);
-      cache2.get(x);
-    });
-
-    Future<?> clearFuture = executorService.submit(() -> cache1.clear());
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    clearFuture.get();
-
-    universalSet.forEach(x -> assertThat(cache2.get(x), nullValue()));
-
+    }
   }
 
   private void drainTasks(List<Future<?>> futures) throws InterruptedException, java.util.concurrent.ExecutionException {

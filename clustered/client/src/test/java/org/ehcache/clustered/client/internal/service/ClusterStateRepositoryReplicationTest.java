@@ -19,6 +19,8 @@ package org.ehcache.clustered.client.internal.service;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
+import org.ehcache.clustered.client.internal.PassthroughServer;
+import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
@@ -36,6 +38,7 @@ import org.ehcache.spi.persistence.StateHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -55,6 +58,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(PassthroughServer.class)
+@ServerResource(name = "test", size = 32)
 public class ClusterStateRepositoryReplicationTest {
 
   private PassthroughClusterControl clusterControl;

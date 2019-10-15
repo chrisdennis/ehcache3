@@ -19,15 +19,19 @@ package org.ehcache.clustered.replication;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.ClusteredTests;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
-import org.ehcache.clustered.util.ParallelTestCluster;
-import org.ehcache.clustered.util.runners.Parallel;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
+import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.terracotta.passthrough.IClusterControl;
+
+import java.net.URI;
+import java.util.Properties;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -35,40 +39,25 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.terracotta.testing.rules.BasicExternalClusterBuilder.newCluster;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.terracotta.connection.ConnectionFactory.connect;
 
-@RunWith(Parallel.class)
+@WithSimpleTerracottaCluster @Topology(2)
+@Execution(ExecutionMode.CONCURRENT)
 public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
 
-  private static final String RESOURCE_CONFIG =
-      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
-      + "<ohr:offheap-resources>"
-      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
-      + "</ohr:offheap-resources>" +
-      "</config>\n";
-
-  @ClassRule @Rule
-  public static final ParallelTestCluster CLUSTER = new ParallelTestCluster(newCluster(2).in(clusterPath()).withServiceFragment(RESOURCE_CONFIG).build());
-
-  @Before
-  public void startServers() throws Exception {
-    CLUSTER.getClusterControl().startAllServers();
-    CLUSTER.getClusterControl().waitForActive();
-    CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    CLUSTER.getClusterControl().terminateActive();
+  @BeforeEach
+  public void startServers(@Cluster IClusterControl clusterControl) throws Exception {
+    clusterControl.startAllServers();
+    clusterControl.waitForRunningPassivesInStandby();
   }
 
   @Test
-  public void testDestroyCacheManager() throws Exception {
-    CacheManagerBuilder<PersistentCacheManager> configBuilder = newCacheManagerBuilder().with(cluster(CLUSTER.getConnectionURI().resolve("/destroy-CM"))
-      .autoCreate(server -> server.defaultServerResource("primary-server-resource")));
+  public void testDestroyCacheManager(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl, @Cluster String serverResource) throws Exception {
+    CacheManagerBuilder<PersistentCacheManager> configBuilder = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/destroy-CM"))
+      .autoCreate(server -> server.defaultServerResource(serverResource)));
     PersistentCacheManager cacheManager1 = configBuilder.build(true);
     PersistentCacheManager cacheManager2 = configBuilder.build(true);
 
@@ -81,22 +70,22 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
       e.printStackTrace();
     }
 
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
 
     cacheManager1.createCache("test", newCacheConfigurationBuilder(Long.class, String.class, heap(10).with(clusteredDedicated(10, MB))));
   }
 
   @Test
-  public void testDestroyLockEntity() throws Exception {
-    VoltronReadWriteLock lock1 = new VoltronReadWriteLock(CLUSTER.newConnection(), "my-lock");
+  public void testDestroyLockEntity(@Cluster URI clusterUri, @Cluster IClusterControl clusterControl) throws Exception {
+    VoltronReadWriteLock lock1 = new VoltronReadWriteLock(connect(clusterUri, new Properties()), "my-lock");
     VoltronReadWriteLock.Hold hold1 = lock1.tryReadLock();
 
-    VoltronReadWriteLock lock2 = new VoltronReadWriteLock(CLUSTER.newConnection(), "my-lock");
+    VoltronReadWriteLock lock2 = new VoltronReadWriteLock(connect(clusterUri, new Properties()), "my-lock");
     assertThat(lock2.tryWriteLock(), nullValue());
 
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().waitForActive();
+    clusterControl.terminateActive();
+    clusterControl.waitForActive();
 
     hold1.unlock();
   }

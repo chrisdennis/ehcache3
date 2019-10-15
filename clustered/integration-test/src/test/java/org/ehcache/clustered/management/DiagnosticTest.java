@@ -18,7 +18,7 @@ package org.ehcache.clustered.management;
 import com.terracotta.diagnostic.Diagnostics;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.connection.ConnectionPropertyNames;

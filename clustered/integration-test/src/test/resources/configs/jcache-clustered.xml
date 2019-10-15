@@ -23,7 +23,9 @@
   <ehcache:service>
     <tc:cluster>
       <tc:connection url="${cluster-uri}/jcache-tck"/>
-      <tc:server-side-config client-mode="auto-create"/>
+      <tc:server-side-config client-mode="auto-create">
+        <tc:default-resource from="primary"/>
+      </tc:server-side-config>
     </tc:cluster>
   </ehcache:service>
 
@@ -34,7 +36,7 @@
   <ehcache:cache-template name="clustered">
     <ehcache:resources>
       <ehcache:heap>1000</ehcache:heap>
-      <tc:clustered-dedicated from="primary" unit="MB">4</tc:clustered-dedicated>
+      <tc:clustered-dedicated unit="MB">4</tc:clustered-dedicated>
     </ehcache:resources>
   </ehcache:cache-template>
 </ehcache:config>
