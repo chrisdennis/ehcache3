@@ -46,7 +46,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @WithSimpleTerracottaCluster
 @ClientLeaseLength(5)
@@ -94,14 +94,10 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       clusterControl.terminateActive();
 
       //large iterator fails
-      try {
-        largeIterator.forEachRemaining(k -> {});
-        fail("Expected CacheIterationException");
-      } catch (CacheIterationException e) {
-        assertThat(e.getCause(), instanceOf(StoreAccessException.class));
-        assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
-      }
+      CacheIterationException e = assertThrows(CacheIterationException.class, () -> largeIterator.forEachRemaining(k -> {}));
+      assertThat(e.getCause(), instanceOf(StoreAccessException.class));
+      assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
 
       //small iterator completes... it fetched the entire batch in one shot
       smallIterator.forEachRemaining(k -> smallMap.put(k.getKey(), k.getValue()));
@@ -155,14 +151,10 @@ public class IterationFailureBehaviorTest extends ClusteredTests {
       clusterControl.waitForActive();
 
       //large iterator fails
-      try {
-        largeIterator.forEachRemaining(k -> {});
-        fail("Expected CacheIterationException");
-      } catch (CacheIterationException e) {
-        assertThat(e.getCause(), instanceOf(StoreAccessException.class));
-        assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
-        assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
-      }
+      CacheIterationException e = assertThrows(CacheIterationException.class, () -> largeIterator.forEachRemaining(k -> {}));
+      assertThat(e.getCause(), instanceOf(StoreAccessException.class));
+      assertThat(e.getCause().getCause(), instanceOf(ServerStoreProxyException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(ConnectionClosedException.class));
 
       //small iterator completes... it fetched the entire batch in one shot
       smallIterator.forEachRemaining(k -> smallMap.put(k.getKey(), k.getValue()));

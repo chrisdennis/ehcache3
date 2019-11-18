@@ -33,11 +33,9 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.internal.TestTimeSource;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -47,18 +45,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.*;
 
-@RunWith(Parameterized.class)
-public class DefaultCacheStatisticsTest {
+public abstract class DefaultCacheStatisticsTest {
 
-  /**
-   * Statistics can be disabled on the stores. However, the cache statistics should still work nicely when it's the case.
-   *
-   * @return if store statistics are enabled or disabled
-   */
-  @Parameterized.Parameters
-  public static Object[] data() {
-    return new Object[] { Boolean.FALSE, Boolean.TRUE };
+  public static class StatisticsOn extends DefaultCacheStatisticsTest {
+
+    protected StatisticsOn() {
+      super(true);
+    }
   }
+
+  public static class StatisticsOff extends DefaultCacheStatisticsTest {
+
+    protected StatisticsOff() {
+      super(false);
+    }
+  }
+
 
   private static final String[][] KNOWN_STATISTICS = {
     {
@@ -100,11 +102,11 @@ public class DefaultCacheStatisticsTest {
   private final TestTimeSource timeSource = new TestTimeSource(System.currentTimeMillis());
   private final List<CacheEvent<? extends Long, ? extends String>> expirations = new ArrayList<>();
 
-  public DefaultCacheStatisticsTest(boolean enableStoreStatistics) {
+  protected DefaultCacheStatisticsTest(boolean enableStoreStatistics) {
     this.enableStoreStatistics = enableStoreStatistics;
   }
 
-  @Before
+  @BeforeEach
   public void before() {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
       .newEventListenerConfiguration((CacheEventListener<Long, String>) expirations::add, EventType.EXPIRED)
@@ -128,7 +130,7 @@ public class DefaultCacheStatisticsTest {
     cacheStatistics = new DefaultCacheStatistics(cache);
   }
 
-  @After
+  @AfterEach
   public void after() {
     if (cacheManager != null) {
       cacheManager.close();

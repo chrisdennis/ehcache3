@@ -37,7 +37,7 @@ import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.
 import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.terracotta.exception.EntityNotProvidedException;
 
@@ -133,12 +133,7 @@ public class VoltronReadWriteLockClientTest {
           return null;
         });
 
-        try {
-          success.get(50, TimeUnit.MILLISECONDS);
-          fail("Expected TimeoutException");
-        } catch (TimeoutException e) {
-          //expected
-        }
+        assertThrows(TimeoutException.class, () -> success.get(50, TimeUnit.MILLISECONDS));
       } finally {
         locker.unlock(WRITE);
       }
@@ -166,12 +161,7 @@ public class VoltronReadWriteLockClientTest {
           return null;
         });
 
-        try {
-          success.get(50, TimeUnit.MILLISECONDS);
-          fail("Expected TimeoutException");
-        } catch (TimeoutException e) {
-          //expected
-        }
+        assertThrows(TimeoutException.class, () -> success.get(50, TimeUnit.MILLISECONDS));
       } finally {
         locker.unlock(WRITE);
       }
@@ -199,12 +189,7 @@ public class VoltronReadWriteLockClientTest {
           return null;
         });
 
-        try {
-          success.get(50, TimeUnit.MILLISECONDS);
-          fail("Expected TimeoutException");
-        } catch (TimeoutException e) {
-          //expected
-        }
+        assertThrows(TimeoutException.class, () -> success.get(50, TimeUnit.MILLISECONDS));
       } finally {
         locker.unlock(READ);
       }

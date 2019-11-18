@@ -20,7 +20,7 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityService;
 import org.ehcache.clustered.client.internal.PassthroughServer;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntityService;
@@ -59,7 +59,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(PassthroughServer.class)
-@ServerResource(name = "test", size = 32)
+@OffHeapResource(name = "test", size = 32)
 public class ClusterStateRepositoryReplicationTest {
 
   private PassthroughClusterControl clusterControl;

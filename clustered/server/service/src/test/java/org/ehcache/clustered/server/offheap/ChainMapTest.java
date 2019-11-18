@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.collection.IsEmptyIterable.emptyIterable;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 
@@ -176,13 +176,7 @@ public class ChainMapTest {
   public void testReplaceEmptyChainAtHeadOnEmptyChainFails(boolean steal, int minPageSize, int maxPageSize) {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
 
-    try {
-      map.replaceAtHead("foo", chainOf(), chainOf(buffer(1)));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
-
+    assertThrows(IllegalArgumentException.class, () -> map.replaceAtHead("foo", chainOf(), chainOf(buffer(1))));
     emptyAndValidate(map);
   }
 
@@ -191,13 +185,7 @@ public class ChainMapTest {
     OffHeapChainMap<String> map = new OffHeapChainMap<>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
     map.append("foo", buffer(1));
 
-    try {
-      map.replaceAtHead("foo", chainOf(), chainOf(buffer(2)));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
-
+    assertThrows(IllegalArgumentException.class, () -> map.replaceAtHead("foo", chainOf(), chainOf(buffer(2))));
     emptyAndValidate(map);
   }
 

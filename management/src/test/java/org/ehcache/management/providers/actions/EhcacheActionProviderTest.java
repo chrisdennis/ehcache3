@@ -37,7 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -91,13 +91,7 @@ public class EhcacheActionProviderTest {
   @Test
   public void testCollectStatistics() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig);
-
-    try {
-      ehcacheActionProvider.collectStatistics(null, null, 0);
-      fail("expected UnsupportedOperationException");
-    } catch (UnsupportedOperationException uoe) {
-      // expected
-    }
+    assertThrows(UnsupportedOperationException.class, () -> ehcacheActionProvider.collectStatistics(null, null, 0));
   }
 
   @Test
@@ -147,12 +141,7 @@ public class EhcacheActionProviderTest {
 
     Context context = cmContext_0.with("cacheName", "cache-1");
 
-    try {
-      ehcacheActionProvider.callAction(context, "clear", Void.class);
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> ehcacheActionProvider.callAction(context, "clear", Void.class));
 
     verify(ehcache, times(0)).clear();
   }
@@ -168,12 +157,7 @@ public class EhcacheActionProviderTest {
         .with("cacheManagerName", "cache-manager-1")
         .with("cacheName", "cache-0");
 
-    try {
-      ehcacheActionProvider.callAction(context, "clear", Void.class);
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> ehcacheActionProvider.callAction(context, "clear", Void.class));
 
     verify(ehcache, times(0)).clear();
   }
@@ -190,12 +174,7 @@ public class EhcacheActionProviderTest {
 
     Context context = cmContext_0.with("cacheName", "cache-0");
 
-    try {
-      ehcacheActionProvider.callAction(context, "clearer", Void.class);
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> ehcacheActionProvider.callAction(context, "clearer", Void.class));
   }
 
   @Test
@@ -214,12 +193,7 @@ public class EhcacheActionProviderTest {
         .with("cacheManagerName", "cache-manager-1")
         .with("cacheName", "cache-0");
 
-    try {
-      ehcacheActionProvider.callAction(context, "get", Object.class, new Parameter(0L, Long.class.getName()));
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> ehcacheActionProvider.callAction(context, "get", Object.class, new Parameter(0L, Long.class.getName())));
 
     verify(ehcache, times(0)).get(null);
   }

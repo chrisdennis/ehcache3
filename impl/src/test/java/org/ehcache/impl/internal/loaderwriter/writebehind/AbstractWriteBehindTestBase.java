@@ -49,6 +49,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -427,12 +428,7 @@ public abstract class AbstractWriteBehindTestBase {
       try {
         Future<?> blockedPut = executor.submit(() -> testCache.put("key3", "value"));
 
-        try {
-          blockedPut.get(100, MILLISECONDS);
-          fail("Expected TimeoutException");
-        } catch (TimeoutException e) {
-          //expected
-        }
+        assertThrows(TimeoutException.class, () -> blockedPut.get(100, MILLISECONDS));
         gate.release();
         blockedPut.get(10, SECONDS);
         gate.release(Integer.MAX_VALUE);
@@ -467,12 +463,7 @@ public abstract class AbstractWriteBehindTestBase {
       try {
         Future<?> blockedPut = executor.submit(() -> testCache.put("key3", "value"));
 
-        try {
-          blockedPut.get(100, MILLISECONDS);
-          fail("Expected TimeoutException");
-        } catch (TimeoutException e) {
-          //expected
-        }
+        assertThrows(TimeoutException.class, () -> blockedPut.get(100, MILLISECONDS));
         gate.release();
         blockedPut.get(10, SECONDS);
         gate.release(Integer.MAX_VALUE);

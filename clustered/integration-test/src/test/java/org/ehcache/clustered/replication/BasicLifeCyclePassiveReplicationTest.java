@@ -41,7 +41,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.terracotta.connection.ConnectionFactory.connect;
 
 @WithSimpleTerracottaCluster @Topology(2)
@@ -63,12 +63,8 @@ public class BasicLifeCyclePassiveReplicationTest extends ClusteredTests {
 
     cacheManager2.close();
 
-    try {
-      cacheManager2.destroy();
-      fail("Exception expected");
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    Exception e = assertThrows(Exception.class, () -> cacheManager2.destroy());
+    e.printStackTrace();
 
     clusterControl.terminateActive();
     clusterControl.waitForActive();

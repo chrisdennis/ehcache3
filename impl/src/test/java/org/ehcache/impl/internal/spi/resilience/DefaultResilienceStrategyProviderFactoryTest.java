@@ -39,12 +39,7 @@ public class DefaultResilienceStrategyProviderFactoryTest {
 
   @Test
   public void testWrongConfigTypeFails() {
-    try {
-      new DefaultResilienceStrategyProviderFactory().create(mock(ServiceCreationConfiguration.class));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> new DefaultResilienceStrategyProviderFactory().create(mock(ServiceCreationConfiguration.class)));
   }
 
   @Test

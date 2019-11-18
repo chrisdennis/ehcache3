@@ -35,8 +35,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class PersistentCacheTest {
@@ -128,17 +128,17 @@ public class PersistentCacheTest {
   @Test
   @SuppressWarnings("try")
   public void testPersistentCachesColliding(@TempDir File folder) throws Exception {
-    try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(new CacheManagerPersistenceConfiguration(folder)).build(true)) {
-      CacheManagerBuilder.newCacheManagerBuilder()
-        .with(new CacheManagerPersistenceConfiguration(folder))
-        .build(true)
-        .close();
-      fail("Expected StateTransitionException");
-    } catch (StateTransitionException e) {
-      assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by this process"));
-      assertThat(e.getCause().getCause(), instanceOf(OverlappingFileLockException.class));
-    }
+      try (PersistentCacheManager cm = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(new CacheManagerPersistenceConfiguration(folder)).build(true)) {
+
+        StateTransitionException e = assertThrows(StateTransitionException.class, () -> CacheManagerBuilder.newCacheManagerBuilder()
+          .with(new CacheManagerPersistenceConfiguration(folder))
+          .build(true)
+          .close());
+
+        assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by this process"));
+        assertThat(e.getCause().getCause(), instanceOf(OverlappingFileLockException.class));
+      }
   }
 
   @Test
@@ -147,16 +147,9 @@ public class PersistentCacheTest {
     File pong = new File(folder, "pong");
 
     Future<Integer> external = JavaExec.exec(Locker.class, folder.getAbsolutePath());
-    while(!ping.exists());
-    try {
-      CacheManagerBuilder.newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(folder)).build(true).close();
-      fail("Expected StateTransitionException");
-    } catch (StateTransitionException e) {
-      assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by another process"));
-    } finally {
-      pong.createNewFile();
-      assertThat(external.get(), is(0));
-    }
+    while (!ping.exists()) ;
+    StateTransitionException e = assertThrows(StateTransitionException.class, () -> CacheManagerBuilder.newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(folder)).build(true).close());
+    assertThat(e.getCause().getMessage(), containsString("Persistence directory already locked by another process"));
   }
 
   public static final class Locker {

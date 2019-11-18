@@ -45,7 +45,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -259,12 +259,7 @@ public class XATransactionContextTest {
     when(mockValueHolder.get()).thenReturn(new SoftLock<>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
 
-    try {
-      xaTransactionContext.commit(false);
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException ise) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> xaTransactionContext.commit(false));
   }
 
   @Test
@@ -313,12 +308,7 @@ public class XATransactionContextTest {
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
 
-    try {
-      xaTransactionContext.commitInOnePhase();
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, xaTransactionContext::commitInOnePhase);
   }
 
   @Test
@@ -448,12 +438,7 @@ public class XATransactionContextTest {
 
     timeSource.advanceTime(30000);
 
-    try {
-      xaTransactionContext.commitInOnePhase();
-      fail("expected TransactionTimeoutException");
-    } catch (XATransactionContext.TransactionTimeoutException tte) {
-      // expected
-    }
+    assertThrows(XATransactionContext.TransactionTimeoutException.class, xaTransactionContext::commitInOnePhase);
   }
 
   @Test
@@ -464,12 +449,7 @@ public class XATransactionContextTest {
 
     timeSource.advanceTime(30000);
 
-    try {
-      xaTransactionContext.prepare();
-      fail("expected TransactionTimeoutException");
-    } catch (XATransactionContext.TransactionTimeoutException tte) {
-      // expected
-    }
+    assertThrows(XATransactionContext.TransactionTimeoutException.class, xaTransactionContext::prepare);
   }
 
   @Test

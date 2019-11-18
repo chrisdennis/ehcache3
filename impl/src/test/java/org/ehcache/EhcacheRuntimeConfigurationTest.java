@@ -33,7 +33,7 @@ import java.io.File;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author rism
@@ -79,13 +79,9 @@ public class EhcacheRuntimeConfigurationTest {
       ResourcePoolsBuilder poolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder();
       poolsBuilder = poolsBuilder.heap(20L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB);
       ResourcePools pools = poolsBuilder.build();
-      try {
-        cache.getRuntimeConfiguration().updateResourcePools(pools);
-        fail("We expect illegal arguments");
-      } catch (IllegalArgumentException iae) {
-        // expected
-        assertThat(iae.getMessage(), is("Pools to be updated cannot contain previously undefined resources pools"));
-      }
+
+      IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> cache.getRuntimeConfiguration().updateResourcePools(pools));
+      assertThat(iae.getMessage(), is("Pools to be updated cannot contain previously undefined resources pools"));
       assertThat(cache.getRuntimeConfiguration().getResourcePools()
         .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(10L));
     }

@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -65,11 +65,7 @@ public class LazyOffHeapValueHolderTest {
     ByteBuffer serialized = serializer.serialize(testValue);
     LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<>(1L, serialized, serializer, 10L, 20L, 15L, mock(WriteContext.class));
 
-    try {
-      valueHolder.getBinaryValue();
-      fail("IllegalStateException expected");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("has not been prepared"));
-    }
+    IllegalStateException e = assertThrows(IllegalStateException.class, () -> valueHolder.getBinaryValue());
+    assertThat(e.getMessage(), containsString("has not been prepared"));
   }
 }

@@ -22,7 +22,8 @@ import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnB
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.junit.jupiter.api.Test;
 
 public class WriteBehindConfigurationBuilderTest {
@@ -39,22 +40,12 @@ public class WriteBehindConfigurationBuilderTest {
 
   @Test
   public void testIllegalNonPositiveConcurrencyWhenUnBatched() {
-    try {
-      newUnBatchedWriteBehindConfiguration().concurrencyLevel(0);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> newUnBatchedWriteBehindConfiguration().concurrencyLevel(0));
   }
 
   @Test
   public void testIllegalNonPositiveConcurrencyWhenBatched() {
-    try {
-      newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).concurrencyLevel(0);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).concurrencyLevel(0));
   }
 
   @Test
@@ -69,22 +60,12 @@ public class WriteBehindConfigurationBuilderTest {
 
   @Test
   public void testIllegalNonPositiveQueueSizeWhenUnBatched() {
-    try {
-      newUnBatchedWriteBehindConfiguration().queueSize(0);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> newUnBatchedWriteBehindConfiguration().queueSize(0));
   }
 
   @Test
   public void testIllegalNonPositiveQueueSizeWhenBatched() {
-    try {
-      newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).queueSize(0);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).queueSize(0));
   }
 
   @Test
@@ -104,22 +85,12 @@ public class WriteBehindConfigurationBuilderTest {
 
   @Test
   public void testIllegalNonPositiveBatchDelay() {
-    try {
-      newBatchedWriteBehindConfiguration(0, TimeUnit.MINUTES, 10);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> newBatchedWriteBehindConfiguration(0, TimeUnit.MINUTES, 10));
   }
 
   @Test
   public void testIllegalNonPositiveBatchSize() {
-    try {
-      newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 0);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 0));
   }
 
 }

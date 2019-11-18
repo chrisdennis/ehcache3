@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
@@ -47,8 +48,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 
-@ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "primary-server-resource", size = 64)
+@WithSimplePassthroughServer
 public class ClusteredCacheExpirationTest {
 
   private static final String CLUSTERED_CACHE = "clustered-cache";
@@ -65,7 +65,7 @@ public class ClusteredCacheExpirationTest {
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(6, MemoryUnit.MB)
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated(8, MemoryUnit.MB)))
               .withExpiry(expiry)
             .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
   }
@@ -75,9 +75,10 @@ public class ClusteredCacheExpirationTest {
   }
 
   @Test
-  public void testGetExpirationPropagatedToHigherTiers(@Cluster URI clusterUri) throws CachePersistenceException {
+  public void testGetExpirationPropagatedToHigherTiers(@Cluster URI clusterUri, @Cluster String resource) {
     CacheManagerBuilder<CacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(oneSecondExpiration());
-    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true)) {
+    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.with(cluster(clusterUri.resolve("/cache-manager"))
+      .autoCreate(c -> c.defaultServerResource(resource))).build(true)) {
 
       Map<String, TierStatistics> tierStatistics = statisticsService.getCacheStatistics(CLUSTERED_CACHE).getTierStatistics();
       TierStatistics onheap = tierStatistics.get("OnHeap");
@@ -104,10 +105,11 @@ public class ClusteredCacheExpirationTest {
   }
 
   @Test
-  public void testGetNoExpirationPropagatedToHigherTiers(@Cluster URI clusterUri) throws CachePersistenceException {
+  public void testGetNoExpirationPropagatedToHigherTiers(@Cluster URI clusterUri, @Cluster String resource) {
     CacheManagerBuilder<CacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(ExpiryPolicyBuilder.noExpiration());
 
-    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true)) {
+    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.with(cluster(clusterUri.resolve("/cache-manager"))
+      .autoCreate(c -> c.defaultServerResource(resource))).build(true)) {
 
       Map<String, TierStatistics> tierStatistics = statisticsService.getCacheStatistics(CLUSTERED_CACHE).getTierStatistics();
       TierStatistics onheap = tierStatistics.get("OnHeap");
@@ -125,10 +127,11 @@ public class ClusteredCacheExpirationTest {
   }
 
   @Test
-  public void testPutIfAbsentExpirationPropagatedToHigherTiers(@Cluster URI clusterUri) throws CachePersistenceException {
+  public void testPutIfAbsentExpirationPropagatedToHigherTiers(@Cluster URI clusterUri, @Cluster String resource) {
     CacheManagerBuilder<CacheManager> clusteredCacheManagerBuilder = cacheManagerBuilder(oneSecondExpiration());
 
-    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true)) {
+    try(PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.with(cluster(clusterUri.resolve("/cache-manager"))
+      .autoCreate(c -> c.defaultServerResource(resource))).build(true)) {
       Cache<Long, String> cache = cacheManager.getCache(CLUSTERED_CACHE, Long.class, String.class);
       cache.put(1L, "value"); // store on the cluster
       cache.putIfAbsent(1L, "newvalue"); // push it up on heap tier

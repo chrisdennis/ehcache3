@@ -21,7 +21,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.common.Consistency;
@@ -41,8 +41,8 @@ import java.net.URI;
  * Samples demonstrating use of a clustered cache.
  */
 @ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 128)
-@ServerResource(name = "secondary-server-resource", size = 96)
+@OffHeapResource(name = "primary-server-resource", size = 128)
+@OffHeapResource(name = "secondary-server-resource", size = 96)
 public class GettingStarted {
 
   @Test

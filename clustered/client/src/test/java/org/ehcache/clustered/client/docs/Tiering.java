@@ -22,7 +22,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -37,7 +37,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
  * Tiering
  */
 @ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 64)
+@OffHeapResource(name = "primary-server-resource", size = 64)
 public class Tiering {
 
   @Test
@@ -50,7 +50,7 @@ public class Tiering {
   }
 
   @Test
-  public void threeTiersCacheManager(@Cluster URI clusterUri) throws Exception {
+  public void threeTiersCacheManager(@Cluster URI clusterUri) {
     // tag::threeTiersCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)) // <1>

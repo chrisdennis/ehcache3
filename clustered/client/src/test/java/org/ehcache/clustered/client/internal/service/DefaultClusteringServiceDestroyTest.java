@@ -41,7 +41,7 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
 import static org.ehcache.clustered.common.EhcacheEntityVersion.ENTITY_VERSION;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -152,12 +152,8 @@ public class DefaultClusteringServiceDestroyTest {
 
     DefaultClusteringService service = new DefaultClusteringService(cluster(URI
       .create("mock://localhost/whatever")).build());
-    try {
-      service.start(null);
-      fail("IllegalStateException expected");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("does not exist"));
-    }
+    IllegalStateException e = assertThrows(IllegalStateException.class, () -> service.start(null));
+    assertThat(e.getMessage(), containsString("does not exist"));
   }
 
   @Test

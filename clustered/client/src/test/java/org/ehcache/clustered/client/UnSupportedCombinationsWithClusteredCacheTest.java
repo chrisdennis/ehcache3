@@ -25,6 +25,7 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
@@ -51,12 +52,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * This class should be removed as and when following features are done.
  */
-@ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "primary-server-resource", size = 128)
+@WithSimplePassthroughServer
 public class UnSupportedCombinationsWithClusteredCacheTest {
 
   @Test
-  public void testClusteredCacheWithSynchronousEventListeners(@Cluster URI clusterUri) {
+  public void testClusteredCacheWithSynchronousEventListeners(@Cluster URI clusterUri, @Cluster String resource) {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(new TestEventListener(), EventType.CREATED, EventType.UPDATED)
         .unordered().synchronous();
@@ -64,13 +64,13 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager"))
-            .autoCreate(c -> c));
+            .autoCreate(c -> c.defaultServerResource(resource)));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     try {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
+              .with(ClusteredResourcePoolBuilder.clusteredDedicated(8, MemoryUnit.MB)))
           .withService(cacheEventListenerConfiguration)
           .build();
 
@@ -83,20 +83,19 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
   }
 
   @Test
-  public void testClusteredCacheWithXA(@Cluster URI clusterUri) throws Exception {
+  public void testClusteredCacheWithXA(@Cluster URI clusterUri, @Cluster String resource) {
     TransactionManagerServices.getConfiguration().setJournal("null");
 
     BitronixTransactionManager transactionManager =
         TransactionManagerServices.getTransactionManager();
 
-    PersistentCacheManager persistentCacheManager = null;
     try {
       CacheManagerBuilder.newCacheManagerBuilder()
           .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
-          .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
+          .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource)))
           .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated(8, MemoryUnit.MB))
               )
                   .withService(new XAStoreConfiguration("xaCache"))
                   .build()
@@ -107,39 +106,6 @@ public class UnSupportedCombinationsWithClusteredCacheTest {
     }
 
     transactionManager.shutdown();
-  }
-
-  private static class TestLoaderWriter implements CacheLoaderWriter<Long, String> {
-
-    @Override
-    public String load(Long key) {
-      return null;
-    }
-
-    @Override
-    public Map<Long, String> loadAll(Iterable<? extends Long> keys) {
-      return null;
-    }
-
-    @Override
-    public void write(Long key, String value) {
-
-    }
-
-    @Override
-    public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends String>> entries) {
-
-    }
-
-    @Override
-    public void delete(Long key) {
-
-    }
-
-    @Override
-    public void deleteAll(Iterable<? extends Long> keys) {
-
-    }
   }
 
   private static class TestEventListener implements CacheEventListener<Long, String> {

@@ -25,10 +25,10 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfig
 import org.ehcache.clustered.common.PoolAllocation.Unknown;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  *
@@ -48,235 +48,199 @@ public class ServerStoreCompatibilityTest {
   @Test
   public void testStoredKeyTypeMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                String.class.getName(),
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      String.class.getName(),
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedKeyType existing: " + serverConfiguration.getStoredKeyType() + ", desired: " + clientConfiguration.getStoredKeyType()),is(true));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedKeyType existing: " + serverConfiguration.getStoredKeyType() + ", desired: " + clientConfiguration.getStoredKeyType()), is(true));
   }
 
   @Test
   public void testStoredValueTypeMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                Long.class.getName(),
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      Long.class.getName(),
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedValueType existing: " + serverConfiguration.getStoredValueType() + ", desired: " + clientConfiguration.getStoredValueType()), is(true));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedValueType existing: " + serverConfiguration.getStoredValueType() + ", desired: " + clientConfiguration.getStoredValueType()), is(true));
   }
 
   @Test
   public void testKeySerializerTypeMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                Double.class.getName(),
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      Double.class.getName(),
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "keySerializerType existing: " + serverConfiguration.getKeySerializerType() + ", desired: " + clientConfiguration.getKeySerializerType()),is(true));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "keySerializerType existing: " + serverConfiguration.getKeySerializerType() + ", desired: " + clientConfiguration.getKeySerializerType()), is(true));
   }
 
   @Test
   public void testValueSerializerTypeMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                Double.class.getName(),
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      Double.class.getName(),
+      Consistency.EVENTUAL, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "valueSerializerType existing: " + serverConfiguration.getValueSerializerType() + ", desired: " + clientConfiguration.getValueSerializerType()),is(true));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "valueSerializerType existing: " + serverConfiguration.getValueSerializerType() + ", desired: " + clientConfiguration.getValueSerializerType()), is(true));
   }
 
   @Test
   public void testConsitencyMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.EVENTUAL, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.EVENTUAL, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "consistencyType existing: " + serverConfiguration.getConsistency() + ", desired: " + clientConfiguration.getConsistency()),is(true));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "consistencyType existing: " + serverConfiguration.getConsistency() + ", desired: " + clientConfiguration.getConsistency()), is(true));
   }
 
   @Test
   public void testDedicatedPoolResourceTooBig() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
-    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primary",8),
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primary", 8),
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat(e.getMessage(), containsString("resourcePoolType"));
   }
 
   @Test
   public void testDedicatedPoolResourceTooSmall() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
-    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primary",2),
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primary", 2),
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat(e.getMessage(), containsString("resourcePoolType"));
   }
 
   @Test
   public void testDedicatedPoolResourceNameMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
-    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primaryBad",4),
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Dedicated("primaryBad", 4),
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat(e.getMessage(), containsString("resourcePoolType"));
   }
 
   @Test
   public void testSharedPoolResourceNameMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(SHARED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(new Shared("sharedPoolBad"),
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat(e.getMessage(), containsString("resourcePoolType"));
   }
 
   @Test
@@ -304,27 +268,23 @@ public class ServerStoreCompatibilityTest {
   @Test
   public void testPoolResourceTypeMismatch() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(SHARED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat(e.getMessage(), containsString("resourcePoolType"));
   }
 
   @Test
@@ -352,27 +312,23 @@ public class ServerStoreCompatibilityTest {
   @Test
   public void testServerStoreConfigurationUnknownPoolResourceInvalidKeyType() {
     ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(DEDICATED_POOL_ALLOCATION,
-                                                                                STORED_KEY_TYPE,
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      STORED_KEY_TYPE,
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(UNKNOWN_POOL_ALLOCATION,
-                                                                                String.class.getName(),
-                                                                                STORED_VALUE_TYPE,
-                                                                                KEY_SERIALIZER_TYPE,
-                                                                                VALUE_SERIALIZER_TYPE,
-                                                                                Consistency.STRONG, false);
+      String.class.getName(),
+      STORED_VALUE_TYPE,
+      KEY_SERIALIZER_TYPE,
+      VALUE_SERIALIZER_TYPE,
+      Consistency.STRONG, false);
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedKeyType existing: " + serverConfiguration.getStoredKeyType() + ", desired: " + clientConfiguration.getStoredKeyType()),is(true));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedKeyType existing: " + serverConfiguration.getStoredKeyType() + ", desired: " + clientConfiguration.getStoredKeyType()), is(true));
 
   }
 
@@ -414,11 +370,7 @@ public class ServerStoreCompatibilityTest {
 
     ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
 
-    try {
-      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected InvalidServerStoreConfigurationException");
-    } catch(InvalidServerStoreConfigurationException e) {
-      assertThat(e.getMessage(), containsString("resourcePoolType"));
-    }
+    InvalidServerStoreConfigurationException e = assertThrows(InvalidServerStoreConfigurationException.class, () -> serverStoreCompatibility.verify(serverConfiguration, clientConfiguration));
+    assertThat(e.getMessage(), containsString("resourcePoolType"));
   }
 }

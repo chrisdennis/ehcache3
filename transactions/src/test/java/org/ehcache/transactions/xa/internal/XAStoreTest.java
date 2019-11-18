@@ -97,6 +97,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
@@ -146,23 +147,19 @@ public class XAStoreTest {
   @Test
   public void testXAStoreProviderFailsToRankWhenNoTMProviderConfigured(TestInfo testInfo) throws Exception {
     XAStore.Provider provider = new XAStore.Provider();
-      provider.start(new ServiceProvider<Service>() {
-        @Override
-        public <U extends Service> U getService(Class<U> serviceType) {
-          return null;
-        }
+    provider.start(new ServiceProvider<Service>() {
+      @Override
+      public <U extends Service> U getService(Class<U> serviceType) {
+        return null;
+      }
 
-        @Override
-        public <U extends Service> Collection<U> getServicesOfType(Class<U> serviceType) {
-          return emptySet();
-        }
-      });
-    try {
-      provider.wrapperStoreRank(Collections.singleton(mock(XAStoreConfiguration.class)));
-      fail("Expected exception");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("TransactionManagerProvider"));
-    }
+      @Override
+      public <U extends Service> Collection<U> getServicesOfType(Class<U> serviceType) {
+        return emptySet();
+      }
+    });
+    IllegalStateException e = assertThrows(IllegalStateException.class, () -> provider.wrapperStoreRank(Collections.singleton(mock(XAStoreConfiguration.class))));
+    assertThat(e.getMessage(), containsString("TransactionManagerProvider"));
   }
 
   @Test

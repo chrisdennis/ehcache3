@@ -32,8 +32,8 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Arrays;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 
 @WithSimpleTerracottaCluster
 public class BasicClusteredWriteBehindTest extends WriteBehindTestBase {

@@ -27,7 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(Randomness.class)
 public class ByteBufferInputStreamTest {
@@ -42,67 +42,37 @@ public class ByteBufferInputStreamTest {
   @Test
   public void testNegativeOffsetAndLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], -1, -1);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], -1, -1));
   }
 
   @Test
   public void testNegativeOffsetAndZeroLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], -1, 0);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], -1, 0));
   }
 
   @Test
   public void testZeroOffsetAndNegativeLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], 0, -1);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], 0, -1));
   }
 
   @Test
   public void testZeroOffsetAndExcessiveLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], 0, 33);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], 0, 33));
   }
 
   @Test
   public void testExcessiveOffsetAndZeroLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], 33, 0);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], 33, 0));
   }
 
   @Test
   public void testExcessiveOffsetAndLegalLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], 33, 4);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], 33, 4));
   }
 
   @Test
@@ -128,12 +98,7 @@ public class ByteBufferInputStreamTest {
   @Test
   public void testMaximalOffsetAndFiniteLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], 32, 4);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], 32, 4));
   }
 
   @Test
@@ -176,78 +141,43 @@ public class ByteBufferInputStreamTest {
   @Test
   public void testNegativeOffsetAndMaxLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], -1, Integer.MAX_VALUE);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], -1, Integer.MAX_VALUE));
   }
 
   @Test
   public void testMaxOffsetAndMaxLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], Integer.MAX_VALUE, Integer.MAX_VALUE);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], Integer.MAX_VALUE, Integer.MAX_VALUE));
   }
 
   @Test
   public void testUnitOffsetAndMaxLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], 1, Integer.MAX_VALUE);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], 1, Integer.MAX_VALUE));
   }
 
   @Test
   public void testMinOffsetAndUnitLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], Integer.MIN_VALUE, 1);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], Integer.MIN_VALUE, 1));
   }
 
   @Test
   public void testMinOffsetAndNegativeLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], Integer.MIN_VALUE, -1);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], Integer.MIN_VALUE, -1));
   }
 
   @Test
   public void testUnitOffsetAndMinLength() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(new byte[32], 1, Integer.MIN_VALUE);
-      fail("Expected IndexOutOfBoundsException");
-    } catch (IndexOutOfBoundsException e) {
-      //expected
-    }
+    assertThrows(IndexOutOfBoundsException.class, () -> stream.read(new byte[32], 1, Integer.MIN_VALUE));
   }
 
   @Test
   public void testNullReadArray() {
     ByteBufferInputStream stream = createStream();
-    try {
-      stream.read(null, 0, 0);
-      fail("Expected NullPointerException");
-    } catch (NullPointerException e) {
-      //expected
-    }
+    assertThrows(NullPointerException.class, () -> stream.read(null, 0, 0));
   }
 
   @Test

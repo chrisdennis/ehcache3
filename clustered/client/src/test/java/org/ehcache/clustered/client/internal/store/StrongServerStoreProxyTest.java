@@ -16,7 +16,6 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.Timeouts;
-import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
@@ -41,6 +40,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -427,14 +427,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForReceive(any(), anyBoolean());
     when(clientEntity1.getTimeouts()).thenReturn(Timeouts.DEFAULT);
     when(clientEntity1.isConnected()).thenReturn(true);
-    try {
-      serverStoreProxy1.append(1L, createPayload(1L));
-      fail("Expected ServerStoreProxyException");
-    } catch (ServerStoreProxyException e) {
-      assertThat(e.getCause(), instanceOf(ConnectionClosedException.class));
-    } catch (RuntimeException e) {
-      fail("Expected ServerStoreProxyException");
-    }
+    ServerStoreProxyException e = assertThrows(ServerStoreProxyException.class, () -> serverStoreProxy1.append(1L, createPayload(1L)));
+    assertThat(e.getCause(), instanceOf(ConnectionClosedException.class));
   }
 
   @Test
@@ -444,14 +438,8 @@ public class StrongServerStoreProxyTest extends AbstractServerStoreProxyTest {
     doThrow(new ConnectionClosedException("Test")).when(clientEntity1).invokeAndWaitForRetired(any(), anyBoolean());
     when(clientEntity1.getTimeouts()).thenReturn(Timeouts.DEFAULT);
     when(clientEntity1.isConnected()).thenReturn(true);
-    try {
-      serverStoreProxy1.clear();
-      fail("Expected ServerStoreProxyException");
-    } catch (ServerStoreProxyException e) {
-      assertThat(e.getCause(), instanceOf(ConnectionClosedException.class));
-    } catch (RuntimeException e) {
-      fail("Expected ServerStoreProxyException");
-    }
+    ServerStoreProxyException e = assertThrows(ServerStoreProxyException.class, () -> serverStoreProxy1.clear());
+    assertThat(e.getCause(), instanceOf(ConnectionClosedException.class));
   }
 
 }

@@ -55,7 +55,6 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 /**
@@ -70,12 +69,7 @@ public class DefaultSerializationProviderTest {
     dsp.start(providerContaining());
 
     assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
-    try {
-      dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
-      fail("expected UnsupportedTypeException");
-    } catch (UnsupportedTypeException ute) {
-      // expected
-    }
+    assertThrows(UnsupportedTypeException.class, () -> dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader()));
   }
 
   @Test

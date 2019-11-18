@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -43,9 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author Henri Tremblay
  */
-@ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "primary-server-resource", size = 64)
-@PassthroughServer.ServerResource(name = "secondary-server-resource", size = 64)
+@WithSimplePassthroughServer
 public class ClusteredConcurrencyTest {
 
   private static final String CACHE_NAME = "clustered-cache";
@@ -53,14 +52,14 @@ public class ClusteredConcurrencyTest {
   private AtomicReference<Throwable> exception = new AtomicReference<>();
 
   @Test
-  public void test(@Cluster URI clusterUri) throws Throwable {
+  public void test(@Cluster URI clusterUri, @Cluster String resource) throws Throwable {
     final int THREAD_NUM = 50;
 
     final CountDownLatch latch = new CountDownLatch(THREAD_NUM + 1);
 
     List<Thread> threads = new ArrayList<>(THREAD_NUM);
     for (int i = 0; i < THREAD_NUM; i++) {
-      Thread t1 = new Thread(content(latch, clusterUri));
+      Thread t1 = new Thread(content(latch, clusterUri, resource));
       t1.start();
       threads.add(t1);
     }
@@ -78,17 +77,15 @@ public class ClusteredConcurrencyTest {
     }
   }
 
-  private Runnable content(final CountDownLatch latch, URI clusterUri) {
+  private Runnable content(final CountDownLatch latch, URI clusterUri, String resource) {
     return () -> {
       try {
         CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder = CacheManagerBuilder.newCacheManagerBuilder()
           .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/cache-manager"))
-            .autoCreate(server -> server.defaultServerResource("primary-server-resource")
-              .resourcePool("resource-pool-a", 8, MemoryUnit.MB)
-              .resourcePool("resource-pool-b", 8, MemoryUnit.MB, "secondary-server-resource")))
+            .autoCreate(server -> server.defaultServerResource(resource)))
           .withCache(CACHE_NAME, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
+              .with(ClusteredResourcePoolBuilder.clusteredDedicated(8, MemoryUnit.MB)))
             .withService(new ClusteredStoreConfiguration(Consistency.STRONG)));
 
         latch.countDown();

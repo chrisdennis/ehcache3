@@ -21,18 +21,13 @@ import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class OsgiSafetyTest {
 
   @Test
   public void testOsgiIsNotHere() {
-    try {
-      Class.forName("org.osgi.framework.Bundle");
-      fail("Expected ClassNotFoundException");
-    } catch (ClassNotFoundException e) {
-      //expected
-    }
+    assertThrows(ClassNotFoundException.class, () -> Class.forName("org.osgi.framework.Bundle"));
   }
 
   @Test

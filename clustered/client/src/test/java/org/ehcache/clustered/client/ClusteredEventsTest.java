@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
@@ -53,15 +54,14 @@ import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
-@ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "primary-server-resource", size = 32)
+@WithSimplePassthroughServer
 public class ClusteredEventsTest {
 
   @Test
-  public void testNonExpiringEventSequence(TestInfo runningTest, @Cluster URI clusterUri) {
+  public void testNonExpiringEventSequence(TestInfo runningTest, @Cluster URI clusterUri, @Cluster String resource) {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-        .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(s -> s.defaultServerResource("primary-server-resource")))
+        .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(s -> s.defaultServerResource(resource)))
         .withCache(runningTest.getDisplayName(), newCacheConfigurationBuilder(Long.class, String.class,
           newResourcePoolsBuilder().with(clusteredDedicated(16, MemoryUnit.MB))));
 
@@ -104,13 +104,13 @@ public class ClusteredEventsTest {
   }
 
   @Test
-  public void testExpiringEventSequence(TestInfo runningTest, @Cluster URI clusterUri) {
+  public void testExpiringEventSequence(TestInfo runningTest, @Cluster URI clusterUri, @Cluster String resource) {
     TestTimeSource timeSource = new TestTimeSource();
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
         .using(new TimeSourceConfiguration(timeSource))
-        .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(s -> s.defaultServerResource("primary-server-resource")))
+        .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(s -> s.defaultServerResource(resource)))
         .withCache(runningTest.getDisplayName(), newCacheConfigurationBuilder(Long.class, String.class,
           newResourcePoolsBuilder().with(clusteredDedicated(16, MemoryUnit.MB)))
           .withExpiry(timeToLiveExpiration(Duration.ofMillis(1000))));

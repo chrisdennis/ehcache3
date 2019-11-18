@@ -33,7 +33,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class DefaultLocalPersistenceServiceTest {
@@ -42,13 +41,9 @@ public class DefaultLocalPersistenceServiceTest {
   public void testFailsIfDirectoryExistsButNotWritable(@TempDir File testFolder) throws IOException {
     assumeTrue(testFolder.setWritable(false));
     try {
-      try {
-        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
-        service.start(null);
-        fail("Expected IllegalArgumentException");
-      } catch(IllegalArgumentException e) {
-        assertThat(e.getMessage(), equalTo("Location isn't writable: " + testFolder.getAbsolutePath()));
-      }
+      DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> service.start(null));
+      assertThat(e.getMessage(), equalTo("Location isn't writable: " + testFolder.getAbsolutePath()));
     } finally {
       testFolder.setWritable(true);
     }
@@ -58,13 +53,9 @@ public class DefaultLocalPersistenceServiceTest {
   public void testFailsIfFileExistsButIsNotDirectory(@TempDir File testFolder) throws IOException {
     File f = new File(testFolder, "testFailsIfFileExistsButIsNotDirectory");
     assertTrue(f.createNewFile());
-    try {
-      final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
-      service.start(null);
-      fail("Expected IllegalArgumentException");
-    } catch(IllegalArgumentException e) {
-      assertThat(e.getMessage(), equalTo("Location is not a directory: " + f.getAbsolutePath()));
-    }
+    DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> service.start(null));
+    assertThat(e.getMessage(), equalTo("Location is not a directory: " + f.getAbsolutePath()));
   }
 
   @Test
@@ -72,13 +63,9 @@ public class DefaultLocalPersistenceServiceTest {
     assumeTrue(testFolder.setWritable(false));
     try {
       File f = new File(testFolder, "notallowed");
-      try {
-        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
-        service.start(null);
-        fail("Expected IllegalArgumentException");
-      } catch(IllegalArgumentException e) {
-        assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + f.getAbsolutePath()));
-      }
+      DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> service.start(null));
+      assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + f.getAbsolutePath()));
     } finally {
       testFolder.setWritable(true);
     }

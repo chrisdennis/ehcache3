@@ -37,7 +37,7 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 public class PartitionedOrderedExecutorTest {
@@ -72,14 +72,9 @@ public class PartitionedOrderedExecutorTest {
     executor.shutdown();
     assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
 
-    try {
-      executor.execute(() -> {
+    assertThrows(RejectedExecutionException.class, () -> executor.execute(() -> {
         //no-op
-      });
-      fail("Expected RejectedExecutionException");
-    } catch (RejectedExecutionException e) {
-      //expected
-    }
+      }));
   }
 
   @Test
@@ -92,14 +87,10 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore semaphore = new Semaphore(0);
       executor.execute(semaphore::acquireUninterruptibly);
       executor.shutdown();
-      try {
-        executor.execute(() -> {
-          throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-        });
-        fail("Expected RejectedExecutionException");
-      } catch (RejectedExecutionException e) {
-        //expected
-      }
+      RejectedExecutionException e = assertThrows(RejectedExecutionException.class, () -> executor.execute(() -> {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }));
+//expected
 
       semaphore.release();
       assertThat(executor.awaitTermination(2, MINUTES), is(true));

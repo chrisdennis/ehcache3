@@ -24,7 +24,8 @@ import org.ehcache.Status;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
@@ -39,10 +40,9 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 64)
+@WithSimplePassthroughServer
 public class CacheManagerDestroyTest {
 
   @Test
@@ -56,9 +56,9 @@ public class CacheManagerDestroyTest {
   }
 
   @Test
-  public void testCreateDestroyCreate(@Cluster URI clusterUri) throws Exception {
+  public void testCreateDestroyCreate(@Cluster URI clusterUri, @Cluster String resource) throws Exception {
     PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager"))
-      .autoCreate(c -> c.defaultServerResource("primary-server-resource")))
+      .autoCreate(c -> c.defaultServerResource(resource)))
       .withCache("my-cache", newCacheConfigurationBuilder(Long.class, String.class, heap(10).with(ClusteredResourcePoolBuilder
         .clusteredDedicated(2, MemoryUnit.MB))))
       .build(true);
@@ -70,26 +70,22 @@ public class CacheManagerDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheManagerWithMultipleClients(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager1 = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
-    PersistentCacheManager persistentCacheManager2 = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheManagerWithMultipleClients(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
+    PersistentCacheManager persistentCacheManager2 = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     persistentCacheManager1.close();
 
-    try {
-      persistentCacheManager1.destroy();
-      fail("StateTransitionException expected");
-    } catch (StateTransitionException e) {
-      assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
-    }
+    StateTransitionException e = assertThrows(StateTransitionException.class, () -> persistentCacheManager1.destroy());
+    assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
 
     assertThat(persistentCacheManager1.getStatus(), is(Status.UNINITIALIZED));
 
     assertThat(persistentCacheManager2.getStatus(), is(Status.AVAILABLE));
 
     Cache<Long, String> cache = persistentCacheManager2.createCache("test", newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
+      ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .with(ClusteredResourcePoolBuilder.clusteredDedicated(2, MemoryUnit.MB))));
 
     cache.put(1L, "One");
 
@@ -99,23 +95,19 @@ public class CacheManagerDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheManagerDoesNotAffectsExistingCacheWithExistingClientsConnected(@Cluster URI clusterUri) throws CachePersistenceException {
+  public void testDestroyCacheManagerDoesNotAffectsExistingCacheWithExistingClientsConnected(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
 
-    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
-        .withCache("test", newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
+    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource)))
+      .withCache("test", newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated(2, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true);
 
     persistentCacheManager1.close();
-    try {
-      persistentCacheManager1.destroy();
-      fail("StateTransitionException expected");
-    } catch (StateTransitionException e) {
-      assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
-    }
+    StateTransitionException e = assertThrows(StateTransitionException.class, () -> persistentCacheManager1.destroy());
+    assertThat(e.getMessage(), is("Couldn't acquire cluster-wide maintenance lease"));
 
     Cache<Long, String> cache = persistentCacheManager2.getCache("test", Long.class, String.class);
 
@@ -127,11 +119,11 @@ public class CacheManagerDestroyTest {
   }
 
   @Test
-  public void testCloseCacheManagerSingleClient(@Cluster URI clusterUri) {
-    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
+  public void testCloseCacheManagerSingleClient(@Cluster URI clusterUri, @Cluster String resource) {
+    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource)))
         .withCache("test", newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated(2, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
 
@@ -148,11 +140,11 @@ public class CacheManagerDestroyTest {
   }
 
   @Test
-  public void testCloseCacheManagerMultipleClients(@Cluster URI clusterUri) {
-    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
+  public void testCloseCacheManagerMultipleClients(@Cluster URI clusterUri, @Cluster String resource) {
+    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource)))
         .withCache("test", newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated(2, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true);

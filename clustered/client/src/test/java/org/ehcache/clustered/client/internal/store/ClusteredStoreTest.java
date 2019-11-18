@@ -26,8 +26,7 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityFactory;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.client.internal.store.operations.EternalChainResolver;
 import org.ehcache.clustered.common.internal.store.operations.codecs.OperationsCodec;
@@ -52,7 +51,6 @@ import org.ehcache.spi.serialization.Serializer;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -90,7 +88,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(PassthroughServer.class)
-@ServerResource(name = "defaultResource", size = 8)
+@OffHeapResource(name = "defaultResource", size = 8)
 public class ClusteredStoreTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
@@ -598,12 +596,7 @@ public class ClusteredStoreTest {
     Store.Iterator<Cache.Entry<Long, Store.ValueHolder<String>>> iterator = store.iterator();
 
     assertThat(iterator.hasNext(), is(false));
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   @Test
@@ -615,12 +608,7 @@ public class ClusteredStoreTest {
     assertThat(iterator.hasNext(), is(true));
     assertThat(iterator.next(), isEntry(1L, "foo"));
     assertThat(iterator.hasNext(), is(false));
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   @Test
@@ -650,12 +638,7 @@ public class ClusteredStoreTest {
       assertThat(iterator.hasNext(), is(false));
     }
 
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   @Test
@@ -670,12 +653,7 @@ public class ClusteredStoreTest {
     assertThat(iterator.hasNext(), is(true));
     assertThat(iterator.next(), isEntry(1L, "foo"));
     assertThat(iterator.hasNext(), is(false));
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   @Test
@@ -704,12 +682,7 @@ public class ClusteredStoreTest {
       assertThat(iterator.hasNext(), is(false));
     }
 
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   private <K, V> Matcher<Cache.Entry<K, Store.ValueHolder<V>>> isEntry(K key, V value) {

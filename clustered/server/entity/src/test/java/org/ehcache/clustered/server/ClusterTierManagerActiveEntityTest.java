@@ -477,12 +477,8 @@ public class ClusterTierManagerActiveEntityTest {
 
     activeEntity.invokeActive(context, MESSAGE_FACTORY.prepareForDestroy());
 
-    try {
-      ehcacheStateService.validate(null);
-      fail("DestroyInProgressException expected");
-    } catch (DestroyInProgressException e) {
-      assertThat(e.getMessage(), containsString("in progress for destroy"));
-    }
+    DestroyInProgressException e = assertThrows(DestroyInProgressException.class, () -> ehcacheStateService.validate(null));
+    assertThat(e.getMessage(), containsString("in progress for destroy"));
   }
 
   @Test

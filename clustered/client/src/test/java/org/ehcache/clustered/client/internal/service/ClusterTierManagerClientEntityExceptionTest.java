@@ -42,9 +42,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * is placed accordingly.
  */
 @ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "defaultResource", size = 128)
-@PassthroughServer.ServerResource(name = "serverResource1", size = 32)
-@PassthroughServer.ServerResource(name = "serverResource2", size = 32)
+@PassthroughServer.OffHeapResource(name = "defaultResource", size = 128)
+@PassthroughServer.OffHeapResource(name = "serverResource1", size = 32)
+@PassthroughServer.OffHeapResource(name = "serverResource2", size = 32)
 public class ClusterTierManagerClientEntityExceptionTest {
 
   /**

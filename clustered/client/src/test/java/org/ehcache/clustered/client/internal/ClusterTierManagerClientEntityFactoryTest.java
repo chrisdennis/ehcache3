@@ -27,7 +27,7 @@ import org.terracotta.connection.Connection;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -80,12 +80,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
-    try {
-      factory.create("test", null);
-      fail("Expecting ClusterTierManagerCreationException");
-    } catch (ClusterTierManagerCreationException e) {
-      // expected
-    }
+    assertThrows(ClusterTierManagerCreationException.class, () -> factory.create("test", null));
   }
 
   @Test
@@ -96,12 +91,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
-    try {
-      factory.create("test", null);
-      fail("Expected EntityAlreadyExistsException");
-    } catch (EntityAlreadyExistsException e) {
-      //expected
-    }
+    assertThrows(EntityAlreadyExistsException.class, () -> factory.create("test", null));
   }
 
   @Test
@@ -126,12 +116,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
-    try {
-      factory.retrieve("test", null);
-      fail("Expecting IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> factory.retrieve("test", null));
     verify(entity).validate(isNull());
     verify(entity).close();
   }
@@ -146,12 +131,7 @@ public class ClusterTierManagerClientEntityFactoryTest {
     addMockUnlockedLock(connection, "VoltronReadWriteLock-ClusterTierManagerClientEntityFactory-AccessLock-test");
 
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(connection);
-    try {
-      factory.retrieve("test", null);
-      fail("Expected EntityNotFoundException");
-    } catch (EntityNotFoundException e) {
-      //expected
-    }
+    assertThrows(EntityNotFoundException.class, () -> factory.retrieve("test", null));
   }
 
   @Test

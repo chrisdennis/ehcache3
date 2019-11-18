@@ -16,7 +16,6 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.Matchers;
-import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy.ServerCallback;
 import org.ehcache.clustered.common.Consistency;
@@ -44,6 +43,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.CombinableMatcher.either;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -396,12 +396,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     Iterator<Chain> iterator = serverStoreProxy.iterator();
 
     assertThat(iterator.hasNext(), is(false));
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   @Test
@@ -416,12 +411,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     assertThat(iterator.hasNext(), is(true));
     assertThat(iterator.next(), hasPayloads(42L));
     assertThat(iterator.hasNext(), is(false));
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   @Test
@@ -437,12 +427,7 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
     assertThat(iterator.hasNext(), is(true));
     assertThat(iterator.next(), hasPayloads(42L, 43L));
     assertThat(iterator.hasNext(), CoreMatchers.is(false));
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 
   @Test
@@ -473,11 +458,6 @@ public class CommonServerStoreProxyTest extends AbstractServerStoreProxyTest {
       assertThat(iterator.hasNext(), is(false));
     }
 
-    try {
-      iterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, () -> iterator.next());
   }
 }

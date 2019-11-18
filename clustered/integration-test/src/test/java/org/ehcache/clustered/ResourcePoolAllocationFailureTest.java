@@ -37,7 +37,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @WithSimpleTerracottaCluster
 public class ResourcePoolAllocationFailureTest extends ClusteredTests {
@@ -49,17 +49,13 @@ public class ResourcePoolAllocationFailureTest extends ClusteredTests {
       .withService(cluster(clusterUri.resolve("/crud-cm")).autoCreate(server -> server.defaultServerResource(serverResource)))
       .withCache("test-cache", newCacheConfigurationBuilder(Long.class, String.class,
         newResourcePoolsBuilder().with(clusteredDedicated(10, MemoryUnit.KB)))
-      .withService(new ClusteredStoreConfiguration(Consistency.EVENTUAL)))
+        .withService(new ClusteredStoreConfiguration(Consistency.EVENTUAL)))
       .build();
 
-    try {
-      newCacheManager(illegal).init();
-      fail("InvalidServerStoreConfigurationException expected");
-    } catch (Exception e) {
-      Throwable cause = getCause(e, PerpetualCachePersistenceException.class);
-      assertThat(cause, notNullValue());
-      assertThat(cause.getMessage(), startsWith("Unable to create"));
-    }
+    Exception e = assertThrows(Exception.class, () -> newCacheManager(illegal).init());
+    Throwable cause = getCause(e, PerpetualCachePersistenceException.class);
+    assertThat(cause, notNullValue());
+    assertThat(cause.getMessage(), startsWith("Unable to create"));
 
     Configuration legal = illegal.derive().updateCache("test-cache",
       builder -> builder.updateResourcePools(

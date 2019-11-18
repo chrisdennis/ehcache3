@@ -18,7 +18,6 @@ package org.ehcache.clustered.writebehind;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.testing.extension.TerracottaCluster;
 import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
 import org.ehcache.clustered.testing.extension.TerracottaCluster.Topology;
 import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;

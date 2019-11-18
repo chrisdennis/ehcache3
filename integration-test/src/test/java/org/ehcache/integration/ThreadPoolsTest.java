@@ -16,14 +16,14 @@
 package org.ehcache.integration;
 
 import org.ehcache.CacheManager;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.junit.jupiter.api.Test;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Ludovic Orban
@@ -38,14 +38,8 @@ public class ThreadPoolsTest {
         .using(executionServiceConfiguration)
         .build(true);
 
-    try {
-      cacheManager.createCache("testCache",
-          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-              .build());
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> cacheManager.createCache("testCache",
+          newCacheConfigurationBuilder(Long.class, String.class, heap(10)).build()));
 
     cacheManager.close();
   }
@@ -60,7 +54,7 @@ public class ThreadPoolsTest {
         .build(true);
 
     cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+        newCacheConfigurationBuilder(Long.class, String.class, heap(10))
             .build());
 
     cacheManager.close();
@@ -75,7 +69,7 @@ public class ThreadPoolsTest {
         .build(true);
 
     cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+        newCacheConfigurationBuilder(Long.class, String.class, heap(10))
             .build());
 
     cacheManager.close();
@@ -90,14 +84,8 @@ public class ThreadPoolsTest {
         .using(executionServiceConfiguration)
         .build(true);
 
-    try {
-      cacheManager.createCache("testCache",
-          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-              .build());
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> cacheManager.createCache("testCache",
+          newCacheConfigurationBuilder(Long.class, String.class, heap(10)).build()));
 
     cacheManager.close();
   }

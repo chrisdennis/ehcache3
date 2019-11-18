@@ -58,7 +58,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Ludovic Orban
@@ -121,12 +121,7 @@ public class XACacheTest {
     nonTxCache.put(1L, "eins");
     assertThat(nonTxCache.get(1L), equalTo("eins"));
 
-    try {
-      txCache1.put(1L, "one");
-      fail("expected XACacheException");
-    } catch (XACacheException e) {
-      // expected
-    }
+    assertThrows(XACacheException.class, () -> txCache1.put(1L, "one"));
 
     transactionManager.begin();
     {
@@ -232,12 +227,7 @@ public class XACacheTest {
         throw new AbortError();
       }
     });
-    try {
-      transactionManager.commit();
-      fail("expected AbortError");
-    } catch (AbortError e) {
-      // expected
-    }
+    assertThrows(AbortError.class, () -> transactionManager.commit());
 
     cacheManager.close();
     txCache1 = null;
@@ -392,12 +382,7 @@ public class XACacheTest {
       txCache2.put(1L, "un");
       testTimeSource.advanceTime(2000);
     }
-    try {
-      transactionManager.commit();
-      fail("Expected RollbackException");
-    } catch (RollbackException e) {
-      // expected
-    }
+    assertThrows(RollbackException.class, transactionManager::commit);
 
     transactionManager.setTransactionTimeout(1);
     transactionManager.begin();
@@ -405,19 +390,9 @@ public class XACacheTest {
       txCache1.put(1L, "one");
       txCache2.put(1L, "un");
       testTimeSource.advanceTime(2000);
-      try {
-        txCache2.put(1L, "uno");
-        fail("expected XACacheException");
-      } catch (XACacheException e) {
-        // expected
-      }
+      assertThrows(XACacheException.class, () -> txCache2.put(1L, "uno"));
     }
-    try {
-      transactionManager.commit();
-      fail("Expected RollbackException");
-    } catch (RollbackException e) {
-      // expected
-    }
+    assertThrows(RollbackException.class, transactionManager::commit);
   }
 
 

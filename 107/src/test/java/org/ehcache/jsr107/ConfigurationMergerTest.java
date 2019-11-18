@@ -57,6 +57,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -234,12 +235,9 @@ public class ConfigurationMergerTest {
         .setReadThrough(true)
         .setCacheLoaderFactory(factory);
 
-    try {
-      merger.mergeConfigurations("cache", configuration);
-      fail("Loader factory should have thrown");
-    } catch (CacheException mce) {
-      verify((Closeable) expiryPolicy).close();
-    }
+    assertThrows(CacheException.class, () -> merger.mergeConfigurations("cache", configuration),
+      "Loader factory should have thrown");
+    verify((Closeable) expiryPolicy).close();
   }
 
   @Test
@@ -253,13 +251,10 @@ public class ConfigurationMergerTest {
         .setCacheLoaderFactory(factoryOf(loader))
         .addCacheEntryListenerConfiguration(new ThrowingCacheEntryListenerConfiguration());
 
-    try {
-      merger.mergeConfigurations("cache", configuration);
-      fail("Loader factory should have thrown");
-    } catch (CacheException mce) {
-      verify((Closeable) expiryPolicy).close();
-      verify((Closeable) loader).close();
-    }
+    assertThrows(CacheException.class, () -> merger.mergeConfigurations("cache", configuration),
+      "Loader factory should have thrown");
+    verify((Closeable) expiryPolicy).close();
+    verify((Closeable) loader).close();
   }
 
   @Test
@@ -283,12 +278,9 @@ public class ConfigurationMergerTest {
     config.setTypes(Long.class, String.class);
     config.setReadThrough(true);
 
-    try {
-      merger.mergeConfigurations("cache", config);
-      fail("Expected exception as no CacheLoader factory is configured and read-through is enabled.");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("read-through"));
-    }
+    IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> merger.mergeConfigurations("cache", config),
+      "Expected exception as no CacheLoader factory is configured and read-through is enabled.");
+    assertThat(failure.getMessage(), containsString("read-through"));
   }
 
   @Test
@@ -296,13 +288,9 @@ public class ConfigurationMergerTest {
     MutableConfiguration<Long, String> config = new MutableConfiguration<>();
     config.setTypes(Long.class, String.class);
     config.setWriteThrough(true);
-
-    try {
-      merger.mergeConfigurations("cache", config);
-      fail("Expected exception as no CacheLoader factory is configured and read-through is enabled.");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString("write-through"));
-    }
+    IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> merger.mergeConfigurations("cache", config),
+      "Expected exception as no CacheLoader factory is configured and read-through is enabled.");
+    assertThat(failure.getMessage(), containsString("write-through"));
   }
 
   @Test

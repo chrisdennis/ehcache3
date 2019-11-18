@@ -30,7 +30,7 @@ import java.util.concurrent.ExecutorService;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -71,12 +71,7 @@ public class CacheEventDispatcherFactoryImplTest {
 
     @SuppressWarnings("unchecked")
     Store<Object, Object> store = mock(Store.class);
-    try {
-      cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias"));
-      fail("expected IllegalArgumentException");
-    } catch (IllegalArgumentException iae) {
-      // expected
-    }
+    assertThrows(IllegalArgumentException.class, () -> cacheEventDispatcherFactory.createCacheEventDispatcher(store, new DefaultCacheEventDispatcherConfiguration("myAlias")));
   }
 
   @Test

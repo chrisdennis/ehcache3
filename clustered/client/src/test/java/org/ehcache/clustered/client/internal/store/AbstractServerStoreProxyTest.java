@@ -24,7 +24,6 @@ import org.ehcache.clustered.client.internal.ClusterTierManagerClientEntityServi
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.ClientEntityService;
 import org.ehcache.clustered.client.internal.PassthroughServer.ServerEntityService;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -34,22 +33,17 @@ import org.ehcache.clustered.server.ClusterTierManagerServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
-import org.terracotta.entity.EntityServerService;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
 
-import static java.util.Arrays.asList;
-
 @ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "defaultResource", size = 128)
+@PassthroughServer.OffHeapResource(name = "defaultResource", size = 128)
 @ServerEntityService(ClusterTierManagerServerEntityService.class)
 @ServerEntityService(VoltronReadWriteLockServerEntityService.class)
 @ClientEntityService(ClusterTierManagerClientEntityService.class)

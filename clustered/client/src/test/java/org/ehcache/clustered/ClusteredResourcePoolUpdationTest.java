@@ -38,8 +38,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "primary-server-resource", size = 8)
-@PassthroughServer.ServerResource(name = "secondary-server-resource", size = 8)
+@PassthroughServer.OffHeapResource(name = "primary-server-resource", size = 8)
+@PassthroughServer.OffHeapResource(name = "secondary-server-resource", size = 8)
 public class ClusteredResourcePoolUpdationTest {
 
   private static PersistentCacheManager cacheManager;

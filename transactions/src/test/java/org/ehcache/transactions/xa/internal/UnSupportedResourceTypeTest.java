@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,12 +47,7 @@ public class UnSupportedResourceTypeTest {
     when(configuration.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getResourceTypeSet()).thenReturn(resourceTypes);
 
-    try {
-      provider.createStore(configuration, (ServiceConfiguration<?, ?>) null);
-      fail("IllegalStateException expected");
-    } catch (IllegalStateException e) {
-
-    }
+    IllegalStateException e = assertThrows(IllegalStateException.class, () -> provider.createStore(configuration, (ServiceConfiguration<?, ?>) null));
 
   }
 

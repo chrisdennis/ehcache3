@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -65,12 +65,7 @@ public class CompactJavaSerializerTest {
     Date object = new Date();
 
     failing.set(true);
-    try {
-      serializerA.serialize(object);
-      fail("Expected RuntimeException");
-    } catch (RuntimeException e) {
-      //expected
-    }
+    assertThrows(RuntimeException.class, () -> serializerA.serialize(object));
 
     failing.set(false);
     ByteBuffer serialized = serializerA.serialize(object);

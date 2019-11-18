@@ -148,7 +148,11 @@ public class TerracottaCluster implements Extension, BeforeAllCallback, BeforeEa
     if (URI.class.equals(type)) {
       return cluster.getConnectionUri();
     } else if (IClusterControl.class.equals(type)) {
-      return cluster.getClusterControl();
+      if (extensionContext.getTestMethod().isPresent()) {
+        return cluster.getClusterControl();
+      } else {
+        return cluster.getDirectClusterControl();
+      }
     } else if (String.class.equals(type)) {
       return cluster.getFirstResource();
     } else {
@@ -245,6 +249,10 @@ public class TerracottaCluster implements Extension, BeforeAllCallback, BeforeEa
 
     IClusterControl getClusterControl() {
       return control;
+    }
+
+    IClusterControl getDirectClusterControl() {
+      return cluster.getClusterControl();
     }
 
     void register(ExtensionContext context) throws InterruptedException {

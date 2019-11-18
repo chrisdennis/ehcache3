@@ -25,7 +25,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.createClass
 import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  *
@@ -60,10 +60,7 @@ public class FieldTypeChangeTest {
 
     pushTccl(createClassNameRewritingLoader(Foo_R.class));
     try {
-      s.read(s.serialize(a));
-      fail("Expected ClassCastException");
-    } catch (ClassCastException e) {
-      //expected
+      assertThrows(ClassCastException.class, () -> s.read(s.serialize(a)));
     } finally {
       popTccl();
     }

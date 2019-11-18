@@ -22,7 +22,7 @@ import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.nio.ByteBuffer;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 public class AssertingOffHeapValueHolderTest {
@@ -30,33 +30,18 @@ public class AssertingOffHeapValueHolderTest {
   @Test @SuppressWarnings("unchecked")
   public void testLockingAssertionsOnDetach() {
     OffHeapValueHolder<String> valueHolder = new AssertingOffHeapValueHolder<>(1L, ByteBuffer.allocate(1), mock(Serializer.class), 10L, 20L, 15L, mock(WriteContext.class));
-    try {
-      valueHolder.detach();
-      fail("Expected AssertionError");
-    } catch (AssertionError e) {
-      //expected
-    }
+    assertThrows(AssertionError.class, () -> valueHolder.detach());
   }
 
   @Test @SuppressWarnings("unchecked")
   public void testLockingAssertionsOnForceDeserialize() {
     OffHeapValueHolder<String> valueHolder = new AssertingOffHeapValueHolder<>(1L, ByteBuffer.allocate(1), mock(Serializer.class), 10L, 20L, 15L, mock(WriteContext.class));
-    try {
-      valueHolder.forceDeserialization();
-      fail("Expected AssertionError");
-    } catch (AssertionError e) {
-      //expected
-    }
+    assertThrows(AssertionError.class, () -> valueHolder.forceDeserialization());
   }
 
   @Test @SuppressWarnings("unchecked")
   public void testLockingAssertionsOnWriteBack() {
     OffHeapValueHolder<String> valueHolder = new AssertingOffHeapValueHolder<>(1L, ByteBuffer.allocate(1), mock(Serializer.class), 10L, 20L, 15L, mock(WriteContext.class));
-    try {
-      valueHolder.writeBack();
-      fail("Expected AssertionError");
-    } catch (AssertionError e) {
-      //expected
-    }
+    assertThrows(AssertionError.class, () -> valueHolder.writeBack());
   }
 }

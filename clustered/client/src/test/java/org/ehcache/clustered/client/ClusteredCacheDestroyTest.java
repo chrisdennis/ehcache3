@@ -25,7 +25,8 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -48,8 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 16)
+@WithSimplePassthroughServer
 public class ClusteredCacheDestroyTest {
 
   private static final String CLUSTERED_CACHE = "clustered-cache";
@@ -57,12 +57,13 @@ public class ClusteredCacheDestroyTest {
   private static final CacheManagerBuilder<CacheManager> BASE_BUILDER =
       newCacheManagerBuilder().withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated(8, MemoryUnit.MB)))
               .withService(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Test
-  public void testDestroyCacheWhenSingleClientIsConnected(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheWhenSingleClientIsConnected(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager"))
+      .autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     persistentCacheManager.destroyCache(CLUSTERED_CACHE);
 
@@ -74,13 +75,13 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyFreesUpTheAllocatedResource(@Cluster URI clusterUri) throws CachePersistenceException {
+  public void testDestroyFreesUpTheAllocatedResource(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
 
-    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     CacheConfigurationBuilder<Long, String> configBuilder = newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 10, MemoryUnit.MB)));
+            .with(ClusteredResourcePoolBuilder.clusteredDedicated(10, MemoryUnit.MB)));
 
     try {
       Cache<Long, String> anotherCache = persistentCacheManager.createCache("another-cache", configBuilder);
@@ -107,13 +108,9 @@ public class ClusteredCacheDestroyTest {
 
     cacheManager.destroyCache(CLUSTERED_CACHE);
 
-    try {
-      cacheManager.createCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
-          .with(clustered())));
-      fail("Expected exception as clustered store no longer exists");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString(CLUSTERED_CACHE));
-    }
+    IllegalStateException e = assertThrows(IllegalStateException.class, () -> cacheManager.createCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
+          .with(clustered()))));
+    assertThat(e.getMessage(), containsString(CLUSTERED_CACHE));
     cacheManager.close();
   }
 

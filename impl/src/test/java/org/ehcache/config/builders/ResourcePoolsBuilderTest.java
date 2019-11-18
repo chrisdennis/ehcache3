@@ -36,16 +36,12 @@ public class ResourcePoolsBuilderTest {
 
   @Test
   public void testPreExistingWith() throws Exception {
-    ResourcePoolsBuilder builder = ResourcePoolsBuilder.newResourcePoolsBuilder();
-    builder = builder.heap(8, MemoryUnit.MB);
+    ResourcePoolsBuilder builder = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(8, MemoryUnit.MB);
 
-    try {
-      builder.with(new SizedResourcePoolImpl<>(HEAP, 16, MemoryUnit.MB, false));
-      fail("Expecting IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(),
-          Matchers.containsString("Can not add 'Pool {16 MB heap}'; configuration already contains 'Pool {8 MB heap}'"));
-    }
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+      () -> builder.with(new SizedResourcePoolImpl<>(HEAP, 16, MemoryUnit.MB, false)));
+    assertThat(e.getMessage(),
+        Matchers.containsString("Can not add 'Pool {16 MB heap}'; configuration already contains 'Pool {8 MB heap}'"));
   }
 
   @Test

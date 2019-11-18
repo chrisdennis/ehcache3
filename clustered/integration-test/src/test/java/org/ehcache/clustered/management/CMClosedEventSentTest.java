@@ -22,7 +22,6 @@ import org.ehcache.clustered.testing.extension.TerracottaCluster;
 import org.ehcache.clustered.testing.extension.TerracottaCluster.ClientLeaseLength;
 import org.ehcache.clustered.testing.extension.TerracottaCluster.Cluster;
 import org.ehcache.clustered.testing.extension.TerracottaCluster.OffHeapResource;
-import org.ehcache.clustered.testing.extension.TerracottaCluster.WithSimpleTerracottaCluster;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;

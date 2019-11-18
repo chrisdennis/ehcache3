@@ -16,6 +16,7 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.config.units.MemoryUnit;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -44,24 +45,37 @@ import static org.junit.platform.commons.support.ReflectionSupport.newInstance;
 
 public class PassthroughServer implements ParameterResolver {
 
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ElementType.TYPE, ElementType.METHOD})
+  @ExtendWith(PassthroughServer.class)
+  @OffHeapResource(name = "primary-server-resource", size = 64)
+  public @interface WithSimplePassthroughServer {}
+
   private static final Namespace NAMESPACE = Namespace.create(PassthroughServer.class);
   private static final String URI_PREFIX = "terracotta://example.com";
 
   @Override
   public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-    return parameterContext.isAnnotated(Cluster.class) && URI.class.equals(parameterContext.getParameter().getType());
+    if (parameterContext.isAnnotated(Cluster.class)) {
+      Class<?> type = parameterContext.getParameter().getType();
+      return URI.class.equals(type) || String.class.equals(type);
+    } else {
+      return false;
+    }
   }
 
   @Override @SuppressWarnings({"unchecked", "rawtypes"})
   public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-    return extensionContext.getStore(NAMESPACE).getOrComputeIfAbsent("cluster", key -> {
+    ClusterDetails cluster = extensionContext.getStore(NAMESPACE).getOrComputeIfAbsent("cluster", key -> {
 
       UnitTestConnectionService.PassthroughServerBuilder builder = new UnitTestConnectionService.PassthroughServerBuilder();
 
 
-      for (ServerResource resource : searchForRepeatableAnnotations(extensionContext, ServerResource.class)) {
+      List<OffHeapResource> offHeapResources = searchForRepeatableAnnotations(extensionContext, OffHeapResource.class);
+      for (OffHeapResource resource : offHeapResources) {
         builder = builder.resource(resource.name(), resource.size(), resource.unit());
       }
+      String firstResource = offHeapResources.isEmpty() ? null : offHeapResources.get(0).name();
 
       for (ServerEntityService service : searchForRepeatableAnnotations(extensionContext, ServerEntityService.class)) {
         builder = builder.serverEntityService(newInstance(service.value()));
@@ -97,19 +111,26 @@ public class PassthroughServer implements ParameterResolver {
           URI uri = URI.create(URI_PREFIX + ":" + i);
           UnitTestConnectionService.add(uri, builder.build());
           extensionContext.publishReportEntry("PassthroughServer", uri.toString());
-          return new Holder<URI>(uri) {
-
-            @Override
-            public void close() {
-              UnitTestConnectionService.remove(get());
-            }
-          };
+          return new ClusterDetails(uri, firstResource);
         } catch (AssertionError e) {
           //retry
         }
       }
       throw new AssertionError("Too many servers");
-    }, Holder.class).get();
+    }, ClusterDetails.class);
+
+    Class<?> type = parameterContext.getParameter().getType();
+
+    if (URI.class.equals(type)) {
+      return cluster.getConnectionUri();
+    } else if (String.class.equals(type)) {
+      return cluster.getFirstResource();
+    } else {
+      throw new ParameterResolutionException("Unexpected parameter type: " + type);
+    }
+
+
+
   }
 
   private static <A extends Annotation> List<A> searchForRepeatableAnnotations(ExtensionContext context, Class<A> annoType) {
@@ -126,16 +147,27 @@ public class PassthroughServer implements ParameterResolver {
     }
   }
 
-  abstract static class Holder<T> implements ExtensionContext.Store.CloseableResource {
+  static class ClusterDetails implements ExtensionContext.Store.CloseableResource {
 
-    private final T t;
+    private final URI uri;
+    private final String firstResource;
 
-    Holder(T t) {
-      this.t = t;
+    ClusterDetails(URI uri, String firstResource) {
+      this.uri = uri;
+      this.firstResource = firstResource;
     }
 
-    T get() {
-      return t;
+    URI getConnectionUri() {
+      return uri;
+    }
+
+    String getFirstResource() {
+      return firstResource;
+    }
+
+    @Override
+    public void close() {
+      UnitTestConnectionService.remove(uri);
     }
   }
 
@@ -145,9 +177,9 @@ public class PassthroughServer implements ParameterResolver {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
-  @Repeatable(ServerResources.class)
+  @Repeatable(OffHeapResources.class)
   @Inherited
-  public @interface ServerResource {
+  public @interface OffHeapResource {
     String name();
     int size();
     MemoryUnit unit() default MemoryUnit.MB;
@@ -156,8 +188,8 @@ public class PassthroughServer implements ParameterResolver {
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
   @Inherited
-  public @interface ServerResources {
-    ServerResource[] value();
+  public @interface OffHeapResources {
+    OffHeapResource[] value();
   }
 
   @Retention(RetentionPolicy.RUNTIME)

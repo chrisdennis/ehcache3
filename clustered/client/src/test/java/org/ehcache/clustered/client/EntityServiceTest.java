@@ -18,7 +18,8 @@ package org.ehcache.clustered.client;
 import org.ehcache.CacheManager;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.EntityBusyException;
@@ -40,8 +41,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 4)
+@WithSimplePassthroughServer
 public class EntityServiceTest {
 
   @Test

@@ -63,8 +63,8 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -136,12 +136,7 @@ public abstract class AbstractOffHeapStoreTest {
 
     timeSource.advanceTime(20);
 
-    try {
-      offHeapStore.installMapping("1", key -> new SimpleValueHolder<>("un", timeSource.getTimeMillis(), 15));
-      fail("expected AssertionError");
-    } catch (AssertionError ae) {
-      // expected
-    }
+    assertThrows(AssertionError.class, () -> offHeapStore.installMapping("1", key -> new SimpleValueHolder<>("un", timeSource.getTimeMillis(), 15)));
   }
 
   @Test

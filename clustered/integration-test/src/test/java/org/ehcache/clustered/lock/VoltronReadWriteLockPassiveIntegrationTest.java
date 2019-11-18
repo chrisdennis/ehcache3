@@ -37,7 +37,7 @@ import org.terracotta.connection.Connection;
 import org.terracotta.passthrough.IClusterControl;
 
 import static org.ehcache.clustered.lock.VoltronReadWriteLockIntegrationTest.async;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.terracotta.connection.ConnectionFactory.connect;
 
 @WithSimpleTerracottaCluster
@@ -76,22 +76,12 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
         return null;
       });
 
-      try {
-        waiter.get(100, TimeUnit.MILLISECONDS);
-        fail("TimeoutException expected");
-      } catch (TimeoutException e) {
-        //expected
-      }
+      assertThrows(TimeoutException.class, () -> waiter.get(100, TimeUnit.MILLISECONDS));
 
       clusterControl.terminateActive();
       clusterControl.startOneServer();
 
-      try {
-        waiter.get(100, TimeUnit.MILLISECONDS);
-        fail("TimeoutException expected");
-      } catch (TimeoutException e) {
-        //expected
-      }
+      assertThrows(TimeoutException.class, () -> waiter.get(100, TimeUnit.MILLISECONDS));
 
       hold.unlock();
 
@@ -112,22 +102,12 @@ public class VoltronReadWriteLockPassiveIntegrationTest extends ClusteredTests {
         return null;
       });
 
-      try {
-        waiter.get(100, TimeUnit.MILLISECONDS);
-        fail("TimeoutException expected");
-      } catch (TimeoutException e) {
-        //expected
-      }
+      assertThrows(TimeoutException.class, () -> waiter.get(100, TimeUnit.MILLISECONDS));
 
       clusterControl.terminateActive();
       clusterControl.startOneServer();
 
-      try {
-        waiter.get(100, TimeUnit.MILLISECONDS);
-        fail("TimeoutException expected");
-      } catch (TimeoutException e) {
-        //expected
-      }
+      assertThrows(TimeoutException.class, () -> waiter.get(100, TimeUnit.MILLISECONDS));
 
       hold.unlock();
 

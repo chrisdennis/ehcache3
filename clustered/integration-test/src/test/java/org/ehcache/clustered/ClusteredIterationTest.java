@@ -46,7 +46,7 @@ import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInA
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.any;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @WithSimpleTerracottaCluster
 @Execution(ExecutionMode.CONCURRENT)
@@ -66,12 +66,7 @@ public class ClusteredIterationTest extends ClusteredTests {
       assertThat(iterator.next(), notNullValue());
       assertThat(iterator.next(), notNullValue());
 
-      try {
-        iterator.next();
-        fail("Expected NoSuchElementException");
-      } catch (NoSuchElementException e) {
-        //expected
-      }
+      assertThrows(NoSuchElementException.class, () -> iterator.next());
     }
   }
 

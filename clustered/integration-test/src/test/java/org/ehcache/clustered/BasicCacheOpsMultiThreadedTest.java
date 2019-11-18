@@ -30,12 +30,10 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.tc.util.Assert;
+import org.terracotta.passthrough.IClusterControl;
 
 import java.net.URI;
 import java.time.Duration;
@@ -57,7 +55,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * simultaneously.
  */
 @WithSimpleTerracottaCluster
-@Execution(ExecutionMode.CONCURRENT)
 public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
 
   private static final String CLUSTERED_CACHE_NAME    = "clustered-cache";
@@ -71,7 +68,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   private final AtomicLong idGenerator = new AtomicLong(2L);
 
   @Test
-  public void testMulipleClients(@Cluster URI clusterUri, @Cluster String serverResource) throws Throwable {
+  public void testMultipleClients(@Cluster URI clusterUri, @Cluster String serverResource) throws Throwable {
     CountDownLatch latch = new CountDownLatch(NUM_THREADS + 1);
 
     List<Thread> threads = new ArrayList<>(NUM_THREADS);
@@ -98,11 +95,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
     return () -> {
       try (PersistentCacheManager cacheManager = createCacheManager(clusterUri, serverResource)) {
         latch.countDown();
-        try {
-          assertTrue(latch.await(MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS));
-        } catch (InterruptedException e) {
-          // continue
-        }
+        assertTrue(latch.await(MAX_WAIT_TIME_SECONDS, TimeUnit.SECONDS));
 
         cacheManager.init();
         doSyncAndPut(cacheManager);

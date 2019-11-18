@@ -28,7 +28,7 @@ import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.ClientEntityService;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
 import org.ehcache.clustered.client.internal.PassthroughServer.ServerEntityService;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
@@ -105,9 +105,9 @@ import static org.mockito.Mockito.when;
 @ClientEntityService(ClusterTierManagerClientEntityService.class)
 @ClientEntityService(ClusterTierClientEntityService.class)
 @ClientEntityService(VoltronReadWriteLockEntityClientService.class)
-@ServerResource(name = "defaultResource", size = 128)
-@ServerResource(name = "serverResource1", size = 32)
-@ServerResource(name = "serverResource2", size = 32)
+@OffHeapResource(name = "defaultResource", size = 128)
+@OffHeapResource(name = "serverResource1", size = 32)
+@OffHeapResource(name = "serverResource2", size = 32)
 public class DefaultClusteringServiceTest {
 
   @ServerEntityService
@@ -344,12 +344,7 @@ public class DefaultClusteringServiceTest {
     createService.start(null);
 
     DefaultClusteringService maintenanceService = new DefaultClusteringService(configuration);
-    try {
-      maintenanceService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      // Expected
-    }
+    assertThrows(IllegalStateException.class, () -> maintenanceService.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER));
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntities.size(), is(1));
@@ -1359,12 +1354,7 @@ public class DefaultClusteringServiceTest {
       .build();
     DefaultClusteringService creationServiceBad = new DefaultClusteringService(creationConfigBad);
 
-    try {
-      creationServiceBad.start(null);
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      // Expected
-    }
+    assertThrows(IllegalStateException.class, () -> creationServiceBad.start(null));
 
     List<ObservableEhcacheActiveEntity> activeEntitiesBad = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntitiesBad.size(), is(0));

@@ -99,9 +99,9 @@ import static org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration.D
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.terracotta.context.ContextManager.nodeFor;
@@ -194,12 +194,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
 
       OffHeapDiskStore<Long, Serializable> offHeapDiskStore2 = provider.createStore(storeConfig2, space);
-      try {
-        provider.initStore(offHeapDiskStore2);
-        fail("expected IllegalArgumentException");
-      } catch (IllegalArgumentException e) {
-        // expected
-      }
+      assertThrows(IllegalArgumentException.class, () -> provider.initStore(offHeapDiskStore2));
 
       destroyStore(offHeapDiskStore2);
     }
@@ -346,13 +341,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testStoreInitFailsWithoutLocalPersistenceService() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    try {
-      dependencySet().with(provider).build();
-      fail("IllegalStateException expected");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("Failed to find provider with satisfied dependency set for interface" +
-        " org.ehcache.core.spi.service.DiskResourceService"));
-    }
+    IllegalStateException failure = assertThrows(IllegalStateException.class, dependencySet().with(provider)::build);
+    assertThat(failure.getMessage(), containsString("Failed to find provider with satisfied dependency set for interface" +
+      " org.ehcache.core.spi.service.DiskResourceService"));
   }
 
   @Test

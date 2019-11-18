@@ -52,7 +52,7 @@ import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.terracotta.connection.ConnectionFactory.connect;
 
 @WithSimpleTerracottaCluster
@@ -134,12 +134,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
     try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      try {
-        ref.fetchEntity(null);
-        fail("Expected EntityNotFoundException");
-      } catch (EntityNotFoundException e) {
-        //expected
-      }
+      assertThrows(EntityNotFoundException.class, () -> ref.fetchEntity(null));
     }
   }
 
@@ -160,20 +155,10 @@ public class BasicEntityInteractionTest extends ClusteredTests {
 
       ref.create(blankConfiguration);
       try {
-        try {
-          ref.create(blankConfiguration);
-          fail("Expected EntityAlreadyExistsException");
-        } catch (EntityAlreadyExistsException e) {
-          //expected
-        }
+        assertThrows(EntityAlreadyExistsException.class, () -> ref.create(blankConfiguration));
 
         ClusterTierManagerConfiguration otherConfiguration = new ClusterTierManagerConfiguration("different", new ServerSideConfiguration(emptyMap()));
-        try {
-          ref.create(otherConfiguration);
-          fail("Expected EntityAlreadyExistsException");
-        } catch (EntityAlreadyExistsException e) {
-          //expected
-        }
+        assertThrows(EntityAlreadyExistsException.class, () -> ref.create(otherConfiguration));
       } finally {
         ref.destroy();
       }
@@ -185,12 +170,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
     try (Connection client = connect(clusterUri, new Properties())) {
       EntityRef<ClusterTierManagerClientEntity, ClusterTierManagerConfiguration, Void> ref = getEntityRef(client);
 
-      try {
-        ref.destroy();
-        fail("Expected EntityNotFoundException");
-      } catch (EntityNotFoundException e) {
-        //expected
-      }
+      assertThrows(EntityNotFoundException.class, () -> ref.destroy());
     }
   }
 
@@ -202,12 +182,7 @@ public class BasicEntityInteractionTest extends ClusteredTests {
       ref.create(blankConfiguration);
       ref.destroy();
 
-      try {
-        ref.fetchEntity(null);
-        fail("Expected EntityNotFoundException");
-      } catch (EntityNotFoundException e) {
-        //expected
-      }
+      assertThrows(EntityNotFoundException.class, () -> ref.fetchEntity(null));
     }
   }
 

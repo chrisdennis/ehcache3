@@ -41,7 +41,7 @@ import org.terracotta.connection.Connection;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.terracotta.connection.ConnectionFactory.connect;
 
 @WithSimpleTerracottaCluster
@@ -69,12 +69,7 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
         return null;
       });
 
-      try {
-        waiter.get(100, TimeUnit.MILLISECONDS);
-        fail("TimeoutException expected");
-      } catch (TimeoutException e) {
-        //expected
-      }
+      assertThrows(TimeoutException.class, () -> waiter.get(100, TimeUnit.MILLISECONDS));
       hold.unlock();
 
       waiter.get();
@@ -96,12 +91,7 @@ public class VoltronReadWriteLockIntegrationTest extends ClusteredTests {
         return null;
       });
 
-      try {
-        waiter.get(100, TimeUnit.MILLISECONDS);
-        fail("TimeoutException expected");
-      } catch (TimeoutException e) {
-        //expected
-      }
+      assertThrows(TimeoutException.class, () -> waiter.get(100, TimeUnit.MILLISECONDS));
       hold.unlock();
 
       waiter.get();

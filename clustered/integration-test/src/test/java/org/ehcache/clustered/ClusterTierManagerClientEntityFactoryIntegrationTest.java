@@ -41,8 +41,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.terracotta.connection.ConnectionFactory.connect;
 
 @WithSimpleTerracottaCluster
@@ -74,30 +74,16 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
   public void testCreateWhenExisting() throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testCreateWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
-    try {
-      factory.create("testCreateWhenExisting",
-          new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "bar"))));
-      fail("Expected EntityAlreadyExistsException");
-    } catch (EntityAlreadyExistsException e) {
-      //expected
-    }
+    assertThrows(EntityAlreadyExistsException.class, () -> factory.create("testCreateWhenExisting",
+          new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "bar")))));
   }
 
   @Test
   public void testCreateWithBadConfigCleansUp() throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
 
-    try {
-      factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP));
-      fail("Expected ClusterTierManagerCreationException");
-    } catch (ClusterTierManagerCreationException e) {
-      try {
-        factory.retrieve("testCreateWithBadConfigCleansUp", null);
-        fail("Expected EntityNotFoundException");
-      } catch (EntityNotFoundException f) {
-        //expected
-      }
-    }
+    ClusterTierManagerCreationException e = assertThrows(ClusterTierManagerCreationException.class, () -> factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP)));
+    assertThrows(EntityNotFoundException.class, () -> factory.retrieve("testCreateWithBadConfigCleansUp", null));
   }
 
   @Test
@@ -114,24 +100,14 @@ public class ClusterTierManagerClientEntityFactoryIntegrationTest extends Cluste
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithBadConfig",
         new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, serverResource))));
-    try {
-      factory.retrieve("testRetrieveWithBadConfig",
-          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, serverResource))));
-      fail("Expected ClusterTierManagerValidationException");
-    } catch (ClusterTierManagerValidationException e) {
-      //expected
-    }
+    assertThrows(ClusterTierManagerValidationException.class, () -> factory.retrieve("testRetrieveWithBadConfig",
+          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, serverResource)))));
   }
 
   @Test
   public void testRetrieveWhenNotExisting() throws Exception {
     ClusterTierManagerClientEntityFactory factory = new ClusterTierManagerClientEntityFactory(CONNECTION);
-    try {
-      factory.retrieve("testRetrieveWhenNotExisting", null);
-      fail("Expected EntityNotFoundException");
-    } catch (EntityNotFoundException e) {
-      //expected
-    }
+    assertThrows(EntityNotFoundException.class, () -> factory.retrieve("testRetrieveWhenNotExisting", null));
   }
 
   @Test

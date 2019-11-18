@@ -22,7 +22,8 @@ import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurati
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,12 +31,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.net.URI;
 import java.time.Duration;
 
-@ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 128)
+@WithSimplePassthroughServer
 public class Resilience {
 
   @Test
-  public void clusteredCacheManagerExample(@Cluster URI clusterUri) throws Exception {
+  public void clusteredCacheManagerExample(@Cluster URI clusterUri) {
     // tag::timeoutsExample[]
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       CacheManagerBuilder.newCacheManagerBuilder()

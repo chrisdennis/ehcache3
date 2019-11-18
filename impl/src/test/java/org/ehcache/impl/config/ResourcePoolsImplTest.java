@@ -39,6 +39,7 @@ import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.impl.config.ResourcePoolsImpl.validateResourcePools;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -125,12 +126,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(HEAP, 10, MB, false),
       new SizedResourcePoolImpl<>(new ArbitraryType(HEAP.getTierHeight() - 1), 10, MB, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10 MB heap}' is not smaller than 'Pool {10 MB arbitrary}'"));
-    }
+    IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(failure.getMessage(), is("Tiering Inversion: 'Pool {10 MB heap}' is not smaller than 'Pool {10 MB arbitrary}'"));
   }
 
   @Test
@@ -138,12 +135,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(new ArbitraryType(OFFHEAP.getTierHeight() + 1), 10, MB, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, MB, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10 MB arbitrary}' is not smaller than 'Pool {10 MB offheap}'"));
-    }
+    IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(failure.getMessage(), is("Tiering Inversion: 'Pool {10 MB arbitrary}' is not smaller than 'Pool {10 MB offheap}'"));
   }
 
   @Test
@@ -151,12 +144,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(new ArbitraryType(OFFHEAP.getTierHeight()), 10, MB, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, MB, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Ambiguity: 'Pool {10 MB arbitrary}' has the same tier height as 'Pool {10 MB offheap}'"));
-    }
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(exception.getMessage(), is("Tiering Ambiguity: 'Pool {10 MB arbitrary}' has the same tier height as 'Pool {10 MB offheap}'"));
   }
 
   @Test
@@ -164,12 +153,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(HEAP, 10, ENTRIES, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, ENTRIES, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10 entries heap}' is not smaller than 'Pool {10 entries offheap}'"));
-    }
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(exception.getMessage(), is("Tiering Inversion: 'Pool {10 entries heap}' is not smaller than 'Pool {10 entries offheap}'"));
   }
 
   @Test
@@ -177,12 +162,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(HEAP, 11, ENTRIES, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, ENTRIES, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {11 entries heap}' is not smaller than 'Pool {10 entries offheap}'"));
-    }
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(exception.getMessage(), is("Tiering Inversion: 'Pool {11 entries heap}' is not smaller than 'Pool {10 entries offheap}'"));
   }
 
   @Test
@@ -190,12 +171,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(HEAP, 10, MB, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, MB, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10 MB heap}' is not smaller than 'Pool {10 MB offheap}'"));
-    }
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(exception.getMessage(), is("Tiering Inversion: 'Pool {10 MB heap}' is not smaller than 'Pool {10 MB offheap}'"));
   }
 
   @Test
@@ -203,12 +180,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(HEAP, 11, MB, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, MB, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {11 MB heap}' is not smaller than 'Pool {10 MB offheap}'"));
-    }
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(exception.getMessage(), is("Tiering Inversion: 'Pool {11 MB heap}' is not smaller than 'Pool {10 MB offheap}'"));
   }
 
   @Test
@@ -216,12 +189,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(HEAP, 10240, KB, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, MB, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10240 kB heap}' is not smaller than 'Pool {10 MB offheap}'"));
-    }
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10240 kB heap}' is not smaller than 'Pool {10 MB offheap}'"));
   }
 
   @Test
@@ -229,12 +198,8 @@ public class ResourcePoolsImplTest {
     Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
       new SizedResourcePoolImpl<>(HEAP, 10241, KB, false),
       new SizedResourcePoolImpl<>(OFFHEAP, 10, MB, false));
-    try {
-      validateResourcePools(pools);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10241 kB heap}' is not smaller than 'Pool {10 MB offheap}'"));
-    }
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> validateResourcePools(pools));
+    assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10241 kB heap}' is not smaller than 'Pool {10 MB offheap}'"));
   }
 
   @Test

@@ -22,7 +22,8 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.store.ClusterTierClientEntity;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -43,8 +44,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 64)
+@WithSimplePassthroughServer
 public class ConnectionStateTest {
 
   @Test
@@ -71,10 +71,10 @@ public class ConnectionStateTest {
   }
 
   @Test
-  public void testCreateClusterTierEntityAfterConnectionCloses(@Cluster URI clusterUri) throws Exception {
+  public void testCreateClusterTierEntityAfterConnectionCloses(@Cluster URI clusterUri, @Cluster String resource) throws Exception {
     ClusteringServiceConfiguration serviceConfiguration = ClusteringServiceConfigurationBuilder
       .cluster(clusterUri.resolve("/cache-manager"))
-      .autoCreate(c -> c)
+      .autoCreate(c -> c.defaultServerResource(resource))
       .build();
 
     ConnectionState connectionState = new ConnectionState(Timeouts.DEFAULT, new Properties(), serviceConfiguration);
@@ -83,7 +83,7 @@ public class ConnectionStateTest {
 
     connectionState.getConnection().close();
 
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB);
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
             Long.class.getName(), String.class.getName(), LongSerializer.class.getName(), StringSerializer.class.getName(), null, false);
 

@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -86,12 +87,7 @@ public class LoaderWriterErrorEhcacheTest {
   public void testGetWithLoaderException() throws Exception {
     when(cacheLoaderWriter.load(eq(1))).thenThrow(new Exception("TestException: cannot load data"));
 
-    try {
-      testCache.get(1);
-      fail("expected CacheLoadingException");
-    } catch (CacheLoadingException ex) {
-      // expected
-    }
+    assertThrows(CacheLoadingException.class, () -> testCache.get(1));
 
     verify(cacheLoaderWriter, times(1)).load(eq(1));
   }
@@ -140,24 +136,14 @@ public class LoaderWriterErrorEhcacheTest {
   public void testPutWithWriterException() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).write(eq(1), eq("one"));
 
-    try {
-      testCache.put(1, "one");
-      fail("expected CacheWritingException");
-    } catch (CacheWritingException ex) {
-      // expected
-    }
+    assertThrows(CacheWritingException.class, () -> testCache.put(1, "one"));
   }
 
   @Test
   public void testRemoveWithWriterException() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).delete(eq(1));
 
-    try {
-      testCache.remove(1);
-      fail("expected CacheWritingException");
-    } catch (CacheWritingException ex) {
-      // expected
-    }
+    assertThrows(CacheWritingException.class, () -> testCache.remove(1));
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -215,12 +201,7 @@ public class LoaderWriterErrorEhcacheTest {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).delete(eq(1));
 
     testCache.put(1, "one");
-    try {
-      testCache.remove(1, "one");
-      fail("expected CacheWritingException");
-    } catch (CacheWritingException ex) {
-      // expected
-    }
+    assertThrows(CacheWritingException.class, () -> testCache.remove(1, "one"));
   }
 
   @Test
@@ -228,12 +209,7 @@ public class LoaderWriterErrorEhcacheTest {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).write(eq(1), eq("one#2"));
 
     testCache.put(1, "one");
-    try {
-      testCache.replace(1, "one#2");
-      fail("expected CacheWritingException");
-    } catch (CacheWritingException ex) {
-      // expected
-    }
+    assertThrows(CacheWritingException.class, () -> testCache.replace(1, "one#2"));
   }
 
   @Test
@@ -248,12 +224,7 @@ public class LoaderWriterErrorEhcacheTest {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).write(eq(1), eq("one#2"));
 
     testCache.put(1, "one");
-    try {
-      testCache.replace(1, "one", "one#2");
-      fail("expected CacheWritingException");
-    } catch (CacheWritingException ex) {
-      // expected
-    }
+    assertThrows(CacheWritingException.class, () -> testCache.replace(1, "one", "one#2"));
   }
 
   @Test
@@ -275,12 +246,7 @@ public class LoaderWriterErrorEhcacheTest {
   public void testPutIfAbsentWithWriterException_should_call_writer() throws Exception {
     doThrow(new Exception("Mock Exception: cannot write 1")).when(cacheLoaderWriter).write(eq(1), eq("one"));
 
-    try {
-      testCache.putIfAbsent(1, "one");
-      fail("expected CacheWritingException");
-    } catch (CacheWritingException ex) {
-      // expected
-    }
+    assertThrows(CacheWritingException.class, () -> testCache.putIfAbsent(1, "one"));
 
     testCache.put(2, "two");
     testCache.putIfAbsent(2, "two#2");
@@ -295,11 +261,6 @@ public class LoaderWriterErrorEhcacheTest {
     values.put(1, "one");
     values.put(2, "two");
 
-    try {
-      testCache.putAll(values);
-      fail("expected CacheWritingException");
-    } catch (CacheWritingException ex) {
-      // expected
-    }
+    assertThrows(CacheWritingException.class, () -> testCache.putAll(values));
   }
 }

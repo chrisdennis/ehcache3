@@ -28,7 +28,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class DefaultResilienceStrategyConfigurationTest {
 
@@ -76,12 +76,7 @@ public class DefaultResilienceStrategyConfigurationTest {
     CacheLoaderWriter<?, ?> loaderWriter = mock(CacheLoaderWriter.class);
     DefaultResilienceStrategyConfiguration bound = configuration.bind(recoveryStore, loaderWriter);
 
-    try {
-      bound.bind(recoveryStore);
-      fail("Expected IllegalStateException");
-    } catch (IllegalStateException e) {
-      //expected
-    }
+    assertThrows(IllegalStateException.class, () -> bound.bind(recoveryStore));
   }
 
   @Test
@@ -90,12 +85,7 @@ public class DefaultResilienceStrategyConfigurationTest {
     RecoveryStore<?> recoveryStore = mock(RecoveryStore.class);
     DefaultResilienceStrategyConfiguration bound = configuration.bind(recoveryStore);
 
-    try {
-      bound.bind(recoveryStore);
-      fail("Expected IllegalStateException");
-    } catch (IllegalStateException e) {
-      //expected
-    }
+    assertThrows(IllegalStateException.class, () -> bound.bind(recoveryStore));
   }
 
   @Test

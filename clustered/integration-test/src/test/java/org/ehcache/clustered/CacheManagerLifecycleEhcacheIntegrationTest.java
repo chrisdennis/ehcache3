@@ -55,7 +55,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
 import static org.ehcache.testing.Utilities.substitute;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.terracotta.connection.ConnectionFactory.connect;
 
 @WithSimpleTerracottaCluster
@@ -131,14 +131,9 @@ public class CacheManagerLifecycleEhcacheIntegrationTest extends ClusteredTests 
 
   @Test
   public void testCacheManagerNotExistingFailsOnInit(@Cluster URI clusterUri) throws Exception {
-    try {
-      newCacheManagerBuilder()
+    assertThrows(StateTransitionException.class, () -> newCacheManagerBuilder()
               .with(ClusteringServiceConfigurationBuilder.cluster(clusterUri.resolve("/testCacheManagerNotExistingFailsOnInit")).build())
-              .build(true);
-      fail("Expected StateTransitionException");
-    } catch (StateTransitionException e) {
-      //expected
-    }
+              .build(true));
   }
 
   private static <T extends Entity> void assertEntityExists(Class<T> entityClazz, String entityName) throws ConnectionException, IOException {

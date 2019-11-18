@@ -21,7 +21,8 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.TimeoutsBuilder;
 import org.ehcache.clustered.client.internal.PassthroughServer;
 import org.ehcache.clustered.client.internal.PassthroughServer.Cluster;
-import org.ehcache.clustered.client.internal.PassthroughServer.ServerResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.OffHeapResource;
+import org.ehcache.clustered.client.internal.PassthroughServer.WithSimplePassthroughServer;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -45,15 +46,14 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-@ExtendWith(PassthroughServer.class)
-@ServerResource(name = "primary-server-resource", size = 64)
+@WithSimplePassthroughServer
 public class ConnectionClosedTest {
 
   @Test
-  public void testCacheOperationThrowsAfterConnectionClosed(@Cluster URI clusterUri) throws Exception {
+  public void testCacheOperationThrowsAfterConnectionClosed(@Cluster URI clusterUri, @Cluster String resource) throws Exception {
 
     ResourcePoolsBuilder resourcePoolsBuilder = ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB));
+            .with(clusteredDedicated(2, MemoryUnit.MB));
 
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
             newCacheManagerBuilder()
@@ -62,7 +62,7 @@ public class ConnectionClosedTest {
                                     .timeouts()
                                     .connection(Duration.ofSeconds(20))
                                     .build())
-                            .autoCreate(c -> c))
+                            .autoCreate(c -> c.defaultServerResource(resource)))
                     .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                             resourcePoolsBuilder));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);

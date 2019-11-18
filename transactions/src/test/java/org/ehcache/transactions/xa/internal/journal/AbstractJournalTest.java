@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Ludovic Orban
@@ -72,12 +72,7 @@ public abstract class AbstractJournalTest {
   @Test
   public void testSaveInDoubtTwiceThrows(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
-    try {
-      journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(4L, 5L, 6L));
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(4L, 5L, 6L)));
   }
 
   @Test
@@ -133,66 +128,36 @@ public abstract class AbstractJournalTest {
 
   @Test
   public void testCannotForgetUnknownTransaction(Journal<Long> journal) {
-    try {
-      journal.forget(new TransactionId(new TestXid(0, 0)));
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> journal.forget(new TransactionId(new TestXid(0, 0))));
   }
 
   @Test
   public void testCannotForgetNonHeuristicTransaction(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
-    try {
-      journal.forget(new TransactionId(new TestXid(0, 0)));
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> journal.forget(new TransactionId(new TestXid(0, 0))));
   }
 
   @Test
   public void testCannotOverwriteHeuristicCommitWithNonHeuristic(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true);
-    try {
-      journal.saveCommitted(new TransactionId(new TestXid(0, 0)), false);
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> journal.saveCommitted(new TransactionId(new TestXid(0, 0)), false));
   }
 
   @Test
   public void testCannotOverwriteHeuristicRollbackWithNonHeuristic(Journal<Long> journal) {
     journal.saveInDoubt(new TransactionId(new TestXid(0, 0)), Arrays.asList(1L, 2L, 3L));
     journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), true);
-    try {
-      journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), false);
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), false));
   }
 
   @Test
   public void testCannotSaveCommitHeuristicWhenNoInDoubtRecordExists(Journal<Long> journal) {
-    try {
-      journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true);
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> journal.saveCommitted(new TransactionId(new TestXid(0, 0)), true));
   }
 
   @Test
   public void testCannotSaveRollbackHeuristicWhenNoInDoubtRecordExists(Journal<Long> journal) {
-    try {
-      journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), true);
-      fail("expected IllegalStateException");
-    } catch (IllegalStateException ise) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, () -> journal.saveRolledBack(new TransactionId(new TestXid(0, 0)), true));
   }
 }

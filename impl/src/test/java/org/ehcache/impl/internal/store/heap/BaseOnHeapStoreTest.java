@@ -65,6 +65,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -509,20 +510,15 @@ public abstract class BaseOnHeapStoreTest {
   public void testIterator() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    Iterator<Entry<String, ValueHolder<String>>> iter = store.iterator();
-    assertThat(iter.hasNext(), equalTo(false));
-    try {
-      iter.next();
-      fail("NoSuchElementException expected");
-    } catch (NoSuchElementException nse) {
-      // expected
-    }
+    Iterator<Entry<String, ValueHolder<String>>> iterA = store.iterator();
+    assertThat(iterA.hasNext(), equalTo(false));
+    assertThrows(NoSuchElementException.class, iterA::next);
 
     store.put("key1", "value1");
-    iter = store.iterator();
-    assertThat(iter.hasNext(), equalTo(true));
-    assertEntry(iter.next(), "key1", "value1");
-    assertThat(iter.hasNext(), equalTo(false));
+    Iterator<Entry<String, ValueHolder<String>>> iterB = store.iterator();
+    assertThat(iterB.hasNext(), equalTo(true));
+    assertEntry(iterB.next(), "key1", "value1");
+    assertThat(iterB.hasNext(), equalTo(false));
 
     store.put("key2", "value2");
     Map<String, String> observed = observe(store.iterator());
@@ -652,14 +648,10 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
 
     store.put("key", "value");
-    try {
-      store.getAndCompute("key", (mappedKey, mappedValue) -> {
-        throw RUNTIME_EXCEPTION;
-      });
-      fail("RuntimeException expected");
-    } catch (StoreAccessException cae) {
-      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
-    }
+    StoreAccessException cae = assertThrows(StoreAccessException.class, () -> store.getAndCompute("key", (mappedKey, mappedValue) -> {
+      throw RUNTIME_EXCEPTION;
+    }));
+    assertThat(cae.getCause(), is((Throwable) RUNTIME_EXCEPTION));
     assertThat(store.get("key").get(), equalTo("value"));
   }
 
@@ -784,14 +776,10 @@ public abstract class BaseOnHeapStoreTest {
   public void testComputeIfAbsentException() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    try {
-      store.computeIfAbsent("key", mappedKey -> {
-        throw RUNTIME_EXCEPTION;
-      });
-      fail("Expected exception");
-    } catch (StoreAccessException cae) {
-      assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
-    }
+    StoreAccessException cae = assertThrows(StoreAccessException.class, () -> store.computeIfAbsent("key", mappedKey -> {
+      throw RUNTIME_EXCEPTION;
+    }));
+    assertThat(cae.getCause(), is((Throwable) RUNTIME_EXCEPTION));
 
     assertThat(store.get("key"), nullValue());
   }

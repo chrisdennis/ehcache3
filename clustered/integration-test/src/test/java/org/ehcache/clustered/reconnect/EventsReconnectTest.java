@@ -37,7 +37,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.terracotta.passthrough.IClusterControl;
 
 import java.net.URI;
 import java.time.Duration;

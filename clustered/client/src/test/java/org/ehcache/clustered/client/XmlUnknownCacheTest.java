@@ -19,7 +19,7 @@ package org.ehcache.clustered.client;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
@@ -39,22 +39,14 @@ public class XmlUnknownCacheTest {
 
   @Test
   public void testGetUnknownCacheInvalidAttribute() {
-    try {
-      new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-attribute.xml"));
-      fail("Expected XmlConfigurationException");
-    } catch(XmlConfigurationException xce) {
-      assertThat(xce.getCause().getMessage(), endsWith("Attribute 'unit' is not allowed to appear in element 'tc:clustered'."));
-    }
+    XmlConfigurationException xce = assertThrows(XmlConfigurationException.class, () -> new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-attribute.xml")));
+    assertThat(xce.getCause().getMessage(), endsWith("Attribute 'unit' is not allowed to appear in element 'tc:clustered'."));
   }
 
   @Test
   public void testGetUnknownCacheInvalidElement() {
-    try {
-      new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-element.xml"));
-      fail("Expected XmlConfigurationException");
-    } catch(XmlConfigurationException xce) {
-      assertThat(xce.getCause().getMessage(), endsWith("Element 'tc:clustered' must have no character or element information item [children], because the type's content type is empty."));
-    }
+    XmlConfigurationException xce = assertThrows(XmlConfigurationException.class, () -> new XmlConfiguration(this.getClass().getResource("/configs/unknown-cluster-cache-invalid-element.xml")));
+    assertThat(xce.getCause().getMessage(), endsWith("Element 'tc:clustered' must have no character or element information item [children], because the type's content type is empty."));
   }
 
 }

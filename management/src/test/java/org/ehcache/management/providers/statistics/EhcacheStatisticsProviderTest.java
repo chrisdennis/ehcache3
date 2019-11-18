@@ -42,7 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -116,12 +116,7 @@ public class EhcacheStatisticsProviderTest {
   public void testCallAction() throws Exception {
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, statisticsService, timeSource);
 
-    try {
-      ehcacheStatisticsProvider.callAction(null, null);
-      fail("expected UnsupportedOperationException");
-    } catch (UnsupportedOperationException uoe) {
-      // expected
-    }
+    assertThrows(UnsupportedOperationException.class, () -> ehcacheStatisticsProvider.callAction(null, null));
 
   }
 

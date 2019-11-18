@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.URI;
 import java.util.Properties;
@@ -70,12 +70,8 @@ public class EhCachingProviderTest {
 
     cache.put(1L, new Customer(1L));
 
-    try {
-      cache.get(1L);
-      fail("Expected AssertionError");
-    } catch (AssertionError e) {
-      assertThat(e.getMessage(), is("No com.pany here"));
-    }
+    AssertionError failure = assertThrows(AssertionError.class, () -> cache.get(1L));
+    assertThat(failure.getMessage(), is("No com.pany here"));
   }
 
   @Test

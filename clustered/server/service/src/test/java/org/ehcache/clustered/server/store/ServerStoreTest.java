@@ -38,7 +38,7 @@ import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.hamcrest.core.IsIterableContaining.hasItems;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Verify Server Store
@@ -222,12 +222,7 @@ public abstract class ServerStoreTest {
     Iterator<Chain> chainIterator = store.iterator();
 
     assertThat(chainIterator.hasNext(), Is.is(false));
-    try {
-      chainIterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, chainIterator::next);
   }
 
   @Test
@@ -240,12 +235,7 @@ public abstract class ServerStoreTest {
     assertThat(chainIterator.hasNext(), is(true));
     assertThat(chainIterator.next(), hasPayloads(42L));
     assertThat(chainIterator.hasNext(), is(false));
-    try {
-      chainIterator.next();
-      fail("Expected NoSuchElementException");
-    } catch (NoSuchElementException e) {
-      //expected
-    }
+    assertThrows(NoSuchElementException.class, chainIterator::next);
   }
 
   @Test

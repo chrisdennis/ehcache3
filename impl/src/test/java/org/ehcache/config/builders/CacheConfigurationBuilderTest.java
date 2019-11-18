@@ -53,7 +53,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.ehcache.test.MockitoUtil.mock;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CacheConfigurationBuilderTest {
 
@@ -399,24 +399,14 @@ public class CacheConfigurationBuilderTest {
   @Test
   public void testUpdateServicesWithNoServicesThrows() {
     CacheConfigurationBuilder<Object, Object> oldBuilder = newCacheConfigurationBuilder(Object.class, Object.class, heap(10));
-    try {
-      oldBuilder.updateServices(IncompatibleServiceConfig.class, identity());
-      fail("Expected IllegalStateException");
-    } catch (IllegalStateException e) {
-      //expected
-    }
+    assertThrows(IllegalStateException.class, () -> oldBuilder.updateServices(IncompatibleServiceConfig.class, identity()));
   }
 
   @Test
   public void testUpdateServicesWithNullReturnThrows() {
     CacheConfigurationBuilder<Object, Object> oldBuilder = newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
       .withService(new IncompatibleServiceConfig());
-    try {
-      oldBuilder.updateServices(IncompatibleServiceConfig.class, c -> null);
-      fail("Expected NullPointerException");
-    } catch (NullPointerException e) {
-      //expected
-    }
+    assertThrows(NullPointerException.class, () -> oldBuilder.updateServices(IncompatibleServiceConfig.class, c -> null));
   }
 
 

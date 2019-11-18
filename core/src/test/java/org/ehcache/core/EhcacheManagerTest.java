@@ -163,12 +163,8 @@ public class EhcacheManagerTest {
 
     Store.Provider storeProvider = (Store.Provider) services.get(0); // because I know it's the first of the list
 
-    try {
-      cacheManager.init();
-      fail("Should have thrown...");
-    } catch (StateTransitionException ste) {
-      verify(storeProvider).stop();
-    }
+    assertThrows(StateTransitionException.class, cacheManager::init);
+    verify(storeProvider).stop();
   }
 
   @Test
@@ -271,12 +267,9 @@ public class EhcacheManagerTest {
     cacheManager.init();
     final Cache<Object, Object> cache = cacheManager.getCache("bar", Object.class, Object.class);
     assertNotNull(cache);
-    try {
-      cacheManager.createCache("bar", cacheConfiguration);
-      fail("Should have thrown");
-    } catch (IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains("bar"));
-    }
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+      () -> cacheManager.createCache("bar", cacheConfiguration));
+    assertTrue(exception.getMessage().contains("bar"));
   }
 
   @Test
@@ -337,22 +330,16 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(config, services);
     cacheManager.init();
     cacheManager.getCache("bar", Integer.class, String.class);
-    try {
-      cacheManager.getCache("bar", Integer.class, Integer.class);
-      fail("Should have thrown");
-    } catch (IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains("bar"));
-      assertTrue(e.getMessage().contains("<java.lang.Integer, java.lang.String>"));
-      assertTrue(e.getMessage().contains("<java.lang.Integer, java.lang.Integer>"));
-    }
-    try {
-      cacheManager.getCache("bar", String.class, String.class);
-      fail("Should have thrown");
-    } catch (IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains("bar"));
-      assertTrue(e.getMessage().contains("<java.lang.Integer, java.lang.String>"));
-      assertTrue(e.getMessage().contains("<java.lang.String, java.lang.String>"));
-    }
+
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> cacheManager.getCache("bar", Integer.class, Integer.class));
+    assertTrue(e.getMessage().contains("bar"));
+    assertTrue(e.getMessage().contains("<java.lang.Integer, java.lang.String>"));
+    assertTrue(e.getMessage().contains("<java.lang.Integer, java.lang.Integer>"));
+
+    IllegalArgumentException f = assertThrows(IllegalArgumentException.class, () -> cacheManager.getCache("bar", String.class, String.class));
+    assertTrue(f.getMessage().contains("bar"));
+    assertTrue(f.getMessage().contains("<java.lang.Integer, java.lang.String>"));
+    assertTrue(f.getMessage().contains("<java.lang.String, java.lang.String>"));
   }
 
   @Disabled

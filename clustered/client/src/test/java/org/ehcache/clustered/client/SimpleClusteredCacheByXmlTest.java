@@ -42,7 +42,7 @@ import java.net.URL;
  * Tests basic XML configuration of clustered {@link PersistentCacheManager}.
  */
 @ExtendWith(PassthroughServer.class)
-@PassthroughServer.ServerResource(name = "primary-server-resource", size = 64)
+@PassthroughServer.OffHeapResource(name = "primary-server-resource", size = 64)
 public class SimpleClusteredCacheByXmlTest {
 
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
