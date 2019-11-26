@@ -73,10 +73,10 @@ public class BasicClusteredCacheTest {
   }
 
   @Test
-  public void testClusteredCacheTwoClients(@Cluster URI clusterUri) throws Exception {
+  public void testClusteredCacheTwoClients(@Cluster URI clusterUri, @Cluster String resource) throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c))
+            .with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource)))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(clusteredDedicated(2, MemoryUnit.MB)))

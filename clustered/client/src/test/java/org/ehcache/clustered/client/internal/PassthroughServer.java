@@ -176,7 +176,7 @@ public class PassthroughServer implements ParameterResolver {
   public @interface Cluster {}
 
   @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.TYPE)
+  @Target({ElementType.TYPE, ElementType.METHOD})
   @Repeatable(OffHeapResources.class)
   @Inherited
   public @interface OffHeapResource {
@@ -186,7 +186,7 @@ public class PassthroughServer implements ParameterResolver {
   }
 
   @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.TYPE)
+  @Target({ElementType.TYPE, ElementType.METHOD})
   @Inherited
   public @interface OffHeapResources {
     OffHeapResource[] value();

@@ -74,23 +74,24 @@ public class ClusteredCacheDestroyTest {
     persistentCacheManager.close();
   }
 
-  @Test
-  public void testDestroyFreesUpTheAllocatedResource(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+  @Test @ExtendWith(PassthroughServer.class) @OffHeapResource(name = "limited-server-resource", size = 16)
+  public void testDestroyFreesUpTheAllocatedResource(@Cluster URI clusterUri) throws CachePersistenceException {
 
-    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
+    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource("limited-server-resource"))).build(true);
 
     CacheConfigurationBuilder<Long, String> configBuilder = newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated(10, MemoryUnit.MB)));
+            .with(ClusteredResourcePoolBuilder.clusteredDedicated(8, MemoryUnit.MB)));
 
+    persistentCacheManager.createCache("clusteredCache", configBuilder);
     try {
-      Cache<Long, String> anotherCache = persistentCacheManager.createCache("another-cache", configBuilder);
+      persistentCacheManager.createCache("another-cache", configBuilder);
       fail();
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), is("Cache 'another-cache' creation in EhcacheManager failed."));
     }
 
-    persistentCacheManager.destroyCache(CLUSTERED_CACHE);
+    persistentCacheManager.destroyCache("clusteredCache");
 
     Cache<Long, String> anotherCache = persistentCacheManager.createCache("another-cache", configBuilder);
 
@@ -101,10 +102,10 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyUnknownCacheAlias(@Cluster URI clusterUri) throws Exception {
-    BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true).close();
+  public void testDestroyUnknownCacheAlias(@Cluster URI clusterUri, @Cluster String resource) throws Exception {
+    BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true).close();
 
-    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).expecting(c -> c)).build(true);
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(clusterUri.resolve("/cache-manager")).expecting(c -> c.defaultServerResource(resource))).build(true);
 
     cacheManager.destroyCache(CLUSTERED_CACHE);
 
@@ -115,8 +116,8 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyNonExistentCache(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyNonExistentCache(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     String nonExistent = "this-is-not-the-cache-you-are-looking-for";
     assertThat(persistentCacheManager.getCache(nonExistent, Long.class, String.class), nullValue());
@@ -125,9 +126,9 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheWhenMultipleClientsConnected(@Cluster URI clusterUri) {
-    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
-    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheWhenMultipleClientsConnected(@Cluster URI clusterUri, @Cluster String resource) {
+    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
+    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     final Cache<Long, String> cache1 = persistentCacheManager1.getCache(CLUSTERED_CACHE, Long.class, String.class);
 
@@ -164,24 +165,24 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheWithCacheManagerStopped(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheWithCacheManagerStopped(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
     persistentCacheManager.close();
     persistentCacheManager.destroyCache(CLUSTERED_CACHE);
     assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
   }
 
   @Test
-  public void testDestroyNonExistentCacheWithCacheManagerStopped(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyNonExistentCacheWithCacheManagerStopped(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
     persistentCacheManager.close();
     persistentCacheManager.destroyCache("this-is-not-the-cache-you-are-looking-for");
     assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
   }
 
   @Test
-  public void testDestroyCacheOnNonExistentCacheManager(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheOnNonExistentCacheManager(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
     persistentCacheManager.close();
     persistentCacheManager.destroy();
 
@@ -190,18 +191,18 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheWithTwoCacheManagerOnSameCache_forbiddenWhenInUse(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
-    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheWithTwoCacheManagerOnSameCache_forbiddenWhenInUse(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
+    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     CachePersistenceException failure = assertThrows(CachePersistenceException.class, () -> persistentCacheManager1.destroyCache(CLUSTERED_CACHE));
     assertThat(failure.getMessage(), is("Cannot destroy cluster tier 'clustered-cache': in use by other client(s)"));
   }
 
   @Test
-  public void testDestroyCacheWithTwoCacheManagerOnSameCache_firstRemovesSecondDestroy(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
-    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheWithTwoCacheManagerOnSameCache_firstRemovesSecondDestroy(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
+    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     persistentCacheManager2.removeCache(CLUSTERED_CACHE);
 
@@ -209,9 +210,9 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheWithTwoCacheManagerOnSameCache_secondDoesntHaveTheCacheButPreventExclusiveAccessToCluster(@Cluster URI clusterUri) throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(false);
-    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c)).build(true);
+  public void testDestroyCacheWithTwoCacheManagerOnSameCache_secondDoesntHaveTheCacheButPreventExclusiveAccessToCluster(@Cluster URI clusterUri, @Cluster String resource) throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(false);
+    PersistentCacheManager persistentCacheManager2 = BASE_BUILDER.with(cluster(clusterUri.resolve("/cache-manager")).autoCreate(c -> c.defaultServerResource(resource))).build(true);
 
     persistentCacheManager2.removeCache(CLUSTERED_CACHE);
 
