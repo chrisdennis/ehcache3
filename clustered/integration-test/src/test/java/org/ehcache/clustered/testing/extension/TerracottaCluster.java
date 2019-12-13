@@ -51,7 +51,7 @@ import static java.util.stream.Collectors.joining;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 import static org.junit.platform.commons.support.AnnotationSupport.findRepeatableAnnotations;
 
-public class TerracottaCluster implements Extension, BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver {
+public class  TerracottaCluster implements Extension, BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target({ElementType.TYPE, ElementType.METHOD})
@@ -90,7 +90,12 @@ public class TerracottaCluster implements Extension, BeforeAllCallback, BeforeEa
   }
 
   private ClusterDetails createOrRetrieveCluster(ExtensionContext context) {
-    return context.getStore(NAMESPACE).getOrComputeIfAbsent("cluster", k -> startCluster(context), ClusterDetails.class);
+    return context.getStore(NAMESPACE).getOrComputeIfAbsent("cluster", k -> {
+      System.out.println("Starting cluster for " + context.getDisplayName());
+      ClusterDetails clusterDetails = startCluster(context);
+      System.out.println("\tcluster for " + context.getDisplayName() + " is at " + clusterDetails.getConnectionUri());
+      return clusterDetails;
+    }, ClusterDetails.class);
   }
 
   private ClusterDetails startCluster(ExtensionContext context) {

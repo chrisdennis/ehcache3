@@ -160,6 +160,7 @@ public class BasicCacheOpsMultiThreadedTest extends ClusteredTests {
   private void parallelPuts(Cache<Long, String> customValueCache) {
     // make sure each thread gets its own id
     long startingId = idGenerator.getAndAdd(10L);
+    System.out.println(Thread.currentThread() + " got startingId " + startingId);
     customValueCache.put(startingId + 1, "value1");
     customValueCache.put(startingId + 1, "value11");
     customValueCache.put(startingId + 2, "value2");
