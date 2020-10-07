@@ -67,7 +67,7 @@ include::{sourcedir38}/107/src/test/resources/org/ehcache/docs/public-xsds-locat
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir38}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
+include::{sourcedir38}/xml/src/main/schema/ehcache-core.xsd[lines=18..-1]
 ----
 
 [[jsr-107-extension]]

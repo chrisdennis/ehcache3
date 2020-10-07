@@ -95,7 +95,7 @@ jar {
 
 distributions {
   main {
-    baseName = archivesBaseName
+    distributionBaseName = archivesBaseName
     contents {
       filesMatching('**/*.jar') {
         // We can safely exclude JAR duplicates as our dependency strategy is fail on conflict

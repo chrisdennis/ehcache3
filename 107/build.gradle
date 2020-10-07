@@ -59,6 +59,10 @@ jar {
   )
 }
 
+spotbugsTckTest {
+  enabled = false
+}
+
 task unpackTckTests(type: Copy) {
   from {
     configurations.tckTestClasses.collect {zipTree(it)}

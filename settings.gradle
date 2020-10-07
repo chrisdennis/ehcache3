@@ -16,14 +16,14 @@
 
 pluginManagement {
   plugins {
-    id 'io.codearte.nexus-staging' version '0.21.1'
-    id 'com.github.spotbugs' version '2.0.1'
+    id 'io.codearte.nexus-staging' version '0.22.0'
+    id 'com.github.spotbugs' version '4.5.1'
     id 'org.jayware.osgi-ds' version '0.5.6'
-    id 'org.owasp.dependencycheck' version '5.2.4'
-    id 'biz.aQute.bnd.builder' version '4.1.0'
-    id 'org.gretty' version '2.3.1'
-    id 'org.asciidoctor.jvm.base' version '2.3.0'
-    id 'org.unbroken-dome.xjc' version '1.4.3'
+    id 'org.owasp.dependencycheck' version '6.0.2'
+    id 'biz.aQute.bnd.builder' version '5.1.2'
+    id 'org.gretty' version '3.0.3'
+    id 'org.asciidoctor.jvm.base' version '3.2.0'
+    id 'org.unbroken-dome.xjc' version '2.0.0'
   }
 }
 

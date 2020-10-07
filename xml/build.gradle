@@ -41,8 +41,12 @@ jar {
   )
 }
 
+sourceSets {
+  main {
+    resources.source(xjcSchema)
+  }
+}
+
 xjcGenerate {
-  source = ['src/main/resources/ehcache-core.xsd', 'src/main/resources/ehcache-multi.xsd']
-  extension = true
   extraArgs = ['-Xfluent-api', '-Xannotate']
 }

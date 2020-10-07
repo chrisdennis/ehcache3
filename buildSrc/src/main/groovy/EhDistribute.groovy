@@ -45,7 +45,7 @@ class EhDistribute implements Plugin<Project> {
 
     project.shadowJar {
       configurations = [[project.configurations.compileOnly]]
-      baseName = "$project.archivesBaseName-shadow"
+      archiveBaseName = "$project.archivesBaseName-shadow"
       classifier = ''
       dependencies {
         exclude({ rdep -> !['org.ehcache', 'org.terracotta'].any({ prefix -> rdep.moduleGroup.startsWith(prefix) })})
