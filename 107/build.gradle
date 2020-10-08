@@ -35,7 +35,7 @@ sourceSets {
 
 dependencies {
   api project(':api')
-  providedApi "javax.cache:cache-api:$parent.jcacheVersion"
+  api "javax.cache:cache-api:$parent.jcacheVersion"
 
   implementation project(':impl')
   implementation project(':xml')
