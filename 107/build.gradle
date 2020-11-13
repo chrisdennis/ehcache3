@@ -20,6 +20,11 @@ plugins {
   id 'org.ehcache.build.deploy'
 }
 
+deploy {
+  name = 'Ehcache 3 JSR-107 module'
+  description = 'The JSR-107 compatibility module of Ehcache 3'
+}
+
 configurations {
   tckTestClasses
 }

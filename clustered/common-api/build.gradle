@@ -18,6 +18,11 @@ plugins {
   id 'org.ehcache.build.deploy'
 }
 
+deploy {
+  name = 'Ehcache 3 Common Clustering API module'
+  description = 'The Common Clustering API module of Ehcache 3'
+}
+
 dependencies {
   api "org.terracotta:entity-common-api:$terracottaApisVersion"
 }

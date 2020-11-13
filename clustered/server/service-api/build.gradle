@@ -19,6 +19,11 @@ plugins {
   id 'org.ehcache.build.voltron'
 }
 
+deploy {
+  name = 'Ehcache 3 Clustering Server Storage API module'
+  description = 'The Server Storage API module of Ehcache 3'
+}
+
 dependencies {
   api project(':clustered:common-api')
 }

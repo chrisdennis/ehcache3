@@ -30,13 +30,10 @@ class EhDistribute implements Plugin<Project> {
     def hashsetOfProjects = project.configurations.compileOnly.dependencies.withType(ProjectDependency).dependencyProject
 
     project.plugins.apply 'java-library'
-    project.plugins.apply 'maven'
     project.plugins.apply 'signing'
     project.plugins.apply 'biz.aQute.bnd.builder'
     project.plugins.apply 'com.github.johnrengelman.shadow'
-    project.plugins.apply EhPomMangle
     project.plugins.apply EhDocs
-    project.plugins.apply EhPomGenerate
 
     project.configurations {
         shadowCompile

@@ -31,10 +31,6 @@ gradlePlugin {
       id = 'org.ehcache.build.distribute'
       implementationClass = 'EhDistribute'
     }
-    ehPomMangle {
-      id = 'org.ehcache.build.pom-mangle'
-      implementationClass = 'EhPomMangle'
-    }
     ehVoltron {
       id = 'org.ehcache.build.voltron'
       implementationClass = 'EhVoltron'

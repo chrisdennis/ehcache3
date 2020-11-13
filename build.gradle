@@ -249,8 +249,6 @@ subprojects {
 
     jar {
       bnd(
-        'Bundle-Name': project.properties.subPomName,
-        'Bundle-Description': project.properties.subPomDesc,
         'Bundle-SymbolicName': "org.ehcache.modules.$project.archivesBaseName",
         'Bundle-DocURL': 'http://ehcache.org',
         'Bundle-License': 'LICENSE',
@@ -259,6 +257,13 @@ subprojects {
         'Service-Component': 'OSGI-INF/*.xml'
       )
     }
+
+    plugins.withId('com.terracottatech.build.deploy') {
+      jar {
+        bnd('Bundle-Name': project.deploy.name, 'Bundle-Description': project.deploy.description)
+      }
+    }
+
     dependencies {
       baseline(group: group, name: jar.archiveBaseName.get()) {
         version {

@@ -28,6 +28,11 @@ sourceSets {
   }
 }
 
+deploy {
+  name = 'Ehcache 3 Implementation module'
+  description = 'The implementation module of Ehcache 3'
+}
+
 dependencies {
   api project(':core')
   implementation group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion

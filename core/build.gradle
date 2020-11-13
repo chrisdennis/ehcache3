@@ -19,6 +19,11 @@ plugins {
   id 'biz.aQute.bnd.builder'
 }
 
+deploy {
+  name = 'Ehcache 3 Core module'
+  description = 'The Core module of Ehcache 3'
+}
+
 dependencies {
   api project(':api')
   implementation "org.terracotta:statistics:$parent.statisticVersion"

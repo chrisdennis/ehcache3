@@ -19,6 +19,11 @@ plugins {
   id 'org.ehcache.build.voltron'
 }
 
+deploy {
+  name = 'Ehcache 3 Clustering Server Storage Implementation module'
+  description = 'The Server Storage Implementation module of Ehcache 3'
+}
+
 dependencies {
   service project(':clustered:server:service-api')
   service "org.terracotta:offheap-resource:$terracottaPlatformVersion"

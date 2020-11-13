@@ -19,6 +19,11 @@ plugins {
   id 'org.ehcache.build.voltron'
 }
 
+deploy {
+  name = 'Ehcache 3 Clustering Server Entity module'
+  description = 'The Server Entity module of Ehcache 3'
+}
+
 dependencies {
   service project(':clustered:server:service-api')
   service "org.terracotta.management:monitoring-service-api:$terracottaPlatformVersion"

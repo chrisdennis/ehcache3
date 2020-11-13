@@ -20,6 +20,11 @@ plugins {
   id 'biz.aQute.bnd.builder'
 }
 
+deploy {
+  name = 'Ehcache 3 XML Parsing module'
+  description = 'The module containing all XML parsing logic Ehcache 3'
+}
+
 dependencies {
   api project(':api')
   implementation project(':core')

@@ -16,10 +16,16 @@
 
 plugins {
   id 'org.ehcache.build.distribute'
+  id 'org.ehcache.build.deploy'
 }
 
 group = 'org.ehcache'
 archivesBaseName = 'ehcache'
+
+deploy {
+  name = 'Ehcache'
+  description = 'End-user ehcache3 jar artifact'
+}
 
 dependencies {
   compileOnly project(':api')

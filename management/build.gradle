@@ -18,6 +18,11 @@ plugins {
   id 'org.ehcache.build.deploy'
 }
 
+deploy {
+  name = 'Ehcache 3 Management and Monitoring module'
+  description = 'The Management and Monitoring module of Ehcache 3'
+}
+
 dependencies {
   // optional: if we want xml config
   compileOnly project(':xml')

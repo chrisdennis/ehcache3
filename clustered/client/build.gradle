@@ -19,6 +19,11 @@ plugins {
   id 'org.jayware.osgi-ds'
 }
 
+deploy {
+  name = 'Ehcache 3 Client Side Clustering module'
+  description = 'The Client Side Clustering module of Ehcache 3'
+}
+
 dependencies {
   compileOnly project(':impl')
   compileOnly project(':xml')

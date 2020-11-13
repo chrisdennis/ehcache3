@@ -32,6 +32,11 @@ ext {
   docsFolder = "$buildDir/docs/asciidoc"
 }
 
+deploy {
+  name = 'Ehcache 3 Clustered Module'
+  description = 'Ehcache 3 Clustered: Defines the client jar and the kit containing the Terracotta server'
+}
+
 dependencies {
   compileOnly(project(':clustered:client')) {
     exclude group: 'org.ehcache.modules', module: 'api'

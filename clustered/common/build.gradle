@@ -18,6 +18,11 @@ plugins {
   id 'org.ehcache.build.deploy'
 }
 
+deploy {
+  name = 'Ehcache 3 Common Clustering module'
+  description = 'The Common Clustering module of Ehcache 3'
+}
+
 dependencies {
   api project(':clustered:common-api')
 

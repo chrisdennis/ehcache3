@@ -111,7 +111,7 @@ class EhDeploy implements Plugin<Project> {
         def component = publishTask.publication.component
         if (component != null) { //The shadow plugin doesn't associate a component with the publication
           def unpublishedDeps = component.usages.collectMany { usage ->
-            usage.dependencies.withType(ProjectDependency).matching { !it.dependencyProject.plugins.hasPlugin(TcDeployPlugin) }
+            usage.dependencies.withType(ProjectDependency).matching { !it.dependencyProject.plugins.hasPlugin(EhDeploy) }
           }
           if (!unpublishedDeps.isEmpty()) {
             project.logger.warn("{} has applied the deploy plugin but has unpublished project dependencies: {}", project, unpublishedDeps)

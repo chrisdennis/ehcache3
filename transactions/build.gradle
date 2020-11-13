@@ -17,16 +17,31 @@
 plugins {
   id 'biz.aQute.bnd.builder'
   id 'org.jayware.osgi-ds'
-  id 'org.ehcache.build.pom-mangle'
+  id 'org.ehcache.build.deploy'
 }
 
 group = 'org.ehcache'
 
+deploy {
+  name = 'Ehcache 3 transactions module'
+  description = 'The transactions module of Ehcache 3'
+}
+
+java {
+  registerFeature('uber') {
+    capability('org.ehcache', 'transactions', project.version as String)
+  }
+  registerFeature('modular') {
+    capability('org.ehcache', 'transactions', project.version as String)
+  }
+}
+
 dependencies {
   api group: 'javax.transaction', name: 'jta', version: '1.1'
-  api project(':core')
-  implementation project(':impl')
-  implementation project(':xml')
+  uberApi project(':dist')
+  modularApi project(':core')
+  modularImplementation project(':impl')
+  modularImplementation project(':xml')
   implementation (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
@@ -37,21 +52,10 @@ dependencies {
   testImplementation 'org.xmlunit:xmlunit-matchers:2.6.0'
 }
 
-// For EhPomMangle
-dependencies {
-  pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
-  pomOnlyProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
-}
-
 jar {
   bnd (
     'Bundle-SymbolicName': 'org.ehcache.transactions',
     'Export-Package': 'org.ehcache.transactions.xa.*',
     'Import-Package': 'bitronix.tm.*;resolution:=optional, javax.transaction.*;resolution:=optional, org.ehcache.xml.*;resolution:=optional, *',
   )
-}
-
-project.signing {
-  required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
-  sign project.configurations.getByName('archives')
 }
