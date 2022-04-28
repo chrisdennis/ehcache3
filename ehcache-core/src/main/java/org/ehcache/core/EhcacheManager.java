@@ -313,7 +313,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
                                         Class<K> keyType, Class<V> valueType) {
     LoggingService loggingService = serviceLocator.getService(LoggingService.class);
 
-    try (LoggingService.Context ignored = loggingService.withContext("cache-alias", "alias")) {
+    try (LoggingService.Context ignored = loggingService.withContext("cache-alias", alias)) {
       Collection<ServiceConfiguration<?, ?>> adjustedServiceConfigs = new ArrayList<>(config.getServiceConfigurations());
 
       List<ServiceConfiguration<?, ?>> unknownServiceConfigs = new ArrayList<>();

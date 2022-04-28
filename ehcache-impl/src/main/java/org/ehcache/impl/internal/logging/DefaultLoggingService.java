@@ -20,13 +20,10 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
-
-import static java.util.Collections.unmodifiableMap;
 
 public class DefaultLoggingService implements LoggingService {
 
@@ -72,31 +69,16 @@ public class DefaultLoggingService implements LoggingService {
     if (context == null || context.isEmpty()) {
       return logger;
     } else {
-      Map<String, String> finalContext = unmodifiableMap(new HashMap<>(context));
+      String prefix = context.toString();
       return (Logger) Proxy.newProxyInstance(DefaultLoggingService.class.getClassLoader(), new Class<?>[]{Logger.class}, (proxy, method, args) -> {
-        try (Context ignored = applyContext(finalContext)) {
-          return method.invoke(logger, args);
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        for (int i =0; i < parameterTypes.length; i++) {
+          if (String.class.equals(parameterTypes[i])) {
+            args[i] = prefix + " :: " + args[i].toString();
+          }
         }
+        return method.invoke(logger, args);
       });
     }
-  }
-
-  private static Context applyContext(Map<String, String> context) {
-    return context.entrySet().stream().<Context>map(e -> {
-      String key = e.getKey();
-      String old = MDC.get(key);
-      MDC.put(key, e.getValue());
-      if (old == null) {
-        return () -> MDC.remove(key);
-      } else {
-        return () -> MDC.put(key, old);
-      }
-    }).reduce(() -> {}, (a, b) -> () -> {
-      try {
-        a.close();
-      } finally {
-        b.close();
-      }
-    });
   }
 }
