@@ -13,11 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.impl.internal.logging;
+package org.ehcache.core;
 
-import org.ehcache.core.spi.service.LoggingService;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,21 +22,11 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DefaultLoggingService implements LoggingService {
+public class EhcacheLoggerFactory {
 
-  private final ThreadLocal<Map<String, String>> bindTimeMdc = new ThreadLocal<>();
+  private static final ThreadLocal<Map<String, String>> bindTimeMdc = new ThreadLocal<>();
 
-  @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
-
-  }
-
-  @Override
-  public void stop() {
-
-  }
-
-  public Context withContext(String key, String value) {
+  public static Context withContext(String key, String value) {
     Map<String, String> context = bindTimeMdc.get();
     if (context == null) {
       bindTimeMdc.set(context = new HashMap<>());
@@ -60,8 +47,7 @@ public class DefaultLoggingService implements LoggingService {
     }
   }
 
-  @Override @SuppressWarnings("try")
-  public Logger getLogger(Class<?> klazz) {
+  public static Logger getLogger(Class<?> klazz) {
     Map<String, String> context = bindTimeMdc.get();
 
     Logger logger = LoggerFactory.getLogger(klazz);
@@ -69,8 +55,23 @@ public class DefaultLoggingService implements LoggingService {
     if (context == null || context.isEmpty()) {
       return logger;
     } else {
-      String prefix = context + " :: ";
-      return new PrefixingLogger(logger, prefix);
+      String prefix = context.toString();
+      return (Logger) Proxy.newProxyInstance(EhcacheLoggerFactory.class.getClassLoader(), new Class<?>[]{Logger.class}, (proxy, method, args) -> {
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        for (int i =0; i < parameterTypes.length; i++) {
+          if (String.class.equals(parameterTypes[i])) {
+            args[i] = prefix + " :: " + args[i].toString();
+          }
+        }
+        return method.invoke(logger, args);
+      });
     }
+  }
+
+  @FunctionalInterface
+  interface Context extends AutoCloseable {
+
+    @Override
+    void close();
   }
 }
